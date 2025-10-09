@@ -1,0 +1,10 @@
+公开备注：
+{"billingDataMod": {"endDate": "2029-09-04"}}
+
+编译方式：
+go install github.com/goreleaser/goreleaser/v2@latest
+goreleaser build --single-target --clean --skip=validate --snapshot
+
+获取IP库：
+https://ipinfo.io/data/free/country.mmdb?token=${IPINFO_TOKEN}
+获取后存到/pkg/geoip/geoip.db
