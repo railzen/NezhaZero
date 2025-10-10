@@ -50,9 +50,11 @@
             </td>
             <td style="text-align: center;" class="node-cell uptime">@#node.uptime#@</td>
             <td v-if="group.data.some(item => item.additional && item.additional.remaining && Object.keys(item.additional.remaining).length > 0)" style="text-align: center;" class="node-cell remaining">
-                <span v-if="node.additional.remaining.days == 'lifetime'">{{tr "Lifetime"}}</span>
-                <span v-else-if="node.additional.remaining.days < 0">{{tr "Expired"}}</span>
-                <span v-else class="node-cell-remaining-days">@#node.additional.remaining.days#@{{tr "Days"}}</span>
+                <template v-if="node.additional && node.additional.remaining.days">
+                    <span v-if="node.additional.remaining.days == 'lifetime'">{{tr "Lifetime"}}</span>
+                    <span v-else-if="node.additional.remaining.days < 0">{{tr "Expired"}}</span>
+                    <span v-else class="node-cell-remaining-days">@#node.additional.remaining.days#@{{tr "Days"}}</span>
+                </template>
             </td>
             <td style="text-align: center;" class="node-cell load">@#node.load#@</td>
             <td style="text-align: center;" class="node-cell network">@#node.network#@</td>
