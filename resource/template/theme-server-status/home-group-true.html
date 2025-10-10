@@ -15,9 +15,9 @@
         <th class="node-cell load center">{{tr "Load"}}</th>
         <th class="node-cell network center">{{tr "NetSpeed"}}↓|↑</th>
         <th class="node-cell traffic center">{{tr "NetTransfer"}}↓|↑</th>
-        <th class="node-cell cpu center">{{tr "CpuUsed"}}</th>
-        <th class="node-cell memory center">{{tr "MemUsed"}}</th>
-        <th class="node-cell hdd center">{{tr "DiskUsed"}}</th>
+        <th v-if="!isMobile" class="node-cell cpu center">{{tr "CpuUsed"}}</th>
+        <th v-if="!isMobile" class="node-cell memory center">{{tr "MemUsed"}}</th>
+        <th v-if="!isMobile" class="node-cell hdd center">{{tr "DiskUsed"}}</th>
     </tr>
     </thead>
     <tbody id="servers">
@@ -53,26 +53,28 @@
                 <template v-if="node.additional && node.additional.remaining.days">
                     <span v-if="node.additional.remaining.days == 'lifetime'">{{tr "Lifetime"}}</span>
                     <span v-else-if="node.additional.remaining.days < 0">{{tr "Expired"}}</span>
-                    <span v-else class="node-cell-remaining-days">@#node.additional.remaining.days#@{{tr "Days"}}</span>
+                    <span v-else class="node-cell-remaining-days" :style="{
+                        color: node.additional.remaining.days < 5 ? '#ee1c25' : (node.additional.remaining.days < 10 && node.additional.remaining.days >= 5 ? '#fed12c' : '') }">
+                        @#node.additional.remaining.days#@{{tr "Days"}}</span>
                 </template>
             </td>
             <td style="text-align: center;" class="node-cell load">@#node.load#@</td>
             <td style="text-align: center;" class="node-cell network">@#node.network#@</td>
             <td style="text-align: center;" class="node-cell traffic">@#node.traffic#@</td>
-            <td class="node-cell cpu">
+            <td v-if="!isMobile" class="node-cell cpu">
                 <div :class="['progress', node.online ? 'progress-online' : 'progress-offline']">
                     <div :style="node.cpu.style" :class="node.cpu.class"><small>@#node.cpu.percent#@%</small>
                     </div>
                 </div>
             </td>
-            <td class="node-cell memory">
+            <td v-if="!isMobile" class="node-cell memory">
                 <div :class="['progress', node.online ? 'progress-online' : 'progress-offline']">
                     <div :style="node.memory.style" :class="node.memory.class">
                         <small>@#node.memory.percent#@%</small>
                     </div>
                 </div>
             </td>
-            <td class="node-cell hdd">
+            <td v-if="!isMobile" class="node-cell hdd">
                 <div :class="['progress', node.online ? 'progress-online' : 'progress-offline']">
                     <div :style="node.hdd.style" :class="node.hdd.class"><small>@#node.hdd.percent#@%</small>
                     </div>
