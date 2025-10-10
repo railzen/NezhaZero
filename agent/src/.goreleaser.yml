@@ -1,0 +1,33 @@
+version: 2
+before:
+  hooks:
+    - go mod tidy -v
+builds:
+  - id: universal
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.arch={{.Arch}}
+    goos:
+      - linux
+      - windows
+      - freebsd
+      - darwin
+    goarch:
+      - arm
+      - arm64
+      - 386
+      - amd64
+      - mips
+      - mipsle
+      - s390x
+      - riscv64
+    gomips:
+      - softfloat
+    ignore:
+      - goos: windows
+        goarch: arm
+    main: ./cmd/agent
+    binary: nezha-agent
+snapshot:
+  version_template: "nezha-agent"

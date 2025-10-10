@@ -1,0 +1,5 @@
+.DS_Store
+/agent
+/cmd/agent/agent
+*.pprof
+dist
