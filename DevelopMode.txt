@@ -8,3 +8,129 @@ goreleaser build --single-target --clean --skip=validate --snapshot
 获取IP库：
 https://ipinfo.io/data/free/country.mmdb?token=${IPINFO_TOKEN}
 获取后存到/pkg/geoip/geoip.db
+
+旧版本的最后一次自定义代码（包括 style 和 script）
+<script>
+  // 续费VPS列表
+  const renewVpsList = {
+    61: { expiration_time: "2026-09-16" },
+    35: { expiration_time: "2027-05-13" },
+    30: { expiration_time: "2027-09-24" },
+    28: { expiration_time: "2026-11-27" },
+    26: { expiration_time: "2026-05-26" },
+    20: { expiration_time: "2026-01-29" },
+    18: { expiration_time: "2099-12-31" },
+    17: { expiration_time: "2026-02-25" },
+    16: { expiration_time: "2099-12-31" },
+    11: { expiration_time: "2027-11-27" },
+    9:  { expiration_time: "2030-12-20" },
+    8:  { expiration_time: "2026-06-05" },
+    7:  { expiration_time: "2026-06-09" },
+    2:  { expiration_time: "2027-09-04" },
+  };
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const downtimeCells = document.querySelectorAll("th.node-cell.uptime.center");
+
+    downtimeCells.forEach(function (cell) {
+      const newTh = document.createElement("th");
+      newTh.className = "node-cell downtime center";
+      newTh.textContent = "有效";
+      cell.parentNode.insertBefore(newTh, cell.nextSibling);
+    });
+
+    // 计算订阅状态
+    const calculateSubscriptionStatus = (renewVps) => {
+      const renew = {
+        remainingDays: "Expired",
+      };
+      const expirationTime = new Date(renewVps.expiration_time);
+      const currentTime = new Date();
+
+      if (currentTime > expirationTime) {
+        renew.color = "#e8e8e8";
+        return renew;
+      }
+
+      const remainingTime = expirationTime.getTime() - currentTime.getTime();
+      let remainingDays = Math.ceil(remainingTime / (1000 * 3600 * 24));
+      if (remainingDays > 999) {
+        remainingDays = "999";
+      }
+      renew.remainingDays = remainingDays + " 天";
+
+      if (remainingDays < 7) {
+        renew.color = "#ee1c25";
+      } else if (remainingDays < 15) {
+        renew.color = "#fed12c";
+      }
+
+      return renew;
+    };
+
+    const rows = document.querySelectorAll("tbody tr");
+
+    rows.forEach((row) => {
+      const uptimeCell = row.querySelector("td.node-cell.uptime");
+      const nodeId = row.id.substring(1);
+
+      if (uptimeCell && nodeId) {
+        const renewCell = document.createElement("td");
+        renewCell.classList.add("node-cell", "renew", "center");
+        const renewVps = renewVpsList[nodeId];
+
+        if (renewVps && renewVps.expiration_time) {
+          const timeObj = calculateSubscriptionStatus(renewVps);
+          renewCell.textContent = timeObj.remainingDays;
+          renewCell.style.color = timeObj.color;
+        } else {
+          renewCell.textContent = "Unknow";
+        }
+
+        uptimeCell.parentNode.insertBefore(renewCell, uptimeCell.nextSibling);
+      }
+    });
+  });
+</script>
+
+<style>
+/* 弹出卡片小箭头 */
+.ui.right.center.popup {
+  margin: -3px 0 0 0.914286em !important;
+  transform-origin: left 50% !important;
+}
+
+.ui.top.right.popup {
+  margin-right: 0 !important;
+  margin-bottom: 8px !important;
+}
+
+.ui.left.center.popup {
+  margin: -3px .91428571em 0 0 !important;
+  transform-origin: right 50% !important;
+}
+
+.ui.right.center.popup:before,
+.ui.left.center.popup:before {
+  border: 0px solid #fafafaeb !important;
+  background: #fafafaeb !important;
+}
+.ui.top.popup:before {
+  border-color: #fafafaeb transparent transparent !important;
+}
+
+.ui.popup:before {
+  border-color: #fafafaeb transparent transparent !important;
+}
+
+.ui.bottom.left.popup:before,
+.ui.bottom.right.popup:before,
+.ui.top.left.popup:before {
+  border-radius: 0 !important;
+  border: 1px solid transparent !important;
+  border-color: #fafafaeb transparent transparent !important;
+  background: #fafafaeb !important;
+  box-shadow: 0px 0px 0 0 #fafafaeb !important;
+  -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+}
+</style>
