@@ -3,7 +3,7 @@
   <img width="360" style="max-width:80%" src="resource/static/brand.svg" title="哪吒监控 Nezha Monitoring">
   <br>
   <br><br>
-<img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/railzen/NezhaZero?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard">&nbsp;<img src="https://img.shields.io/badge/V0.20.5-brightgreen?style=for-the-badge&logo=github&label=Agent">&nbsp;<a href="https://github.com/nezhahq/nezha" target="_blank"><img src="https://img.shields.io/badge/NEZHA-POWERED_BY_NAIBA-blue?logo=github&style=for-the-badge" alt="访问哪吒仓库">
+<img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/railzen/NezhaZero?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard">&nbsp;<img src="https://img.shields.io/badge/Agent-v0.20.5-bridhtgreen?logo=github&style=for-the-badge">&nbsp;<a href="https://github.com/nezhahq/nezha" target="_blank"><img src="https://img.shields.io/badge/NEZHA-POWERED_BY_NAIBA-blue?logo=github&style=for-the-badge" alt="访问哪吒仓库">
     </a>
   <br>
   <br>
@@ -11,8 +11,17 @@
   <p>Supports <b>monitoring</b> system status, HTTP, TCP, Ping and supports <b>push alerts</b>, run scheduled tasks and <b>web terminal</b>.</p>
 </div>
 
+
 ## Abstract
 基于哪吒V0版本进行二次修改，主要更新了GEOIP库和管理界面复制的链接，同时进行了一些样式优化。尽可能减少更新，提供稳定版本。
+
+一键安装脚本如下：
+
+```shell
+curl -L https://raw.githubusercontent.com/railzen/nezhazero/main/installScript/nezhazero.sh -o nezhazero.sh && chmod +x nezhazero.sh && ./nezhazero.sh
+```
+
+
 
 ## User Guide
 
