@@ -118,24 +118,24 @@ pre_check() {
     fi
 
     if [ -n "$CUSTOM_MIRROR" ]; then
-        GITHUB_RAW_URL="gitee.com/naibahq/scripts/raw/v0"
+        GITHUB_RAW_URL="raw.githubusercontent.com/railzen/NezhaZero/main/installScript"
         GITHUB_URL=$CUSTOM_MIRROR
         Get_Docker_URL="get.docker.com"
         Get_Docker_Argu=" -s docker --mirror Aliyun"
-        Docker_IMG="registry.cn-shanghai.aliyuncs.com\/naibahq\/nezha-dashboard:v0.20.13"
+        Docker_IMG="registry.cn-shanghai.aliyuncs.com\/railzen\/nezha-zero-dashboard:v0.20.15"
     else
         if [ -z "$CN" ]; then
-            GITHUB_RAW_URL="raw.githubusercontent.com/nezhahq/scripts/v0"
+            GITHUB_RAW_URL="raw.githubusercontent.com/railzen/NezhaZero/main/installScript"
             GITHUB_URL="github.com"
             Get_Docker_URL="get.docker.com"
             Get_Docker_Argu=" "
-            Docker_IMG="ghcr.io\/naiba\/nezha-dashboard:v0.20.13"
+            Docker_IMG="railzen\/nezha-zero-dashboard:v0.20.15"
         else
-            GITHUB_RAW_URL="gitee.com/naibahq/scripts/raw/v0"
-            GITHUB_URL="gitee.com"
+            GITHUB_RAW_URL="raw.githubusercontent.com/railzen/NezhaZero/main/installScript"
+            GITHUB_URL="github.com"
             Get_Docker_URL="get.docker.com"
             Get_Docker_Argu=" -s docker --mirror Aliyun"
-            Docker_IMG="registry.cn-shanghai.aliyuncs.com\/naibahq\/nezha-dashboard:v0.20.13"
+            Docker_IMG="registry.cn-shanghai.aliyuncs.com\/railzen\/nezha-zero-dashboard:v0.20.15"
         fi
     fi
 }
@@ -205,13 +205,13 @@ select_version() {
 update_script() {
     echo "> 更新脚本"
 
-    curl -sL https://${GITHUB_RAW_URL}/install.sh -o /tmp/nezha.sh
-    mv -f /tmp/nezha.sh ./nezha.sh && chmod a+x ./nezha.sh
+    curl -sL https://${GITHUB_RAW_URL}/nezhazero.sh -o /tmp/nezhazero.sh
+    mv -f /tmp/nezhazero.sh ./nezhazero.sh && chmod a+x ./nezhazero.sh
 
     echo "3s后执行新脚本"
     sleep 3s
     clear
-    exec ./nezha.sh
+    exec ./nezhazero.sh
     exit 0
 }
 
@@ -579,21 +579,21 @@ restart_and_update() {
 }
 
 restart_and_update_docker() {
-    update_docker_compose_image
-    sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml pull
+    #update_docker_compose_image
+    #sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml pull
     sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml down
     sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml up -d
 }
 
-update_docker_compose_image() {
-    yaml_file_path="${NZ_DASHBOARD_PATH}/docker-compose.yaml"
-    if grep -q "registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard$" "$yaml_file_path"; then
-        sed -i 's|registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard$|registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard:v0.20.13|' "$yaml_file_path"
-    fi
-    if grep -q "ghcr.io/naiba/nezha-dashboard$" "$yaml_file_path"; then
-        sed -i 's|ghcr.io/naiba/nezha-dashboard$|ghcr.io/naibahq/nezha-dashboard:v0.20.13|' "$yaml_file_path"
-    fi
-}
+#update_docker_compose_image() {
+#    yaml_file_path="${NZ_DASHBOARD_PATH}/docker-compose.yaml"
+#   if grep -q "registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard$" "$yaml_file_path"; then
+#        sed -i 's|registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard$|registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard:v0.20.13|' "$yaml_file_path"
+#    fi
+#    if grep -q "ghcr.io/naiba/nezha-dashboard$" "$yaml_file_path"; then
+#        sed -i 's|ghcr.io/naiba/nezha-dashboard$|ghcr.io/naibahq/nezha-dashboard:v0.20.13|' "$yaml_file_path"
+#    fi
+#}
 
 restart_and_update_standalone() {
     # _version=$(curl -m 10 -sL "https://api.github.com/repos/naiba/nezha/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
@@ -607,10 +607,10 @@ restart_and_update_standalone() {
     #     _version=$(curl -m 10 -sL "https://gitee.com/api/v5/repos/naibahq/nezha/releases/latest" | awk -F '"' '{for(i=1;i<=NF;i++){if($i=="tag_name"){print $(i+2)}}}')
     # fi
 
-    _version="v0.20.13"
+    _version="v0.20.15"
 
     if [ -z "$_version" ]; then
-        err "获取 Dashboard 版本号失败，请检查本机能否链接 https://api.github.com/repos/naiba/nezha/releases/latest"
+        err "获取 Dashboard 版本号失败，请检查本机能否链接 https://api.github.com/"
         return 1
     else
         echo "当前最新版本为： ${_version}"
@@ -624,9 +624,9 @@ restart_and_update_standalone() {
     fi
 
     if [ -z "$CN" ]; then
-        NZ_DASHBOARD_URL="https://${GITHUB_URL}/naiba/nezha/releases/download/${_version}/dashboard-linux-${os_arch}.zip"
+        NZ_DASHBOARD_URL="https://${GITHUB_URL}/railzen/NezhaZero/releases/download/${_version}/dashboard-linux-${os_arch}.zip"
     else
-        NZ_DASHBOARD_URL="https://${GITHUB_URL}/naibahq/nezha/releases/download/${_version}/dashboard-linux-${os_arch}.zip"
+        NZ_DASHBOARD_URL="https://${GITHUB_URL}/railzen/NezhaZero/releases/download/${_version}/dashboard-linux-${os_arch}.zip"
     fi
 
     sudo wget -qO $NZ_DASHBOARD_PATH/app.zip "$NZ_DASHBOARD_URL" >/dev/null 2>&1 && sudo unzip -qq -o $NZ_DASHBOARD_PATH/app.zip -d $NZ_DASHBOARD_PATH && sudo mv $NZ_DASHBOARD_PATH/dashboard-linux-$os_arch $NZ_DASHBOARD_PATH/app && sudo rm $NZ_DASHBOARD_PATH/app.zip
@@ -750,8 +750,8 @@ uninstall_dashboard() {
 uninstall_dashboard_docker() {
     sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml down
     sudo rm -rf $NZ_DASHBOARD_PATH
-    sudo docker rmi -f ghcr.io/naiba/nezha-dashboard >/dev/null 2>&1
-    sudo docker rmi -f registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard >/dev/null 2>&1
+    sudo docker rmi -f railzen/nezha-zero-dashboard >/dev/null 2>&1
+    sudo docker rmi -f registry.cn-shanghai.aliyuncs.com/railzen/nezha-zero-dashboard >/dev/null 2>&1
 }
 
 uninstall_dashboard_standalone() {
@@ -818,34 +818,33 @@ clean_all() {
 show_usage() {
     echo "哪吒监控 管理脚本使用方法: "
     echo "--------------------------------------------------------"
-    echo "./nezha.sh                            - 显示管理菜单"
-    echo "./nezha.sh install_dashboard          - 安装面板端"
-    echo "./nezha.sh modify_dashboard_config    - 修改面板配置"
-    echo "./nezha.sh start_dashboard            - 启动面板"
-    echo "./nezha.sh stop_dashboard             - 停止面板"
-    echo "./nezha.sh restart_and_update         - 重启并更新面板"
-    echo "./nezha.sh show_dashboard_log         - 查看面板日志"
-    echo "./nezha.sh uninstall_dashboard        - 卸载管理面板"
+    echo "./nezhazero.sh                            - 显示管理菜单"
+    echo "./nezhazero.sh install_dashboard          - 安装面板端"
+    echo "./nezhazero.sh modify_dashboard_config    - 修改面板配置"
+    echo "./nezhazero.sh start_dashboard            - 启动面板"
+    echo "./nezhazero.sh stop_dashboard             - 停止面板"
+    echo "./nezhazero.sh restart_and_update         - 重启并更新面板"
+    echo "./nezhazero.sh show_dashboard_log         - 查看面板日志"
+    echo "./nezhazero.sh uninstall_dashboard        - 卸载管理面板"
     echo "--------------------------------------------------------"
-    echo "./nezha.sh install_agent              - 安装监控Agent"
-    echo "./nezha.sh modify_agent_config        - 修改Agent配置"
-    echo "./nezha.sh show_agent_log             - 查看Agent日志"
-    echo "./nezha.sh uninstall_agent            - 卸载Agent"
-    echo "./nezha.sh restart_agent              - 重启Agent"
-    echo "./nezha.sh update_script              - 更新脚本"
+    echo "./nezhazero.sh install_agent              - 安装监控Agent"
+    echo "./nezhazero.sh modify_agent_config        - 修改Agent配置"
+    echo "./nezhazero.sh show_agent_log             - 查看Agent日志"
+    echo "./nezhazero.sh uninstall_agent            - 卸载Agent"
+    echo "./nezhazero.sh restart_agent              - 重启Agent"
+    echo "./nezhazero.sh update_script              - 更新脚本"
     echo "--------------------------------------------------------"
 }
 
 show_menu() {
     printf "
-    ${green}哪吒监控管理脚本 For v0${plain}
-    --- https://github.com/naiba/nezha ---
-    ${red}v0面板已停止维护，请及时升级至v1，详见https://nezha.wiki/${plain}
+    ${green}哪吒监控管理脚本 Ver0 ${plain}
+    --- https://github.com/railzen/nezhazero ---
     ${green}1.${plain}  安装面板端
     ${green}2.${plain}  修改面板配置
     ${green}3.${plain}  启动面板
     ${green}4.${plain}  停止面板
-    ${green}5.${plain}  重启并更新面板
+    ${green}5.${plain}  重启面板
     ${green}6.${plain}  查看面板日志
     ${green}7.${plain}  卸载管理面板
     ————————————————-
