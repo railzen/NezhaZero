@@ -3,13 +3,16 @@
   <img width="360" style="max-width:80%" src="resource/static/brand.svg" title="哪吒监控 Nezha Monitoring">
   <br>
   <br><br>
-<img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/naiba/nezha?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard">&nbsp;<img src="https://img.shields.io/github/v/release/nezhahq/agent?color=brightgreen&label=Agent&style=for-the-badge&logo=github">&nbsp;<img src="https://img.shields.io/github/actions/workflow/status/nezhahq/agent/agent.yml?label=Agent%20CI&logo=github&style=for-the-badge">
+<img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/railzen/NezhaZero?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard">&nbsp;<img src="https://img.shields.io/badge/V0.20.5-brightgreen?style=for-the-badge&logo=github&label=Agent">&nbsp; <a href="https://github.com/nezhahq/nezha" target="_blank"><img src="https://img.shields.io/badge/NEZHA-POWERED_BY_NAIBA-blue?logo=github&style=for-the-badge" alt="访问哪吒仓库">
+    </a>
   <br>
   <br>
-  <p>:trollface: <b>Nezha Monitoring: Self-hostable, lightweight, servers and websites monitoring and O&M tool.</b></p>
-  <p>Supports <b>monitoring</b> system status, HTTP (SSL certificate change, upcoming expiration, expired), TCP, Ping and supports <b>push alerts</b>, run scheduled tasks and <b>web terminal</b>.</p>
+  <p><b>Nezha Monitoring: Self-hostable, lightweight, servers and websites monitoring and O&M tool.</b></p>
+  <p>Supports <b>monitoring</b> system status, HTTP, TCP, Ping and supports <b>push alerts</b>, run scheduled tasks and <b>web terminal</b>.</p>
 </div>
+## Abstract
 
+基于哪吒V0版本进行二次修改，主要更新了GEOIP库和管理界面复制的链接，同时进行了一些样式优化。尽可能减少更新，提供稳定版本。
 ## User Guide
 
 - [English](https://nezhahq.github.io/en_US/index.html)
@@ -29,7 +32,4 @@
 - 中文
 
 You can change the dashboard language in the settings page (`/setting`) after the dashboard is installed.
-
-## Special Thanks
-- [IPInfo](https://ipinfo.io/) for providing an accurate GeoIP Database.
 
