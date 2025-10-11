@@ -144,29 +144,29 @@ installation_check() {
     if docker compose version >/dev/null 2>&1; then
         DOCKER_COMPOSE_COMMAND="docker compose"
         if sudo $DOCKER_COMPOSE_COMMAND ls | grep -qw "$NZ_DASHBOARD_PATH/docker-compose.yaml" >/dev/null 2>&1; then
-            NEZHA_IMAGES=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep -w "nezha-dashboard")
+            NEZHA_IMAGES=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep -w "nezha-zero-dashboard")
             if [ -n "$NEZHA_IMAGES" ]; then
-                echo "存在带有 nezha-dashboard 仓库的 Docker 镜像："
+                echo "存在带有 nezha-zero-dashboard 仓库的 Docker 镜像："
                 echo "$NEZHA_IMAGES"
                 IS_DOCKER_NEZHA=1
                 FRESH_INSTALL=0
                 return
             else
-                echo "未找到带有 nezha-dashboard 仓库的 Docker 镜像。"
+                echo "未找到带有 nezha-zero-dashboard 仓库的 Docker 镜像。"
             fi
         fi
     elif command -v docker-compose >/dev/null 2>&1; then
         DOCKER_COMPOSE_COMMAND="docker-compose"
         if sudo $DOCKER_COMPOSE_COMMAND -f "$NZ_DASHBOARD_PATH/docker-compose.yaml" config >/dev/null 2>&1; then
-            NEZHA_IMAGES=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep -w "nezha-dashboard")
+            NEZHA_IMAGES=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep -w "nezha-zero-dashboard")
             if [ -n "$NEZHA_IMAGES" ]; then
-                echo "存在带有 nezha-dashboard 仓库的 Docker 镜像："
+                echo "存在带有 nezha-zero-dashboard 仓库的 Docker 镜像："
                 echo "$NEZHA_IMAGES"
                 IS_DOCKER_NEZHA=1
                 FRESH_INSTALL=0
                 return
             else
-                echo "未找到带有 nezha-dashboard 仓库的 Docker 镜像。"
+                echo "未找到带有 nezha-zero-dashboard 仓库的 Docker 镜像。"
             fi
         fi
     fi
