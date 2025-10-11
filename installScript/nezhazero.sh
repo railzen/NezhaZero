@@ -285,7 +285,7 @@ install_dashboard() {
         esac
     fi
 
-    if [ -z "$IS_DOCKER_NEZHA" ];then
+    if [ -z "$IS_DOCKER_NEZHA" ]; then
         select_version
     if
 
@@ -451,7 +451,7 @@ modify_agent_config() {
 modify_dashboard_config() {
     echo "> 修改 Dashboard 配置"
 
-    if [ -z "$IS_DOCKER_NEZHA" ];then
+    if [ -z "$IS_DOCKER_NEZHA" ]; then
         select_version
     if
 
