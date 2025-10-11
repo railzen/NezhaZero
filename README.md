@@ -3,7 +3,7 @@
   <img width="360" style="max-width:80%" src="resource/static/brand.svg" title="哪吒监控 Nezha Monitoring">
   <br>
   <br><br>
-<img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/railzen/NezhaZero?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard">&nbsp;<img src="https://img.shields.io/badge/V0.20.5-brightgreen?style=for-the-badge&logo=github&label=Agent">&nbsp; <a href="https://github.com/nezhahq/nezha" target="_blank"><img src="https://img.shields.io/badge/NEZHA-POWERED_BY_NAIBA-blue?logo=github&style=for-the-badge" alt="访问哪吒仓库">
+<img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/railzen/NezhaZero?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard">&nbsp;<img src="https://img.shields.io/badge/V0.20.5-brightgreen?style=for-the-badge&logo=github&label=Agent">&nbsp;<a href="https://github.com/nezhahq/nezha" target="_blank"><img src="https://img.shields.io/badge/NEZHA-POWERED_BY_NAIBA-blue?logo=github&style=for-the-badge" alt="访问哪吒仓库">
     </a>
   <br>
   <br>
