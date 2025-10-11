@@ -839,6 +839,7 @@ show_usage() {
 show_menu() {
     printf "
     ${green}哪吒监控管理脚本 Ver0 ${plain}
+    
     --- https://github.com/railzen/nezhazero ---
     ${green}1.${plain}  安装面板端
     ${green}2.${plain}  修改面板配置
@@ -904,6 +905,7 @@ show_menu() {
             ;;
         *)
             err "请输入正确的数字 [0-13]"
+            before_show_menu
             ;;
     esac
 }
