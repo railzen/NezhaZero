@@ -287,7 +287,7 @@ install_dashboard() {
 
     if [ -z "$IS_DOCKER_NEZHA" ]; then
         select_version
-    if
+    fi
 
     if [ "$IS_DOCKER_NEZHA" = 1 ]; then
         install_dashboard_docker
@@ -453,7 +453,7 @@ modify_dashboard_config() {
 
     if [ -z "$IS_DOCKER_NEZHA" ]; then
         select_version
-    if
+    fi
 
 
     if [ "$IS_DOCKER_NEZHA" = 1 ]; then
