@@ -78,6 +78,8 @@ jobs:
           
       - name: Download Github Repos
         uses: actions/checkout@v4
+        with:
+          path: ./repos
 
       - name: Archive and compress binaries
         run: |
@@ -94,5 +96,5 @@ jobs:
         with:
           artifacts: |
             assets/*/*/*.zip
-            agent/bin/*.zip
+            repos/agent/bin/*.zip
           generateReleaseNotes: false
