@@ -63,6 +63,12 @@ jobs:
           name: dashboard-${{ env.GOOS }}-${{ env.GOARCH }}
           path: |
             ./dist/*/*
+            
+      - name: Upload artifacts agent
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent
+          path: |
             ./agent/bin/*
 
   release:
@@ -78,12 +84,13 @@ jobs:
 
       - name: Include agent binaries
         run: |
-          mv assets/agent/bin/* assets/agent
-          rmdir assets/agent/bin
+          tree assets
+          mv assets/agent/agent/bin/* assets/agent
+          rm -rf assets/agent/agent
 
       - name: Archive and compress binaries
         run: |
-          find assets/dist/*/* -type f | while read -r file; do
+          find assets/*/*/* -type f | while read -r file; do
             chmod +x $file
             dir=$(dirname "$file")
             filename=$(basename "$file")
