@@ -98,3 +98,59 @@ jobs:
             assets/*/*/*.zip
             repos/agent/bin/*.zip
           generateReleaseNotes: false
+          
+  release-docker:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    needs: build
+    name: Release Docker images
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./assets
+
+      - name: Fix permissions
+        run: |
+          chmod -R +x ./assets/*
+          mkdir dist
+          mv ./assets/*/*/* ./dist
+
+      - name: Extract branch name
+        run: |
+          export TAG_NAME=$(echo ${GITHUB_REF#refs/tags/})
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Log into GHCR
+        uses: docker/login-action@master
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ github.token }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up image name
+        run: |
+          GHCR_IMAGE_NAME=$(echo "ghcr.io/${{ github.repository_owner }}/nezha-zero-dashboard" | tr '[:upper:]' '[:lower:]')
+          echo "GHCR_IMAGE_NAME=$GHCR_IMAGE_NAME" >> $GITHUB_OUTPUT
+          echo "ALI_IMAGE_NAME=$ALI_IMAGE_NAME" >> $GITHUB_OUTPUT
+        id: image-name
+
+      - name: Build dasbboard image And Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/s390x
+          push: true
+          tags: |
+            ${{ steps.image-name.outputs.GHCR_IMAGE_NAME }}:latest
+            ${{ steps.image-name.outputs.GHCR_IMAGE_NAME }}:${{ steps.extract_branch.outputs.tag }}
