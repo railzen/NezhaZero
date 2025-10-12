@@ -344,6 +344,14 @@ selinux() {
 }
 
 install_agent() {
+
+    if [ -d "${NZ_AGENT_PATH}" ]; then
+        echo "> 已存在旧版Agent，将在卸载后重新安装"
+        sudo ${NZ_AGENT_PATH}/nezha-agent service uninstall
+        sudo rm -rf $NZ_AGENT_PATH
+        clean_all
+    fi
+
     install_base
     selinux
 
