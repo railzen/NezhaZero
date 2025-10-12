@@ -755,7 +755,8 @@ uninstall_dashboard() {
     clean_all
 
     if [ $# = 0 ]; then
-        before_show_menu
+        echo "卸载完成！"
+        exit 0
     fi
 }
 
