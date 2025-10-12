@@ -95,16 +95,4 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: "assets/*/*/*.zip"
-          generateReleaseNotes: true
-
-      - name: Purge jsdelivr cache
-        run: |
-          curl -s https://purge.jsdelivr.net/gh/${{ github.repository_owner }}/NezhaZero@master/script/install.sh
-          curl -s https://purge.jsdelivr.net/gh/${{ github.repository_owner }}/NezhaZero@master/script/nezha-agent.service
-          curl -s https://purge.jsdelivr.net/gh/${{ github.repository_owner }}/NezhaZero@master/script/docker-compose.yaml
-          curl -s https://purge.jsdelivr.net/gh/${{ github.repository_owner }}/NezhaZero@master/script/config.yaml
-          LOWER_USERNAME=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/NezhaZero@master/script/install.sh
-          curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/NezhaZero@master/script/nezha-agent.service
-          curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/NezhaZero@master/script/docker-compose.yaml
-          curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/NezhaZero@master/script/config.yaml
+          generateReleaseNotes: false
