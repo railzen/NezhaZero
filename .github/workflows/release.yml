@@ -6,6 +6,10 @@ on:
       - "v*"
   workflow_dispatch:
 
+
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -94,5 +98,7 @@ jobs:
       - name: Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "assets/*/*/*.zip"
+          artifacts: |
+            assets/*/*/*.zip
+            assets/agent/bin/*
           generateReleaseNotes: false
