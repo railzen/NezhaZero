@@ -24,9 +24,7 @@ curl -L https://raw.githubusercontent.com/railzen/nezhazero/main/installScript/n
 
 
 ## User Guide
-
-- [English](https://nezhahq.github.io/en_US/index.html)
-- [中文文档](https://nezhahq.github.io/index.html)
+- [用户文档](https://nezha-v0.mereith.dev/guide/dashboard.html)
 
 ## Screenshots
 
