@@ -126,20 +126,20 @@ pre_check() {
         GITHUB_URL=$CUSTOM_MIRROR
         Get_Docker_URL="get.docker.com"
         Get_Docker_Argu=" -s docker --mirror Aliyun"
-        Docker_IMG="ghcr.io\/railzen\/nezha-zero-dashboard:${_version}"
+        Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
     else
         if [ -z "$CN" ]; then
             GITHUB_RAW_URL="raw.githubusercontent.com/railzen/NezhaZero/main/installScript"
             GITHUB_URL="github.com"
             Get_Docker_URL="get.docker.com"
             Get_Docker_Argu=" "
-            Docker_IMG="ghcr.io\/railzen\/nezha-zero-dashboard:${_version}"
+            Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
         else
             GITHUB_RAW_URL="raw.githubusercontent.com/railzen/NezhaZero/main/installScript"
             GITHUB_URL="github.com"
             Get_Docker_URL="get.docker.com"
             Get_Docker_Argu=" -s docker --mirror Aliyun"
-            Docker_IMG="ghcr.io\/railzen\/nezha-zero-dashboard:${_version}"
+            Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
         fi
     fi
 }
