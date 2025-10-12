@@ -13,6 +13,8 @@ yellow='\033[0;33m'
 plain='\033[0m'
 export PATH="$PATH:/usr/local/bin"
 
+NZ_MAIN_VERSION="v0.20.15"
+
 os_arch=""
 [ -e /etc/os-release ] && grep -i "PRETTY_NAME" /etc/os-release | grep -qi "alpine" && os_alpine='1'
 
@@ -118,25 +120,26 @@ pre_check() {
         fi
     fi
 
+    local _version=${NZ_MAIN_VERSION}
     if [ -n "$CUSTOM_MIRROR" ]; then
         GITHUB_RAW_URL="raw.githubusercontent.com/railzen/NezhaZero/main/installScript"
         GITHUB_URL=$CUSTOM_MIRROR
         Get_Docker_URL="get.docker.com"
         Get_Docker_Argu=" -s docker --mirror Aliyun"
-        Docker_IMG="railzen\/nezha-zero-dashboard:v0.20.15"
+        Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
     else
         if [ -z "$CN" ]; then
             GITHUB_RAW_URL="raw.githubusercontent.com/railzen/NezhaZero/main/installScript"
             GITHUB_URL="github.com"
             Get_Docker_URL="get.docker.com"
             Get_Docker_Argu=" "
-            Docker_IMG="railzen\/nezha-zero-dashboard:v0.20.15"
+            Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
         else
             GITHUB_RAW_URL="raw.githubusercontent.com/railzen/NezhaZero/main/installScript"
             GITHUB_URL="github.com"
             Get_Docker_URL="get.docker.com"
             Get_Docker_Argu=" -s docker --mirror Aliyun"
-            Docker_IMG="railzen\/nezha-zero-dashboard:v0.20.15"
+            Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
         fi
     fi
 }
@@ -378,7 +381,7 @@ install_agent() {
     #     echo "当前最新版本为： ${_version}"
     # fi
 
-    _version="v0.20.15"
+    _version=${NZ_MAIN_VERSION}
 
     # Nezha Monitoring Folder
     sudo mkdir -p $NZ_AGENT_PATH
@@ -616,7 +619,7 @@ restart_and_update_standalone() {
     #     _version=$(curl -m 10 -sL "https://gitee.com/api/v5/repos/naibahq/nezha/releases/latest" | awk -F '"' '{for(i=1;i<=NF;i++){if($i=="tag_name"){print $(i+2)}}}')
     # fi
 
-    _version="v0.20.15"
+    _version=${NZ_MAIN_VERSION}
 
     if [ -z "$_version" ]; then
         err "获取 Dashboard 版本号失败，请检查本机能否链接 https://api.github.com/"
@@ -846,8 +849,9 @@ show_usage() {
 }
 
 show_menu() {
+    clear
     printf "
-    ${green}哪吒监控管理脚本 Ver0 ${plain}
+    ${green}哪吒监控管理脚本 ${NZ_MAIN_VERSION} ${plain}
     
     --- https://github.com/railzen/nezhazero ---
     ${green}1.${plain}  安装面板端
