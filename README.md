@@ -1,30 +1,31 @@
 <div align="center">
   <br>
   <img width="360" style="max-width:80%" src="resource/static/brand.svg" title="哪吒监控 Nezha Monitoring">
+  </br>
   <br>
-  <br><br>
-<img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/railzen/NezhaZero?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard">&nbsp;<img src="https://img.shields.io/badge/Agent-v0.20.5-bridhtgreen?logo=github&style=for-the-badge">&nbsp;<a href="https://github.com/nezhahq/nezha" target="_blank"><img src="https://img.shields.io/badge/NEZHA-POWERED_BY_NAIBA-blue?logo=github&style=for-the-badge" alt="访问哪吒仓库">
-    </a>
-  <br>
-  <br>
-  <p><b>Nezha Monitoring: Self-hostable, lightweight, servers and websites monitoring and O&M tool.</b></p>
-  <p>Supports <b>monitoring</b> system status, HTTP, TCP, Ping and supports <b>push alerts</b>, run scheduled tasks and <b>web terminal</b>.</p>
+	<a href="https://nezha-v0.mereith.dev/guide/dashboard.html" target="_blank"><img src="https://img.shields.io/badge/Docs-Available-orange?style=for-the-badge&logo=gitbook&logoColor=white" alt="查看文档"></a>
+	<a href="https://github.com/railzen/NezhaZero" target="_blank"><img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/railzen/NezhaZero?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard"></a>
+	<img src="https://img.shields.io/badge/Agent-v0.20.5-bridhtgreen?logo=github&style=for-the-badge">
+	<a href="https://github.com/nezhahq/nezha" target="_blank"><img src="https://img.shields.io/badge/NEZHA-NAIBA-blue?logo=github&style=for-the-badge" alt="访问哪吒仓库"></a>
+  </br>
+  <p><b>Nezha Monitoring: Self-hostable, lightweight, servers and websites monitoring tool.</b></p>
+  <p>Supports <b>monitoring</b> system status, HTTP, TCP, Ping, <b>push alerts</b> and <b>web terminal</b>.</p>
 </div>
 
 
-## Abstract
-基于哪吒V0版本进行二次修改，主要更新了GEOIP库和管理界面复制的链接，同时进行了一些样式优化。尽可能减少更新，提供稳定版本。
 
-一键安装脚本如下：
+
+
+## Abstract
+基于哪吒V0版本进行二次修改，主要更新了GEOIP库和管理界面安装Agent的链接，同时进行了一些样式优化。
+
+最新Agent版本以上面标签展示为准，放在Release里面仅便于使用。Agent已经关闭自动升级功能，如无必要不会升级。面板将尽可能减少更新以稳定版本。一键安装脚本如下：
 
 ```shell
 curl -L https://raw.githubusercontent.com/railzen/nezhazero/main/installScript/nezhazero.sh -o nezhazero.sh && chmod +x nezhazero.sh && ./nezhazero.sh
 ```
 
 
-
-## User Guide
-- [用户文档](https://nezha-v0.mereith.dev/guide/dashboard.html)
 
 ## Screenshots
 
