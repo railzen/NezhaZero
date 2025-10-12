@@ -104,6 +104,9 @@ jobs:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     needs: build
     name: Release Docker images
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -140,8 +143,7 @@ jobs:
       - name: Set up image name
         run: |
           GHCR_IMAGE_NAME=$(echo "ghcr.io/${{ github.repository_owner }}/nezha-zero-dashboard" | tr '[:upper:]' '[:lower:]')
-          echo "GHCR_IMAGE_NAME=$GHCR_IMAGE_NAME" >> $GITHUB_OUTPUT
-          echo "ALI_IMAGE_NAME=$ALI_IMAGE_NAME" >> $GITHUB_OUTPUT
+          echo "GHCR_IMAGE_NAME=$GHCR_IMAGE_NAME" >> $GITHUB_OUTPUTT
         id: image-name
 
       - name: Build dasbboard image And Push
