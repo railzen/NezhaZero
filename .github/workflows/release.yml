@@ -63,6 +63,7 @@ jobs:
           name: dashboard-${{ env.GOOS }}-${{ env.GOARCH }}
           path: |
             ./dist/*/*
+            ./agent/bin/*
 
   release:
     runs-on: ubuntu-latest
@@ -75,6 +76,11 @@ jobs:
         with:
           path: ./assets
 
+      - name: Include agent binaries
+        run: |
+          mv assets/agent/bin/* assets/agent
+          rmdir assets/agent/bin
+
       - name: Archive and compress binaries
         run: |
           find assets/*/*/* -type f | while read -r file; do
@@ -84,21 +90,11 @@ jobs:
             fileWithoutExt="${filename%.*}"
             zip -jr "$dir/$fileWithoutExt.zip" "$file"
           done
-          
-      - name: Include agent binaries
-        run: |
-          mkdir -p assets/agent/bin
-          if [ -d "./agent/bin" ]; then
-            echo "Including agent/bin files into release..."
-            cp -r ./agent/bin/* assets/agent/bin/
-          else
-            echo "No agent/bin directory found, skipping."
-          fi
 
       - name: Release
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
             assets/*/*/*.zip
-            assets/agent/bin/*
+            assets/agent/*.zip
           generateReleaseNotes: false
