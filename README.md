@@ -34,10 +34,5 @@ curl -L https://raw.githubusercontent.com/railzen/nezhazero/main/installScript/n
 | <div align="center"><b>Neko Mdui <a href="https://github.com/MikoyChinese">@MikoyChinese</a></b></div> |      <div align="center"><b>AngelKanade <a href="https://github.com/adminsama">@adminsama</a></b></div>         |<div align="center"><b>ServerStatus <a href="https://github.com/unclezs">@unclezs</a></b></div> |
 | ![Neko Mdui](resource/template/theme-mdui/screenshot.png)                                              |        ![AngelKanade](resource/template/theme-angel-kanade/screenshot.png)            | ![默认主题魔改](resource/template/theme-server-status/screenshot.png)       |
 
-## Supported Languages
-
-- English
-- 中文
-
 You can change the dashboard language in the settings page (`/setting`) after the dashboard is installed.
 
