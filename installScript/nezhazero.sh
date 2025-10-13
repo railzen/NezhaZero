@@ -381,16 +381,19 @@ install_agent() {
     #     echo "当前最新版本为： ${_version}"
     # fi
 
-    _version=${NZ_MAIN_VERSION}
+    #_version=${NZ_MAIN_VERSION}
+    _version="v0.20.5"
 
     # Nezha Monitoring Folder
     sudo mkdir -p $NZ_AGENT_PATH
 
     echo "正在下载监控端"
     if [ -z "$CN" ]; then
-        NZ_AGENT_URL="https://${GITHUB_URL}/railzen/NezhaZero/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
+        NZ_AGENT_URL="https://${GITHUB_URL}/nezhahq/agent/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
+        #NZ_AGENT_URL="https://${GITHUB_URL}/railzen/NezhaZero/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
     else
-        NZ_AGENT_URL="https://${GITHUB_URL}/railzen/NezhaZero/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
+        NZ_AGENT_URL="https://${GITHUB_URL}/naibahq/agent/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
+        #NZ_AGENT_URL="https://${GITHUB_URL}/railzen/NezhaZero/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
     fi
 
     _cmd="wget -t 2 -T 60 -O nezha-agent_linux_${os_arch}.zip $NZ_AGENT_URL >/dev/null 2>&1"
