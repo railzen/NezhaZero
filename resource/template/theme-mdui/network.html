@@ -9,7 +9,7 @@
   <link rel="shortcut icon" type="image/png" href="/static/logo.svg?v20210804" />
 
   <!-- MDUI CSS -->
-  <link rel="stylesheet" href="https://lf6-cdn-tos.bytecdntp.com/cdn/expire-1-y/mdui/1.0.2/css/mdui.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mdui@1.0.2/dist/css/mdui.min.css"/>
   <link rel="stylesheet" href="/static/theme-mdui/mdui.css" type="text/css">
   <style>
 	.mdui-table td, .mdui-table th{padding: 6px;}
@@ -34,7 +34,7 @@
                     @click="redirectNetwork(server.ID)"
                     class="mdui-btn mdui-btn-raised mdui-color-theme mdui-color-indigo mdui-text-color-white"
                     style="margin-top: 6px;margin-left:5px">
-                    <img :src="'https://lf6-cdn-tos.bytecdntp.com/cdn/expire-1-y/flag-icon-css/4.1.5/flags/4x3/' + (server.Host.CountryCode?server.Host.CountryCode:'cn') + '.svg'" alt="Flag Icon" style="vertical-align: middle;height:14px"> <span>@#server.Name#@ &nbsp;</span></button>
+                    <img :src="'https://cdn.jsdelivr.net/npm/flag-icon-css@4.1.5/flags/4x3/' + (server.Host.CountryCode?server.Host.CountryCode:'cn') + '.svg'" alt="Flag Icon" style="vertical-align: middle;height:14px"> <span>@#server.Name#@ &nbsp;</span></button>
             </table>
         </div>
     </div>
@@ -45,11 +45,11 @@
 
 {{template "theme-mdui/footer" .}}
   <script src="/static/theme-mdui/mdui.js"></script>
-  <script src="https://lf6-cdn-tos.bytecdntp.com/cdn/expire-1-y/mdui/1.0.2/js/mdui.min.js"></script>
-  <script src="https://lf6-cdn-tos.bytecdntp.com/cdn/expire-1-y/jquery/3.6.0/jquery.min.js"></script>
-  <script src="https://lf6-cdn-tos.bytecdntp.com/cdn/expire-1-y/vue/2.6.14/vue.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mdui@1.0.2/dist/js/mdui.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
  
-<script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/echarts/5.3.0-rc.1/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.3.0/dist/echarts.min.js"></script>
 
 <script>
     const monitorInfo =  JSON.parse('{{.MonitorInfos}}');
