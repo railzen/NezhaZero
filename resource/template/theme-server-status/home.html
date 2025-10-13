@@ -1104,7 +1104,6 @@
                 // 计算剩余天数
                 const timeDiff = end - currentTime;
                 const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-                if ( daysDiff > 999 ) return 999;
 
                 return daysDiff;
             },
