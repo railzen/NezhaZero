@@ -124,7 +124,6 @@ pre_check() {
     if [ -z "$NZ_MAIN_VERSION" ]; then
         NZ_MAIN_VERSION=$NZ_MAIN_DEFAULT_VERSION
         err "获取 Agent 版本号失败，使用默认版本号${NZ_MAIN_VERSION}"
-        return 1
     else
         echo "当前最新版本为： ${NZ_MAIN_VERSION}"
     fi
