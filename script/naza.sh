@@ -13,7 +13,7 @@ yellow='\033[0;33m'
 plain='\033[0m'
 export PATH="$PATH:/usr/local/bin"
 
-NZ_MAIN_VERSION="v0.20.17"
+NZ_MAIN_DEFAULT_VERSION="v0.20.17"
 
 os_arch=""
 [ -e /etc/os-release ] && grep -i "PRETTY_NAME" /etc/os-release | grep -qi "alpine" && os_alpine='1'
@@ -118,6 +118,15 @@ pre_check() {
                 ;;
             esac
         fi
+    fi
+
+    NZ_MAIN_VERSION=$(curl -m 10 -sL "https://api.github.com/repos/railzen/nezha-zero/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+    if [ -z "$NZ_MAIN_VERSION" ]; then
+        NZ_MAIN_VERSION=$NZ_MAIN_DEFAULT_VERSION
+        err "获取 Agent 版本号失败，使用默认版本号${NZ_MAIN_VERSION}"
+        return 1
+    else
+        echo "当前最新版本为： ${NZ_MAIN_VERSION}"
     fi
 
     local _version=${NZ_MAIN_VERSION}
