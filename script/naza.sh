@@ -121,12 +121,19 @@ pre_check() {
     fi
 
     local _version=${NZ_MAIN_VERSION}
+    
+    GITHUB_RAW_URL="raw.githubusercontent.com/railzen/nezha-zero/main/script"
+    GITHUB_URL="github.com"
+    Get_Docker_URL="get.docker.com"
+    Get_Docker_Argu=" "
+    Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
+
 #    if [ -n "$CUSTOM_MIRROR" ]; then
-        GITHUB_RAW_URL="raw.githubusercontent.com/railzen/nezha-zero/main/script"
-        GITHUB_URL=$CUSTOM_MIRROR
-        Get_Docker_URL="get.docker.com"
-        Get_Docker_Argu=" -s docker --mirror Aliyun"
-        Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
+#        GITHUB_RAW_URL="raw.githubusercontent.com/railzen/nezha-zero/main/script"
+#        GITHUB_URL=$CUSTOM_MIRROR
+#        Get_Docker_URL="get.docker.com"
+#        Get_Docker_Argu=" -s docker --mirror Aliyun"
+#        Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
 #    else
 #        if [ -z "$CN" ]; then
 #            GITHUB_RAW_URL="raw.githubusercontent.com/railzen/nezha-zero/main/script"
