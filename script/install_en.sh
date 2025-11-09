@@ -224,13 +224,13 @@ select_version() {
 update_script() {
     echo "> Update Script"
 
-    curl -sL https://${GITHUB_RAW_URL}/install_en.sh -o /tmp/nezha.sh
-    mv -f /tmp/nezha.sh ./nezha.sh && chmod a+x ./nezha.sh
+    curl -sL https://${GITHUB_RAW_URL}/install_en.sh -o /tmp/naza.sh
+    mv -f /tmp/naza.sh ./naza.sh && chmod a+x ./naza.sh
 
     echo "Execute new script after 3s"
     sleep 3s
     clear
-    exec ./nezha.sh
+    exec ./naza.sh
     exit 0
 }
 
@@ -848,21 +848,21 @@ clean_all() {
 show_usage() {
     echo "Nezha Monitor Management Script Usage: "
     echo "--------------------------------------------------------"
-    echo "./nezha.sh                            - Show Menu"
-    echo "./nezha.sh install_dashboard          - Install Dashboard"
-    echo "./nezha.sh modify_dashboard_config    - Modify Dashboard Configuration"
-    echo "./nezha.sh start_dashboard            - Start Dashboard"
-    echo "./nezha.sh stop_dashboard             - Stop Dashboard"
-    echo "./nezha.sh restart_and_update         - Restart and Update the Dashboard"
-    echo "./nezha.sh show_dashboard_log         - View Dashboard Log"
-    echo "./nezha.sh uninstall_dashboard        - Uninstall Dashboard"
+    echo "./naza.sh                            - Show Menu"
+    echo "./naza.sh install_dashboard          - Install Dashboard"
+    echo "./naza.sh modify_dashboard_config    - Modify Dashboard Configuration"
+    echo "./naza.sh start_dashboard            - Start Dashboard"
+    echo "./naza.sh stop_dashboard             - Stop Dashboard"
+    echo "./naza.sh restart_and_update         - Restart and Update the Dashboard"
+    echo "./naza.sh show_dashboard_log         - View Dashboard Log"
+    echo "./naza.sh uninstall_dashboard        - Uninstall Dashboard"
     echo "--------------------------------------------------------"
-    echo "./nezha.sh install_agent              - Install Agent"
-    echo "./nezha.sh modify_agent_config        - Modify Agent Configuration"
-    echo "./nezha.sh show_agent_log             - View Agent Log"
-    echo "./nezha.sh uninstall_agent            - Uninstall Agent"
-    echo "./nezha.sh restart_agent              - Restart Agent"
-    echo "./nezha.sh update_script              - Update Script"
+    echo "./naza.sh install_agent              - Install Agent"
+    echo "./naza.sh modify_agent_config        - Modify Agent Configuration"
+    echo "./naza.sh show_agent_log             - View Agent Log"
+    echo "./naza.sh uninstall_agent            - Uninstall Agent"
+    echo "./naza.sh restart_agent              - Restart Agent"
+    echo "./naza.sh update_script              - Update Script"
     echo "--------------------------------------------------------"
 }
 
