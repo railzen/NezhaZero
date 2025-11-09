@@ -868,9 +868,8 @@ show_usage() {
 
 show_menu() {
     printf "
-    ${green}Nezha Monitor Management Script For v0${plain}
+    ${green}Nezha Monitor Management Script For ${NZ_MAIN_VERSION}${plain}
     --- https://github.com/railzen/nezha-zero ---
-    ${red}v0 panel has stopped maintenance, please upgrade to v1 as soon as possible, see https://nezha.wiki/${plain}
     ${green}1.${plain}  Install Dashboard
     ${green}2.${plain}  Modify Dashbaord Configuration
     ${green}3.${plain}  Start Dashboard
