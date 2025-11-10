@@ -745,9 +745,6 @@ other = "Price"
 [Expired]
 other = "Expired"
 
-[Days]
-other = "Days"
-
 [CustomNameservers]
 other = "Custom Public DNS Nameservers for DDNS (separate with comma)"
 
