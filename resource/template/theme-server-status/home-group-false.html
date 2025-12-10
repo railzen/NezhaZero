@@ -23,7 +23,7 @@
         aria-expanded="false" @click="showCharts(node.ID)">
             <td class="node-cell status center">
                 <div class="status-container">
-                    <div v-if="node.online" class="status-icon online"></div>
+                    <div v-if="node.online !== false" class="status-icon online"></div>
                     <div v-else class="status-icon offline"></div>
                 </div>
             </td>
