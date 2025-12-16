@@ -90,7 +90,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	// 构造管理员用户
 	user := model.User{
 		Login:      req.Username,
-		Name:       "Admin",
+		Name:       req.Username,
 		SuperAdmin: true,
 	}
 
@@ -106,7 +106,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	user.TokenExpired = time.Now().AddDate(0, 2, 0)
 
 	// 保存到数据库（可选）
-	singleton.DB.Save(&user)
+	//singleton.DB.Save(&user)
 
 	// 设置安全 cookie (HttpOnly + Secure)
 	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24, "", "", c.Request.TLS != nil, true)

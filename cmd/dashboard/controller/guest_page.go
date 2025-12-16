@@ -40,7 +40,7 @@ func (gp *guestPage) login(c *gin.Context) {
 		return
 	}
 	LoginType := "GitHub"
-	RegistrationLink := "https://github.com/join"
+	RegistrationLink := "https://github.com/settings/developers"
 	if singleton.Conf.Oauth2.Type == model.ConfigTypeGitee {
 		LoginType = "Gitee"
 		RegistrationLink = "https://gitee.com/signup"
