@@ -22,6 +22,7 @@ import (
 	"github.com/naiba/nezha/service/singleton"
 	"github.com/patrickmn/go-cache"
 	"github.com/xanzy/go-gitlab"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 	GitHubOauth2 "golang.org/x/oauth2/github"
 	GitlabOauth2 "golang.org/x/oauth2/gitlab"
@@ -41,18 +42,27 @@ func (oa *oauth2controller) serve() {
 func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	type LoginForm struct {
 		Username string `form:"username" binding:"required"`
-		Password string `form:"password" binding:"required"`
+		Password string `form:"password" binding:"required,min=6"`
 	}
 
 	var req LoginForm
 	if err := c.ShouldBind(&req); err != nil {
+		showLoginFailed(c)
+		return
+	}
+
+	// 限制连续失败次数
+	failKey := "passwd_fail_" + req.Username
+	failCount, _ := singleton.Cache.Get(failKey)
+	if failCountInt, ok := failCount.(int); ok && failCountInt >= 5 {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
-			Code: 400, Title: "参数错误", Msg: err.Error(),
+			Code: 400, Title: "登录失败",
+			Msg: "连续错误次数过多，请稍后再试",
 		}, true)
 		return
 	}
 
-	// 校验用户名
+	// 校验用户名是否在管理员列表
 	allowed := false
 	for _, admin := range strings.Split(singleton.Conf.Oauth2.Admin, ",") {
 		if strings.EqualFold(req.Username, admin) {
@@ -60,21 +70,22 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 			break
 		}
 	}
-
 	if !allowed {
-		mygin.ShowErrorPage(c, mygin.ErrInfo{
-			Code: 400, Title: "登录失败", Msg: "用户名不在管理员列表中",
-		}, true)
+		incrementFailCount(failKey)
+		showLoginFailed(c)
 		return
 	}
 
-	// 校验密码
-	if req.Password != singleton.Conf.Site.AdminPassword {
-		mygin.ShowErrorPage(c, mygin.ErrInfo{
-			Code: 400, Title: "登录失败", Msg: "密码错误",
-		}, true)
+	// 校验密码（bcrypt）
+	hash := singleton.Conf.Site.AdminPassword
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Password)); err != nil {
+		incrementFailCount(failKey)
+		showLoginFailed(c)
 		return
 	}
+
+	// 登录成功，清除失败计数
+	singleton.Cache.Delete(failKey)
 
 	// 构造管理员用户
 	user := model.User{
@@ -87,23 +98,40 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	token, err := utils.GenerateRandomString(32)
 	if err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
-			Code: 400, Title: "登录失败", Msg: err.Error(),
+			Code: 400, Title: "登录失败", Msg: "系统错误",
 		}, true)
 		return
 	}
 	user.Token = token
 	user.TokenExpired = time.Now().AddDate(0, 2, 0)
 
-	// 保存到数据库（可选，如果不想存DB可以注释）
+	// 保存到数据库（可选）
 	singleton.DB.Save(&user)
 
-	// 设置 cookie
-	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24, "", "", false, false)
+	// 设置安全 cookie (HttpOnly + Secure)
+	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24, "", "", c.Request.TLS != nil, true)
 
-	// 跳转到首页
-	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/redirect", mygin.CommonEnvironment(c, gin.H{
+	// 登录成功跳转
+	c.HTML(200, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/redirect", mygin.CommonEnvironment(c, gin.H{
 		"URL": "/",
 	}))
+}
+
+// 显示统一登录失败页面
+func showLoginFailed(c *gin.Context) {
+	mygin.ShowErrorPage(c, mygin.ErrInfo{
+		Code: 400, Title: "用户名或密码错误", Msg: "用户名或密码错误",
+	}, true)
+}
+
+// 增加失败计数并设置 10 分钟过期
+func incrementFailCount(key string) {
+	count, _ := singleton.Cache.Get(key)
+	if cInt, ok := count.(int); ok {
+		singleton.Cache.Set(key, cInt+1, 10*time.Minute)
+	} else {
+		singleton.Cache.Set(key, 1, 10*time.Minute)
+	}
 }
 
 func (oa *oauth2controller) getCommonOauth2Config(c *gin.Context) *oauth2.Config {

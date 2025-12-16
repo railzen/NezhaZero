@@ -9,16 +9,16 @@
                     {{tr "Login"}}
                 </div>
             </h2>
-                                    <!-- 👇 密码登录表单 -->
             <form class="ui large form" method="post" action="/auth/password">
-                <div class="ui stacked segment">
+
                     <div class="field">
                         <div class="ui left icon input">
                             <i class="user icon"></i>
                             <input
                                 type="text"
                                 name="username"
-                                placeholder="用户名"
+                                placeholder="Username"
+                                autocomplete="off"
                                 required
                             >
                         </div>
@@ -29,19 +29,24 @@
                             <input
                                 type="password"
                                 name="password"
-                                placeholder="管理员密码"
+                                placeholder="Password"
+                                autocomplete="off"
                                 required
                             >
                         </div>
                     </div>
 
                     <button type="submit" class="ui fluid large nezha-primary-btn button">
-                        登录
+                        {{tr "Login"}}
                     </button>
-                </div>
+
             </form>
+
             <div class="ui hidden divider"></div>
-            <a href="/oauth2/login" class="ui fluid large nezha-primary-btn submit button">{{tr "Use"}} {{.LoginType}} {{tr "AccountToLogin"}}</a>
+            <div class="ui colored long divider" style="width: 120%; margin: 30px auto; margin-left: -10%; margin-right: -10%;"></div>
+            <div class="ui hidden divider"></div>
+
+             <a href="/oauth2/login" class="ui fluid large nezha-primary-btn submit button">{{tr "Use"}} {{.LoginType}} {{tr "AccountToLogin"}}</a>
             <div class="ui message">
                 {{tr "DontHaveAnAccount"}} <a href="{{.RegistrationLink}}" target="_blank" rel="noopener noreferrer">{{tr "SignUp"}}</a>
             </div>

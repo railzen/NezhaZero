@@ -10,6 +10,7 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
 )
 
@@ -150,9 +151,31 @@ func (c *Config) Read(path string) error {
 	if c.Site.DashboardTheme == "" {
 		c.Site.DashboardTheme = "default"
 	}
+
 	if c.Site.AdminPassword == "" {
-		c.Site.AdminPassword = "7c7b6ad8"
+		// 默认明文密码
+		defaultPassword := "7c7b6ad8"
+		// 生成 bcrypt 哈希
+		hash, err := bcrypt.GenerateFromPassword([]byte(defaultPassword), bcrypt.DefaultCost)
+		if err != nil {
+			panic(err)
+		}
+		// 存储哈希
+		c.Site.AdminPassword = string(hash)
+	} else {
+		// 已经有密码，判断它是否已经是 bcrypt 哈希
+		// bcrypt 哈希一般长度 >= 60 并且以 $2 开头
+		if !strings.HasPrefix(c.Site.AdminPassword, "$2") || len(c.Site.AdminPassword) < 60 {
+			// 说明是明文密码，需要生成 bcrypt 哈希
+			hash, err := bcrypt.GenerateFromPassword([]byte(c.Site.AdminPassword), bcrypt.DefaultCost)
+			if err != nil {
+				panic(err)
+			}
+			c.Site.AdminPassword = string(hash)
+		}
+		// 否则已经是安全哈希，不用改
 	}
+
 	if c.Language == "" {
 		c.Language = "zh-CN"
 	}
