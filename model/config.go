@@ -62,6 +62,7 @@ type Config struct {
 		CustomCode          string
 		CustomCodeDashboard string
 		ViewPassword        string // 前台查看密码
+		AdminPassword       string // 管理员密码
 	}
 	Oauth2 struct {
 		Type            string
@@ -148,6 +149,9 @@ func (c *Config) Read(path string) error {
 	}
 	if c.Site.DashboardTheme == "" {
 		c.Site.DashboardTheme = "default"
+	}
+	if c.Site.AdminPassword == "" {
+		c.Site.AdminPassword = "7c7b6ad8"
 	}
 	if c.Language == "" {
 		c.Language = "zh-CN"

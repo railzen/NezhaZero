@@ -35,6 +35,75 @@ type oauth2controller struct {
 func (oa *oauth2controller) serve() {
 	oa.r.GET("/oauth2/login", oa.login)
 	oa.r.GET("/oauth2/callback", oa.callback)
+	oa.r.POST("/auth/password", oa.passwordLogin)
+}
+
+func (oa *oauth2controller) passwordLogin(c *gin.Context) {
+	type LoginForm struct {
+		Username string `form:"username" binding:"required"`
+		Password string `form:"password" binding:"required"`
+	}
+
+	var req LoginForm
+	if err := c.ShouldBind(&req); err != nil {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code: 400, Title: "参数错误", Msg: err.Error(),
+		}, true)
+		return
+	}
+
+	// 校验用户名
+	allowed := false
+	for _, admin := range strings.Split(singleton.Conf.Oauth2.Admin, ",") {
+		if strings.EqualFold(req.Username, admin) {
+			allowed = true
+			break
+		}
+	}
+
+	if !allowed {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code: 400, Title: "登录失败", Msg: "用户名不在管理员列表中",
+		}, true)
+		return
+	}
+
+	// 校验密码
+	if req.Password != singleton.Conf.Site.AdminPassword {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code: 400, Title: "登录失败", Msg: "密码错误",
+		}, true)
+		return
+	}
+
+	// 构造管理员用户
+	user := model.User{
+		Login:      req.Username,
+		Name:       "Admin",
+		SuperAdmin: true,
+	}
+
+	// 生成 token 并设置过期时间
+	token, err := utils.GenerateRandomString(32)
+	if err != nil {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code: 400, Title: "登录失败", Msg: err.Error(),
+		}, true)
+		return
+	}
+	user.Token = token
+	user.TokenExpired = time.Now().AddDate(0, 2, 0)
+
+	// 保存到数据库（可选，如果不想存DB可以注释）
+	singleton.DB.Save(&user)
+
+	// 设置 cookie
+	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24, "", "", false, false)
+
+	// 跳转到首页
+	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/redirect", mygin.CommonEnvironment(c, gin.H{
+		"URL": "/",
+	}))
 }
 
 func (oa *oauth2controller) getCommonOauth2Config(c *gin.Context) *oauth2.Config {

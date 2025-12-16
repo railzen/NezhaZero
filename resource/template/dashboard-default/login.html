@@ -6,10 +6,42 @@
             <h2 class="ui image header">
                 <img src="static/logo.svg?v20210804" class="image">
                 <div class="content">
-                    {{tr "Use"}} {{.LoginType}} {{tr "AccountToLogin"}}
+                    {{tr "Login"}}
                 </div>
             </h2>
-            <a href="/oauth2/login" class="ui fluid large nezha-primary-btn submit button">{{tr "Login"}}</a>
+                                    <!-- 👇 密码登录表单 -->
+            <form class="ui large form" method="post" action="/auth/password">
+                <div class="ui stacked segment">
+                    <div class="field">
+                        <div class="ui left icon input">
+                            <i class="user icon"></i>
+                            <input
+                                type="text"
+                                name="username"
+                                placeholder="用户名"
+                                required
+                            >
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui left icon input">
+                            <i class="lock icon"></i>
+                            <input
+                                type="password"
+                                name="password"
+                                placeholder="管理员密码"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <button type="submit" class="ui fluid large nezha-primary-btn button">
+                        登录
+                    </button>
+                </div>
+            </form>
+            <div class="ui hidden divider"></div>
+            <a href="/oauth2/login" class="ui fluid large nezha-primary-btn submit button">{{tr "Use"}} {{.LoginType}} {{tr "AccountToLogin"}}</a>
             <div class="ui message">
                 {{tr "DontHaveAnAccount"}} <a href="{{.RegistrationLink}}" target="_blank" rel="noopener noreferrer">{{tr "SignUp"}}</a>
             </div>
