@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -76,9 +77,15 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		return
 	}
 
+	decodedPassword, err := base64.StdEncoding.DecodeString(req.Password)
+	if err != nil {
+		incrementFailCount(failKey)
+		showLoginFailed(c)
+		return
+	}
 	// 校验密码（bcrypt）
 	hash := singleton.Conf.Site.AdminPassword
-	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(decodedPassword)); err != nil {
 		incrementFailCount(failKey)
 		showLoginFailed(c)
 		return

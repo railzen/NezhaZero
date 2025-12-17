@@ -9,7 +9,7 @@
                     {{tr "Login"}}
                 </div>
             </h2>
-            <form class="ui large form" method="post" action="/auth/password">
+            <form id="loginForm" class="ui large form" method="post" action="/auth/password">
 
                     <div class="field">
                         <div class="ui left icon input">
@@ -27,6 +27,7 @@
                         <div class="ui left icon input">
                             <i class="lock icon"></i>
                             <input
+                                id="passwordInput"
                                 type="password"
                                 name="password"
                                 placeholder="Password"
@@ -54,4 +55,22 @@
     </div>
 </div>
 {{template "common/footer" .}}
+<script>
+    // 在表单提交时进行加密
+    document.getElementById('loginForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // 阻止表单的默认提交
+        
+        var passwordField = document.getElementById('passwordInput');
+        var originalPassword = passwordField.value;
+
+        // 使用 Base64 编码密码
+        var encodedPassword = btoa(originalPassword); // btoa() 进行 Base64 编码
+
+        // 用编码后的密码替换原密码值
+        passwordField.value = encodedPassword;
+
+        // 提交表单
+        this.submit();
+    });
+</script>
 {{end}}
