@@ -515,6 +515,8 @@ modify_dashboard_config() {
         read -r nz_github_oauth_client_secret
         printf "Please enter your GitHub/Gitee login name as the administrator, separated by commas: "
         read -r nz_admin_logins
+        printf "Please enter your panel password: (default random)"
+        read -r nz_admin_panel_passwd
         printf "Please enter the site title: "
         read -r nz_site_title
         printf "Please enter the site access port: (default 8008)"
@@ -537,9 +539,14 @@ modify_dashboard_config() {
     if [ -z "$nz_oauth2_type" ]; then
         nz_oauth2_type=github
     fi
+    if [ -z "$nz_admin_panel_passwd" ]; then
+        nz_admin_panel_passwd=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
+    fi
+
 
     sed -i "s/nz_oauth2_type/${nz_oauth2_type}/" /tmp/nezha-config.yaml
     sed -i "s/nz_admin_logins/${nz_admin_logins}/" /tmp/nezha-config.yaml
+    sed -i "s/nz_admin_panel_passwd/${nz_admin_panel_passwd}/" /tmp/nezha-config.yaml
     sed -i "s/nz_grpc_port/${nz_grpc_port}/" /tmp/nezha-config.yaml
     sed -i "s/nz_github_oauth_client_id/${nz_github_oauth_client_id}/" /tmp/nezha-config.yaml
     sed -i "s/nz_github_oauth_client_secret/${nz_github_oauth_client_secret}/" /tmp/nezha-config.yaml
@@ -578,6 +585,7 @@ modify_dashboard_config() {
     fi
 
     success "Dashboard configuration modified successfully, please wait for Dashboard self-restart to take effect"
+    success "Your Password is：$nz_admin_panel_passwd"
 
     restart_and_update
 

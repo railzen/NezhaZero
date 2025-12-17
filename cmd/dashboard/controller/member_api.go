@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/idna"
 	"gorm.io/gorm"
 
@@ -1007,20 +1008,20 @@ func (ma *memberAPI) logout(c *gin.Context) {
 }
 
 type settingForm struct {
-	Title                   string
-	Admin                   string
-	Language                string
-	Theme                   string
-	DashboardTheme          string
-	CustomCode              string
-	CustomCodeDashboard     string
-	CustomNameservers       string
-	ViewPassword            string
-	IgnoredIPNotification   string
-	IPChangeNotificationTag string // IP变更提醒的通知组
-	GRPCHost                string
-	Cover                   uint8
-
+	Title                           string
+	Admin                           string
+	Language                        string
+	Theme                           string
+	DashboardTheme                  string
+	CustomCode                      string
+	CustomCodeDashboard             string
+	CustomNameservers               string
+	ViewPassword                    string
+	IgnoredIPNotification           string
+	IPChangeNotificationTag         string // IP变更提醒的通知组
+	GRPCHost                        string
+	Cover                           uint8
+	Password                        string
 	EnableIPChangeNotification      string
 	EnablePlainIPInNotification     string
 	DisableSwitchTemplateInFrontend string
@@ -1088,6 +1089,19 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	if singleton.Conf.IPChangeNotificationTag == "" {
 		singleton.Conf.IPChangeNotificationTag = "default"
 	}
+
+	// 满足条件：非空且长度大于6
+	if sf.Password != "" && len(sf.Password) > 6 {
+		// 生成 bcrypt 哈希
+		hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
+		if err != nil {
+			panic(err)
+		}
+		// 存储哈希
+		singleton.Conf.Site.AdminPassword = string(hash)
+		singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
+	}
+
 	if err := singleton.Conf.Save(); err != nil {
 		c.JSON(http.StatusOK, model.Response{
 			Code:    http.StatusBadRequest,
