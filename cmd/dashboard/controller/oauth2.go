@@ -42,8 +42,10 @@ func (oa *oauth2controller) serve() {
 
 func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	type LoginForm struct {
-		Username string `form:"username" binding:"required"`
-		Password string `form:"password" binding:"required,min=6"`
+		Username  string `form:"username" binding:"required"`
+		Password  string `form:"password" binding:"required,min=6"`
+		Timestamp int64  `form:"timestamp" binding:"required"`
+		Nonce     string `form:"nonce" binding:"required,min=10"`
 	}
 
 	var req LoginForm
@@ -51,6 +53,30 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		showLoginFailed(c)
 		return
 	}
+
+	// 1. 验证时间戳（防止重放攻击）
+	currentTime := time.Now().UnixMilli()
+	if currentTime-req.Timestamp > 300000 { // 5分钟有效期
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  400,
+			Title: "登录失败",
+			Msg:   "请求已过期，请刷新页面重试",
+		}, true)
+		return
+	}
+
+	// 2. 验证一次性随机数（防止重放攻击）
+	nonceKey := "login_nonce_" + req.Nonce
+	if _, found := singleton.Cache.Get(nonceKey); found {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  400,
+			Title: "登录失败",
+			Msg:   "重复的请求，请刷新页面重试",
+		}, true)
+		return
+	}
+	// 存储随机数，设置5分钟过期
+	singleton.Cache.Set(nonceKey, true, 300)
 
 	// 限制连续失败次数
 	failKey := "passwd_fail_" + req.Username

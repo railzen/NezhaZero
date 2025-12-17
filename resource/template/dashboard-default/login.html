@@ -1,46 +1,44 @@
 {{define "dashboard-default/login"}}
 {{template "common/header" .}}
 <div class="login nb-container">
-    <div class="ui center aligned grid">
-        <div class="column">
-            <h2 class="ui image header">
-                <img src="static/logo.svg?v20210804" class="image">
-                <div class="content">
-                    {{tr "Login"}}
+  <div class="ui center aligned grid">
+    <div class="column">
+      <h2 class="ui image header">
+        <img src="static/logo.svg?v20210804" class="image">
+        <div class="content">
+          {{tr "Login"}}
                 </div>
             </h2>
             <form id="loginForm" class="ui large form" method="post" action="/auth/password">
-
-                    <div class="field">
-                        <div class="ui left icon input">
-                            <i class="user icon"></i>
-                            <input
-                                type="text"
-                                name="username"
-                                placeholder="Username"
-                                autocomplete="off"
-                                required
-                            >
-                        </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="user icon"></i>
+                        <input
+                            type="text"
+                            name="username"
+                            placeholder="Username"
+                            autocomplete="off"
+                            required
+                        >
                     </div>
-                    <div class="field">
-                        <div class="ui left icon input">
-                            <i class="lock icon"></i>
-                            <input
-                                id="passwordInput"
-                                type="password"
-                                name="password"
-                                placeholder="Password"
-                                autocomplete="off"
-                                required
-                            >
-                        </div>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="lock icon"></i>
+                        <input
+                            id="passwordInput"
+                            type="password"
+                            name="password"
+                            placeholder="Password"
+                            autocomplete="off"
+                            required
+                        >
                     </div>
-
-                    <button type="submit" class="ui fluid large nezha-primary-btn button">
-                        {{tr "Login"}}
-                    </button>
-
+                </div>
+                <!-- 添加隐藏字段 -->
+                <input type="hidden" id="timestamp" name="timestamp">
+                <input type="hidden" id="nonce" name="nonce">
+                <button type="submit" class="ui fluid large nezha-primary-btn button">{{tr "Login"}}</button>
             </form>
 
             <div class="ui hidden divider"></div>
@@ -68,8 +66,15 @@
 
         // 用编码后的密码替换原密码值
         passwordField.value = encodedPassword;
+  
+        // 生成时间戳（毫秒）和随机数
+        var timestamp = Date.now();
+        var nonce = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-        // 提交表单
+        // 设置隐藏字段的值
+        document.getElementById('timestamp').value = timestamp;
+        document.getElementById('nonce').value = nonce;
+  
         this.submit();
     });
 </script>
