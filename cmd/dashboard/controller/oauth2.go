@@ -54,6 +54,9 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		return
 	}
 
+	// 获取客户端 IP 地址
+	clientIP := c.ClientIP()
+
 	// 1. 验证时间戳（防止重放攻击）
 	currentTime := time.Now().UnixMilli()
 	if currentTime-req.Timestamp > 300000 { // 5分钟有效期
@@ -78,13 +81,24 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	// 存储随机数，设置5分钟过期
 	singleton.Cache.Set(nonceKey, true, 300)
 
-	// 限制连续失败次数
+	// 3. 限制连续失败次数
 	failKey := "passwd_fail_" + req.Username
 	failCount, _ := singleton.Cache.Get(failKey)
 	if failCountInt, ok := failCount.(int); ok && failCountInt >= 5 {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code: 400, Title: "登录失败",
 			Msg: "连续错误次数过多，请稍后再试",
+		}, true)
+		return
+	}
+
+	// 4. IP 地址限制
+	ipFailKey := "ip_fail_" + clientIP
+	ipFailCount, _ := singleton.Cache.Get(ipFailKey)
+	if ipFailCountInt, ok := ipFailCount.(int); ok && ipFailCountInt >= 5 {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code: 400, Title: "登录失败",
+			Msg: "该 IP 地址尝试登录失败次数过多，请稍后再试",
 		}, true)
 		return
 	}
@@ -99,6 +113,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 	if !allowed {
 		incrementFailCount(failKey)
+		incrementFailCount(ipFailKey)
 		showLoginFailed(c)
 		return
 	}
@@ -106,19 +121,23 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	decodedPassword, err := base64.StdEncoding.DecodeString(req.Password)
 	if err != nil {
 		incrementFailCount(failKey)
+		incrementFailCount(ipFailKey)
 		showLoginFailed(c)
 		return
 	}
+
 	// 校验密码（bcrypt）
 	hash := singleton.Conf.Site.AdminPassword
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(decodedPassword)); err != nil {
 		incrementFailCount(failKey)
+		incrementFailCount(ipFailKey)
 		showLoginFailed(c)
 		return
 	}
 
 	// 登录成功，清除失败计数
 	singleton.Cache.Delete(failKey)
+	singleton.Cache.Delete(ipFailKey)
 
 	// 构造管理员用户
 	user := model.User{
