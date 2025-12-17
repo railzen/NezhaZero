@@ -994,6 +994,8 @@ func (ma *memberAPI) logout(c *gin.Context) {
 		Token:        "",
 		TokenExpired: time.Now().UTC(),
 	})
+	// 清除浏览器中的 Cookie
+	c.SetCookie(singleton.Conf.Site.CookieName, "", -1, "", "", false, true)
 	c.JSON(http.StatusOK, model.Response{
 		Code: http.StatusOK,
 	})
