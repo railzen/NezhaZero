@@ -172,7 +172,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 // 显示统一登录失败页面
 func showLoginFailed(c *gin.Context) {
 	mygin.ShowErrorPage(c, mygin.ErrInfo{
-		Code: 400, Title: "用户名或密码错误", Msg: "用户名或密码错误",
+		Code: 403, Title: "用户名或密码错误", Msg: "用户名或密码错误",
 	}, true)
 }
 

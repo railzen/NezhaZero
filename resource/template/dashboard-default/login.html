@@ -7,75 +7,199 @@
         <img src="static/logo.svg?v20210804" class="image">
         <div class="content">
           {{tr "Login"}}
-                </div>
-            </h2>
-            <form id="loginForm" class="ui large form" method="post" action="/auth/password">
-                <div class="field">
-                    <div class="ui left icon input">
-                        <i class="user icon"></i>
-                        <input
-                            type="text"
-                            name="username"
-                            placeholder="Username"
-                            autocomplete="off"
-                            required
-                        >
-                    </div>
-                </div>
-                <div class="field">
-                    <div class="ui left icon input">
-                        <i class="lock icon"></i>
-                        <input
-                            id="passwordInput"
-                            type="password"
-                            name="password"
-                            placeholder="Password"
-                            autocomplete="off"
-                            required
-                        >
-                    </div>
-                </div>
-                <!-- 添加隐藏字段 -->
-                <input type="hidden" id="timestamp" name="timestamp">
-                <input type="hidden" id="nonce" name="nonce">
-                <button type="submit" class="ui fluid large nezha-primary-btn button">{{tr "Login"}}</button>
-            </form>
-
-            <div class="ui hidden divider"></div>
-            <div class="ui colored long divider" style="width: 120%; margin: 30px auto; margin-left: -10%; margin-right: -10%;"></div>
-            <div class="ui hidden divider"></div>
-
-             <a href="/oauth2/login" class="ui fluid large nezha-primary-btn submit button">{{tr "Use"}} {{.LoginType}} {{tr "AccountToLogin"}}</a>
-            <div class="ui message">
-                {{tr "DontHaveAnAccount"}} <a href="{{.RegistrationLink}}" target="_blank" rel="noopener noreferrer">{{tr "SignUp"}}</a>
-            </div>
         </div>
+      </h2>
+      
+      <form id="loginForm" class="ui large form" method="post" action="/auth/password">
+        <div class="field">
+          <div class="ui left icon input">
+            <i class="user icon"></i>
+            <input
+              type="text"
+              name="username"
+              placeholder="Username"
+              autocomplete="off"
+              required
+            >
+          </div>
+        </div>
+        <div class="field">
+          <div class="ui left icon input">
+            <i class="lock icon"></i>
+            <input
+              id="passwordInput"
+              type="password"
+              name="password"
+              placeholder="Password"
+              autocomplete="off"
+              required
+            >
+          </div>
+        </div>
+        <!-- 添加隐藏字段 -->
+        <input type="hidden" id="timestamp" name="timestamp">
+        <input type="hidden" id="nonce" name="nonce">
+        <button type="submit" class="ui fluid large nezha-primary-btn button">{{tr "Login"}}</button>
+      </form>
+
+       <!-- 添加错误提示容器 -->
+      <div id="errorMessage" class="ui negative message" style="display: none;">
+        <div class="header">登录失败</div>
+        <p id="errorText"></p>
+      </div>
+
+      <div class="ui hidden divider"></div>
+      <div class="ui colored long divider" style="width: 120%; margin: 30px auto; margin-left: -10%; margin-right: -10%;"></div>
+      <div class="ui hidden divider"></div>
+
+      <a href="/oauth2/login" class="ui fluid large nezha-primary-btn submit button">{{tr "Use"}} {{.LoginType}} {{tr "AccountToLogin"}}</a>
+      <div class="ui message">
+        {{tr "DontHaveAnAccount"}} <a href="{{.RegistrationLink}}" target="_blank" rel="noopener noreferrer">{{tr "SignUp"}}</a>
+      </div>
     </div>
+  </div>
 </div>
 {{template "common/footer" .}}
 <script>
-    // 在表单提交时进行加密
-    document.getElementById('loginForm').addEventListener('submit', function(event) {
-        event.preventDefault(); // 阻止表单的默认提交
+  // 在表单提交时进行加密并处理响应
+  document.getElementById('loginForm').addEventListener('submit', async function(event) {
+    event.preventDefault(); // 阻止表单的默认提交
+    
+    var passwordField = document.getElementById('passwordInput');
+    var originalPassword = passwordField.value;
+    var errorDiv = document.getElementById('errorMessage');
+    var submitBtn = this.querySelector('button[type="submit"]');
+
+    // 隐藏之前的错误提示
+    errorDiv.style.display = 'none';
+    
+    // 基本验证
+    if (!originalPassword || originalPassword.length < 6) {
+      showError('密码至少需要6位');
+      return;
+    }
+
+    // 使用 Base64 编码密码
+    var encodedPassword;
+    try {
+      encodedPassword = btoa(unescape(encodeURIComponent(originalPassword)));
+    } catch (e) {
+      encodedPassword = btoa(originalPassword);
+    }
+
+    // 用编码后的密码替换原密码值
+    passwordField.value = encodedPassword;
+    
+    // 生成时间戳（毫秒）和随机数
+    var timestamp = Date.now();
+    var nonce = Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+    // 设置隐藏字段的值
+    document.getElementById('timestamp').value = timestamp;
+    document.getElementById('nonce').value = nonce;
+    
+    // 禁用按钮防止重复提交
+    submitBtn.disabled = true;
+    var originalBtnText = submitBtn.textContent;
+    submitBtn.textContent = '登录中...';
+    
+    try {
+      // 使用 Fetch API 提交表单
+      const formData = new FormData(this);
+      
+      const response = await fetch('/auth/password', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        }
+      });
+      
+      // 恢复按钮状态
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
+      
+      if (response.ok) {
+        // 登录成功，获取响应HTML
+        const html = await response.text();
         
-        var passwordField = document.getElementById('passwordInput');
-        var originalPassword = passwordField.value;
+        // 检查响应是否包含错误页面
+        if (html.includes('用户名或密码错误') || html.includes('登录失败')) {
+          // 从HTML中提取错误信息
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const errorElement = doc.querySelector('.mygin-error-page h1, .error-msg, .error-message');
+          
+          if (errorElement) {
+            showError(errorElement.textContent.trim());
+          } else if (html.includes('用户名或密码错误')) {
+            showError('用户名或密码错误');
+          } else if (html.includes('连续错误次数过多')) {
+            showError('连续错误次数过多，请稍后再试');
+          } else {
+            showError('登录失败');
+          }
+          
+          // 清空密码字段
+          passwordField.value = '';
+          document.getElementById('passwordInput').type = 'password';
+        } else {
+          // 登录成功，替换整个页面
+          document.open();
+          document.write(html);
+          document.close();
+        }
+      } else {
+        // HTTP错误状态
+        if (response.status === 400) {
+          showError('请求参数错误');
+        } else if (response.status === 403) {
+          showError('用户名或密码错误');
+        } else if (response.status === 429) {
+          showError('请求过于频繁，请稍后再试');
+        } else {
+          showError('服务器错误，请稍后重试');
+        }
+        passwordField.value = '';
+      }
+      
+    } catch (error) {
+      // 网络错误
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
+      showError('网络错误，请检查连接后重试');
+      console.error('登录错误:', error);
+      passwordField.value = '';
+    }
+  });
 
-        // 使用 Base64 编码密码
-        var encodedPassword = btoa(originalPassword); // btoa() 进行 Base64 编码
-
-        // 用编码后的密码替换原密码值
-        passwordField.value = encodedPassword;
+  // 显示错误提示
+  function showError(message) {
+    const errorDiv = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    
+    errorText.textContent = message;
+    errorDiv.style.display = 'block';
+    
+    // 1秒后自动隐藏
+    setTimeout(() => {
+      errorDiv.style.display = 'none';
+    }, 1000);
+  }
   
-        // 生成时间戳（毫秒）和随机数
-        var timestamp = Date.now();
-        var nonce = Math.random().toString(36).substring(2) + Date.now().toString(36);
-
-        // 设置隐藏字段的值
-        document.getElementById('timestamp').value = timestamp;
-        document.getElementById('nonce').value = nonce;
-  
-        this.submit();
+  // 清空错误提示
+  document.querySelectorAll('#loginForm input').forEach(input => {
+    input.addEventListener('focus', function() {
+      document.getElementById('errorMessage').style.display = 'none';
     });
+  });
+  
+  // 回车键提交
+  document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+    }
+  });
 </script>
 {{end}}
