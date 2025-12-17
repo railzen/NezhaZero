@@ -43,7 +43,7 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 		if token != "" {
 			var u model.User
 			if err := singleton.DB.Where("token = ?", token).First(&u).Error; err == nil {
-				isLogin = u.TokenExpired.After(time.Now())
+				isLogin = u.TokenExpired.After(time.Now().UTC())
 			}
 			if isLogin {
 				c.Set(model.CtxKeyAuthorizedUser, &u)

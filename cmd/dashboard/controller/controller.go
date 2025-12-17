@@ -142,7 +142,7 @@ func loadTemplates(tmpl *template.Template, themeDir string) *template.Template 
 	templatePath := filepath.Join("resource", "template", themeDir, "*.html")
 	t, err := tmpl.ParseGlob(templatePath)
 	if err != nil {
-		log.Printf("NEZHA>> Error parsing templates %s: %v", themeDir, err)
+		//log.Printf("NEZHA>> Error parsing templates %s: %v", themeDir, err)
 		return tmpl
 	}
 

@@ -992,7 +992,7 @@ func (ma *memberAPI) logout(c *gin.Context) {
 	}
 	singleton.DB.Model(admin).UpdateColumns(model.User{
 		Token:        "",
-		TokenExpired: time.Now(),
+		TokenExpired: time.Now().UTC(),
 	})
 	c.JSON(http.StatusOK, model.Response{
 		Code: http.StatusOK,

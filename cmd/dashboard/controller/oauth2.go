@@ -97,7 +97,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	// 构造管理员用户
 	user := model.User{
 		Login:      req.Username,
-		Name:       req.Username,
+		Name:       "Admin",
 		SuperAdmin: true,
 	}
 
@@ -110,7 +110,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		return
 	}
 	user.Token = token
-	user.TokenExpired = time.Now().AddDate(0, 2, 0)
+	user.TokenExpired = time.Now().UTC().AddDate(0, 2, 0)
 
 	// 保存到数据库（可选）
 	singleton.DB.Save(&user)
@@ -378,7 +378,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 		}, true)
 		return
 	}
-	user.TokenExpired = time.Now().AddDate(0, 2, 0)
+	user.TokenExpired = time.Now().UTC().AddDate(0, 2, 0)
 	singleton.DB.Save(&user)
 	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24, "", "", false, false)
 	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/redirect", mygin.CommonEnvironment(c, gin.H{
