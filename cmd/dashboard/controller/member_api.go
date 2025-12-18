@@ -1091,7 +1091,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	}
 
 	// 满足条件：非空且长度大于6
-	if sf.Password != "" && len(sf.Password) >= 6 {
+	if sf.Password != "" && len(sf.Password) >= 6 && !strings.HasPrefix(sf.Password, "$2") && len(sf.Password) <= 32 {
 		// 生成 bcrypt 哈希
 		hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
 		if err != nil {
@@ -1099,6 +1099,13 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		}
 		// 存储哈希
 		singleton.Conf.Site.AdminPassword = string(hash)
+		singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
+	}
+
+	// 满足条件：空
+	if sf.Password == "" && singleton.Conf.Site.AdminPassword != "" {
+		// 存储空值
+		singleton.Conf.Site.AdminPassword = ""
 		singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
 	}
 
