@@ -68,6 +68,15 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		return
 	}
 
+	if singleton.Conf.Site.AdminPassword == "" {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  400,
+			Title: "登录失败",
+			Msg:   "不支持的登陆方式",
+		}, true)
+		return
+	}
+
 	// 获取客户端 IP 地址
 	clientIP := c.ClientIP()
 
@@ -88,7 +97,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  400,
 			Title: "登录失败",
-			Msg:   "重复的请求，请刷新页面重试",
+			Msg:   "请求已过期，请刷新页面重试",
 		}, true)
 		return
 	}
@@ -101,7 +110,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	if failCountInt, ok := failCount.(int); ok && failCountInt >= 5 {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code: 400, Title: "登录失败",
-			Msg: "连续错误次数过多，请稍后再试",
+			Msg: "错误次数过多，请稍后再试",
 		}, true)
 		return
 	}
@@ -112,7 +121,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	if ipFailCountInt, ok := ipFailCount.(int); ok && ipFailCountInt >= 5 {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code: 400, Title: "登录失败",
-			Msg: "该 IP 地址尝试登录失败次数过多，请稍后再试",
+			Msg: "错误次数过多，请稍后再试",
 		}, true)
 		return
 	}

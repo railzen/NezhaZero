@@ -60,10 +60,15 @@ func (gp *guestPage) login(c *gin.Context) {
 		LoginType = singleton.Conf.Oauth2.OidcDisplayName
 		RegistrationLink = singleton.Conf.Oauth2.OidcRegisterURL
 	}
+	passwordSet := false
+	if singleton.Conf.Site.AdminPassword != "" {
+		passwordSet = true
+	}
 	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/login", mygin.CommonEnvironment(c, gin.H{
 		"Title":            singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Login"}),
 		"LoginType":        LoginType,
 		"RegistrationLink": RegistrationLink,
 		"XORKey":           fmt.Sprintf("0x%02x", XorKey),
+		"PasswordEnabled":  passwordSet, // 密码登录是否可用
 	}))
 }

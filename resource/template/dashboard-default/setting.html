@@ -3,7 +3,7 @@
 {{template "common/menu" .}}
 <div class="nb-container">
     <div class="ui container">
-        <form id="settingForm" class="ui large form" onsubmit="return false;">
+        <form id="settingForm" class="ui large form" onsubmit="return false;" autocomplete="off">
             <div class="field">
                 <label>{{tr "SiteTitle"}}</label>
                 <input type="text" name="Title" placeholder="{{tr "NezhaMonitoring"}}" value="{{.Conf.Site.Brand}}">
@@ -14,11 +14,11 @@
             </div>
             <div class="field">
                 <label>{{tr "AdminPassword"}}</label>
-                <input type="text" name="Password" placeholder="" value="">
+                <input type="text" name="Password" placeholder="设置密码（不少于六位）" value="" autocomplete="off">
             </div>
             <div class="field">
                 <label>{{tr "AccessPassword"}}</label>
-                <input type="text" name="ViewPassword" placeholder="" value="{{.Conf.Site.ViewPassword}}">
+                <input type="text" name="ViewPassword" placeholder="" value="{{.Conf.Site.ViewPassword}}" autocomplete="off">
             </div>
             <div class="field">
                 <label>{{tr "Theme"}}</label>

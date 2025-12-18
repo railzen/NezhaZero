@@ -755,7 +755,7 @@ other = "Custom Public DNS Nameservers for DDNS (separate with comma)"
 other = "Plan"
 
 [AdminPassword]
-other = "Admin Password (More than 6 Characters)"
+other = "Admin Password"
 
 [AdminLogin]
 other = "Admin Login"

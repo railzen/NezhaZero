@@ -152,17 +152,7 @@ func (c *Config) Read(path string) error {
 		c.Site.DashboardTheme = "default"
 	}
 
-	if c.Site.AdminPassword == "" {
-		// 默认明文密码
-		defaultPassword := "7c7b6ad8"
-		// 生成 bcrypt 哈希
-		hash, err := bcrypt.GenerateFromPassword([]byte(defaultPassword), bcrypt.DefaultCost)
-		if err != nil {
-			panic(err)
-		}
-		// 存储哈希
-		c.Site.AdminPassword = string(hash)
-	} else {
+	if c.Site.AdminPassword != "" {
 		// 已经有密码，判断它是否已经是 bcrypt 哈希
 		// bcrypt 哈希一般长度 >= 60 并且以 $2 开头
 		if !strings.HasPrefix(c.Site.AdminPassword, "$2") || len(c.Site.AdminPassword) < 60 {

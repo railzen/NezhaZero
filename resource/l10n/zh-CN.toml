@@ -755,7 +755,7 @@ other = "自定义DDNS使用的公共DNS服务器（逗号分隔）"
 other = "套餐"
 
 [AdminPassword]
-other = "管理员密码（不小于6位）"
+other = "管理员密码"
 
 [AdminLogin]
 other = "管理员登陆"

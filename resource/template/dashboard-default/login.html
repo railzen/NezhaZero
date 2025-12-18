@@ -6,10 +6,15 @@
       <h2 class="ui image header">
         <img src="static/logo.svg?v20210804" class="image">
         <div class="content">
-          {{tr "AdminLogin"}}
+          {{if .PasswordEnabled}}
+            {{tr "AdminLogin"}}
+          {{else}}
+            {{tr "Use"}} {{.LoginType}} {{tr "AccountToLogin"}}
+          {{end}}
         </div>
       </h2>
       
+      {{if .PasswordEnabled}}
       <form id="loginForm" class="ui large form" method="post" action="/auth/password">
         <div class="field">
           <div class="ui left icon input">
@@ -51,8 +56,14 @@
       <div class="ui hidden divider"></div>
       <div class="ui colored long divider" style="width: 120%; margin: 30px auto; margin-left: -10%; margin-right: -10%;"></div>
       <div class="ui hidden divider"></div>
+      {{end}}
 
-      <a href="/oauth2/login" class="ui fluid large nezha-primary-btn submit button">{{tr "Use"}} {{.LoginType}} {{tr "AccountToLogin"}}</a>
+      <a href="/oauth2/login" class="ui fluid large nezha-primary-btn submit button">
+          {{if .PasswordEnabled}}
+            {{tr "Use"}} {{.LoginType}} {{tr "Login"}}
+          {{else}}
+            {{tr "Login"}}
+          {{end}}</a>
       <div class="ui message">
         {{tr "DontHaveAnAccount"}} <a href="{{.RegistrationLink}}" target="_blank" rel="noopener noreferrer">{{tr "SignUp"}}</a>
       </div>
