@@ -1091,7 +1091,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	}
 
 	// 满足条件：非空且长度大于6
-	if sf.Password != "" && len(sf.Password) > 6 {
+	if sf.Password != "" && len(sf.Password) >= 6 {
 		// 生成 bcrypt 哈希
 		hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
 		if err != nil {

@@ -753,3 +753,18 @@ other = "Custom Public DNS Nameservers for DDNS (separate with comma)"
 
 [Plan]
 other = "Plan"
+
+[AdminPassword]
+other = "Admin Password (More than 6 Characters)"
+
+[AdminLogin]
+other = "Admin Login"
+
+[Language]
+other = "Language"
+
+[Username]
+other = "Username"
+
+[Password]
+other = "Password"

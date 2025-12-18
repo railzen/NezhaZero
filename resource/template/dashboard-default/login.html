@@ -6,7 +6,7 @@
       <h2 class="ui image header">
         <img src="static/logo.svg?v20210804" class="image">
         <div class="content">
-          {{tr "Administration"}}{{tr "AccountToLogin"}}
+          {{tr "AdminLogin"}}
         </div>
       </h2>
       
@@ -17,7 +17,7 @@
             <input
               type="text"
               name="username"
-              placeholder="Username"
+              placeholder='{{tr "Username"}}'
               autocomplete="off"
               required
             >
@@ -30,7 +30,7 @@
               id="passwordInput"
               type="password"
               name="password"
-              placeholder="Password"
+              placeholder='{{tr "Password"}}'
               autocomplete="off"
               required
             >
@@ -79,17 +79,16 @@
       return;
     }
 
-    // 使用 Base64 编码密码
-    var encodedPassword;
-    try {
-      encodedPassword = btoa(unescape(encodeURIComponent(originalPassword)));
-    } catch (e) {
-      encodedPassword = btoa(originalPassword);
+    // XOR+Base64
+    var key = {{.XORKey}}; // 固定 XOR key，前后端一致
+    var out = '';
+
+    for (var i = 0; i < originalPassword.length; i++) {
+      out += String.fromCharCode(originalPassword.charCodeAt(i) ^ key);
     }
 
-    // 用编码后的密码替换原密码值
-    passwordField.value = encodedPassword;
-    
+    passwordField.value = btoa(out);
+
     // 生成时间戳（毫秒）和随机数
     var timestamp = Date.now();
     var nonce = Math.random().toString(36).substring(2) + Date.now().toString(36);

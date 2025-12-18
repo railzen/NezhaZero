@@ -753,3 +753,18 @@ other = "自訂DDNS使用的公共DNS伺服器（逗號分隔）"
 
 [Plan]
 other = "套餐"
+
+[AdminPassword]
+other = "管理者密碼"
+
+[AdminLogin]
+other = "管理員登入"
+
+[Language]
+other = "語言"
+
+[Username]
+other = "使用者名稱"
+
+[Password]
+other = "密碼"

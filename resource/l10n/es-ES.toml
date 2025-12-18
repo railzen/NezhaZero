@@ -753,3 +753,18 @@ other = "Servidores DNS públicos personalizados para DDNS (separar con coma)"
 
 [Plan]
 other = "Plan"
+
+[AdminPassword]
+other = "Contraseña de administrador"
+
+[AdminLogin]
+other = "Admin Login"
+
+[Language]
+other = "Language"
+
+[Username]
+other = "Username"
+
+[Password]
+other = "Password"

@@ -13,7 +13,7 @@
                 <input type="text" name="Admin" placeholder="1010,2020" value="{{.Conf.Oauth2.Admin}}">
             </div>
             <div class="field">
-                <label>ManagePassword (More than 6 Characters)</label>
+                <label>{{tr "AdminPassword"}}</label>
                 <input type="text" name="Password" placeholder="" value="">
             </div>
             <div class="field">
@@ -37,7 +37,7 @@
                 </select>
             </div>
             <div class="field">
-                <label>Language</label>
+                <label>{{tr "Language"}}</label>
                 <select name="Language">
                     {{range $k,$v := .Languages}}
                     <option value="{{$k}}" {{if eq $.Conf.Language $k }} selected="selected" {{end}}>

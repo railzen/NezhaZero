@@ -64,5 +64,6 @@ func (gp *guestPage) login(c *gin.Context) {
 		"Title":            singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Login"}),
 		"LoginType":        LoginType,
 		"RegistrationLink": RegistrationLink,
+		"XORKey":           fmt.Sprintf("0x%02x", XorKey),
 	}))
 }

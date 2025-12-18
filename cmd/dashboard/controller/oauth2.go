@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -28,6 +29,19 @@ import (
 	GitHubOauth2 "golang.org/x/oauth2/github"
 	GitlabOauth2 "golang.org/x/oauth2/gitlab"
 )
+
+var XorKey byte
+
+func init() {
+	b := []byte{0}
+	_, _ = rand.Read(b)
+	XorKey = b[0]
+
+	// 可选：避免 0x00
+	if XorKey == 0 || XorKey == 0xFF {
+		XorKey = 0x93
+	}
+}
 
 type oauth2controller struct {
 	r            gin.IRoutes
@@ -124,6 +138,11 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		incrementFailCount(ipFailKey)
 		showLoginFailed(c)
 		return
+	}
+
+	// XOR解密
+	for i := range decodedPassword {
+		decodedPassword[i] ^= XorKey
 	}
 
 	// 校验密码（bcrypt）
