@@ -183,7 +183,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	singleton.DB.Save(&user)
 
 	// 设置安全 cookie (HttpOnly + Secure)
-	c.SetSameSite(http.SameSiteStrictMode)
+	//c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24, "", "", c.Request.TLS != nil, true)
 
 	// 登录成功跳转
