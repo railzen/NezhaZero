@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -68,7 +70,8 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		return
 	}
 
-	if singleton.Conf.Site.AdminPassword == "" {
+	ruleAllowed := true
+	if singleton.Conf.Site.AdminPassword == "" || len(singleton.Conf.Site.AdminPassword) < 10 {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  400,
 			Title: "登录失败",
@@ -78,27 +81,19 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	// 获取客户端 IP 地址
-	clientIP := c.ClientIP()
+	clientIP := getRealIP(c)
 
 	// 1. 验证时间戳（防止重放攻击）
 	currentTime := time.Now().UnixMilli()
-	if currentTime-req.Timestamp > 300000 { // 5分钟有效期
-		mygin.ShowErrorPage(c, mygin.ErrInfo{
-			Code:  400,
-			Title: "登录失败",
-			Msg:   "请求已过期，请刷新页面重试",
-		}, true)
-		return
+	delta := math.Abs(float64(currentTime - req.Timestamp))
+	if delta > 300000 { // 300秒有效期
+		ruleAllowed = false
 	}
 
 	// 2. 验证一次性随机数（防止重放攻击）
 	nonceKey := "login_nonce_" + req.Nonce
 	if _, found := singleton.Cache.Get(nonceKey); found {
-		mygin.ShowErrorPage(c, mygin.ErrInfo{
-			Code:  400,
-			Title: "登录失败",
-			Msg:   "请求已过期，请刷新页面重试",
-		}, true)
+		showLoginRuleFailed(c)
 		return
 	}
 	// 存储随机数，设置5分钟过期
@@ -108,21 +103,20 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	failKey := "passwd_fail_" + req.Username
 	failCount, _ := singleton.Cache.Get(failKey)
 	if failCountInt, ok := failCount.(int); ok && failCountInt >= 5 {
-		mygin.ShowErrorPage(c, mygin.ErrInfo{
-			Code: 400, Title: "登录失败",
-			Msg: "错误次数过多，请稍后再试",
-		}, true)
-		return
+		ruleAllowed = false
 	}
 
 	// 4. IP 地址限制
 	ipFailKey := "ip_fail_" + clientIP
 	ipFailCount, _ := singleton.Cache.Get(ipFailKey)
 	if ipFailCountInt, ok := ipFailCount.(int); ok && ipFailCountInt >= 5 {
-		mygin.ShowErrorPage(c, mygin.ErrInfo{
-			Code: 400, Title: "登录失败",
-			Msg: "错误次数过多，请稍后再试",
-		}, true)
+		ruleAllowed = false
+	}
+
+	if !ruleAllowed {
+		incrementFailCount(failKey)
+		incrementFailCount(ipFailKey)
+		showLoginRuleFailed(c)
 		return
 	}
 
@@ -134,19 +128,10 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 			break
 		}
 	}
-	if !allowed {
-		incrementFailCount(failKey)
-		incrementFailCount(ipFailKey)
-		showLoginFailed(c)
-		return
-	}
 
 	decodedPassword, err := base64.StdEncoding.DecodeString(req.Password)
 	if err != nil {
-		incrementFailCount(failKey)
-		incrementFailCount(ipFailKey)
-		showLoginFailed(c)
-		return
+		allowed = false
 	}
 
 	// XOR解密
@@ -157,6 +142,15 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	// 校验密码（bcrypt）
 	hash := singleton.Conf.Site.AdminPassword
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(decodedPassword)); err != nil {
+		allowed = false
+	}
+
+	//比较结束立即释放密码
+	for i := range decodedPassword {
+		decodedPassword[i] = 0
+	}
+
+	if !allowed {
 		incrementFailCount(failKey)
 		incrementFailCount(ipFailKey)
 		showLoginFailed(c)
@@ -189,6 +183,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	singleton.DB.Save(&user)
 
 	// 设置安全 cookie (HttpOnly + Secure)
+	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24, "", "", c.Request.TLS != nil, true)
 
 	// 登录成功跳转
@@ -197,10 +192,51 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}))
 }
 
+// 使用更可靠的IP获取方式
+func getRealIP(c *gin.Context) string {
+	// 尝试多个头部
+	headers := []string{"X-Real-IP", "CF-Connecting-IP", "True-Client-IP"}
+	for _, header := range headers {
+		if ip := c.GetHeader(header); ip != "" {
+			ip = strings.TrimSpace(ip)
+			// 处理逗号分隔
+			parts := strings.Split(ip, ",")
+			if len(parts) > 0 {
+				candidate := strings.TrimSpace(parts[0])
+				if net.ParseIP(candidate) != nil {
+					return candidate
+				}
+			}
+		}
+	}
+
+	// 处理X-Forwarded-For（需要小心）
+	if xff := c.GetHeader("X-Forwarded-For"); xff != "" {
+		ips := strings.Split(xff, ",")
+		// 客户端IP通常在第一个
+		if len(ips) > 0 {
+			candidate := strings.TrimSpace(ips[0])
+			if net.ParseIP(candidate) != nil {
+				return candidate
+			}
+		}
+	}
+
+	// 最后使用gin的ClientIP
+	return c.ClientIP()
+}
+
 // 显示统一登录失败页面
 func showLoginFailed(c *gin.Context) {
 	mygin.ShowErrorPage(c, mygin.ErrInfo{
 		Code: 403, Title: "用户名或密码错误", Msg: "用户名或密码错误",
+	}, true)
+}
+
+// 显示统一登录失败页面
+func showLoginRuleFailed(c *gin.Context) {
+	mygin.ShowErrorPage(c, mygin.ErrInfo{
+		Code: 400, Title: "登陆失败", Msg: "非法请求，请稍后再试",
 	}, true)
 }
 
