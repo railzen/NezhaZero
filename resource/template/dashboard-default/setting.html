@@ -117,7 +117,9 @@
                         time: '3',
                         position: 'top-center',
                     });
-                    window.location.reload()
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 800);
                 } else {
                     $.suiAlert({
                         title: '',
