@@ -15,7 +15,7 @@
       </h2>
       
       {{if .PasswordEnabled}}
-      <form id="loginForm" class="ui large form" method="post" action="/auth/password">
+      <form id="loginForm" class="ui large form" method="post" action="/auth">
         <div class="field">
           <div class="ui left icon input">
             <i class="user icon"></i>
@@ -47,11 +47,6 @@
         <button type="submit" class="ui fluid large nezha-primary-btn button">{{tr "Login"}}</button>
       </form>
 
-       <!-- 添加错误提示容器 -->
-      <div id="errorMessage" class="ui negative message" style="display: none;">
-        <div class="header">登录失败</div>
-        <p id="errorText"></p>
-      </div>
 
       <div class="ui hidden divider"></div>
       <div class="ui colored long divider" style="width: 120%; margin: 30px auto; margin-left: -10%; margin-right: -10%;"></div>
@@ -78,11 +73,7 @@
     
     var passwordField = document.getElementById('passwordInput');
     var originalPassword = passwordField.value;
-    var errorDiv = document.getElementById('errorMessage');
     var submitBtn = this.querySelector('button[type="submit"]');
-
-    // 隐藏之前的错误提示
-    errorDiv.style.display = 'none';
     
     // 基本验证
     if (!originalPassword || originalPassword.length < 6) {
@@ -117,7 +108,7 @@
       // 使用 Fetch API 提交表单
       const formData = new FormData(this);
       
-      const response = await fetch('/auth/password', {
+      const response = await fetch('/auth', {
         method: 'POST',
         body: formData,
         headers: {
@@ -185,24 +176,14 @@
 
   // 显示错误提示
   function showError(message) {
-    const errorDiv = document.getElementById('errorMessage');
-    const errorText = document.getElementById('errorText');
-    
-    errorText.textContent = message;
-    errorDiv.style.display = 'block';
-    
-    // 1秒后自动隐藏
-    setTimeout(() => {
-      errorDiv.style.display = 'none';
-    }, 1000);
-  }
-  
-  // 清空错误提示
-  document.querySelectorAll('#loginForm input').forEach(input => {
-    input.addEventListener('focus', function() {
-      document.getElementById('errorMessage').style.display = 'none';
+    $.suiAlert({
+        title: '登陆失败',
+        description: message,
+        type: 'error',
+        time: '0.8',
+        position: 'top-center',
     });
-  });
+  }
   
   // 回车键提交
   document.getElementById('passwordInput').addEventListener('keypress', function(e) {

@@ -53,7 +53,7 @@ type oauth2controller struct {
 func (oa *oauth2controller) serve() {
 	oa.r.GET("/oauth2/login", oa.login)
 	oa.r.GET("/oauth2/callback", oa.callback)
-	oa.r.POST("/auth/password", oa.passwordLogin)
+	oa.r.POST("/auth", oa.passwordLogin)
 }
 
 func (oa *oauth2controller) passwordLogin(c *gin.Context) {
@@ -183,7 +183,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	singleton.DB.Save(&user)
 
 	// 设置安全 cookie (HttpOnly + Secure)
-	c.SetSameSite(http.SameSiteStrictMode)
+	//c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24, "", "", c.Request.TLS != nil, true)
 
 	// 登录成功跳转
