@@ -14,7 +14,11 @@
             </div>
             <div class="field">
                 <label>{{tr "AdminPassword"}}</label>
-                <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="{{.Conf.Site.AdminPassword}}" autocomplete="off">
+                {{if .PasswordEnabled}}
+                    <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="********" autocomplete="off">
+                {{else}}
+                    <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="" autocomplete="off">
+                {{end}}
             </div>
             <div class="field">
                 <label>{{tr "AccessPassword"}}</label>

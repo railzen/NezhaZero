@@ -15,7 +15,7 @@
       </h2>
       
       {{if .PasswordEnabled}}
-      <form id="loginForm" class="ui large form" method="post" action="/auth/password">
+      <form id="loginForm" class="ui large form" method="post" action="/auth">
         <div class="field">
           <div class="ui left icon input">
             <i class="user icon"></i>
@@ -108,7 +108,7 @@
       // 使用 Fetch API 提交表单
       const formData = new FormData(this);
       
-      const response = await fetch('/auth/password', {
+      const response = await fetch('/auth', {
         method: 'POST',
         body: formData,
         headers: {

@@ -1091,15 +1091,18 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	}
 
 	// 满足条件：非空且长度大于6
-	if sf.Password != "" && len(sf.Password) >= 6 && !strings.HasPrefix(sf.Password, "$2") && len(sf.Password) <= 32 {
-		// 生成 bcrypt 哈希
-		hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
-		if err != nil {
-			panic(err)
+	if sf.Password != "" && sf.Password != "********" && len(sf.Password) >= 6 && !strings.HasPrefix(sf.Password, "$2") && len(sf.Password) <= 32 {
+		// 校验密码是否和原来一致
+		passwdHash := singleton.Conf.Site.AdminPassword
+		if err := bcrypt.CompareHashAndPassword([]byte(passwdHash), []byte(sf.Password)); err != nil {
+			hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
+			if err != nil {
+				panic(err)
+			}
+			// 存储哈希
+			singleton.Conf.Site.AdminPassword = string(hash)
+			singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
 		}
-		// 存储哈希
-		singleton.Conf.Site.AdminPassword = string(hash)
-		singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
 	}
 
 	// 满足条件：空

@@ -3,7 +3,9 @@ package controller
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha1"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -53,15 +55,15 @@ type oauth2controller struct {
 func (oa *oauth2controller) serve() {
 	oa.r.GET("/oauth2/login", oa.login)
 	oa.r.GET("/oauth2/callback", oa.callback)
-	oa.r.POST("/auth/password", oa.passwordLogin)
+	oa.r.POST("/auth", oa.passwordLogin)
 }
 
 func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	type LoginForm struct {
-		Username  string `form:"username" binding:"required"`
+		Username  string `form:"username" binding:"required,max=64"`
 		Password  string `form:"password" binding:"required,min=6"`
 		Timestamp int64  `form:"timestamp" binding:"required"`
-		Nonce     string `form:"nonce" binding:"required,min=10"`
+		Nonce     string `form:"nonce" binding:"required,min=10,max=64"`
 	}
 
 	var req LoginForm
@@ -96,11 +98,10 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		showLoginRuleFailed(c)
 		return
 	}
-	// 存储随机数，设置5分钟过期
-	singleton.Cache.Set(nonceKey, true, 300)
 
 	// 3. 限制连续失败次数
-	failKey := "passwd_fail_" + req.Username
+	u := sha1.Sum([]byte(strings.ToLower(req.Username)))
+	failKey := "passwd_fail_" + hex.EncodeToString(u[:])
 	failCount, _ := singleton.Cache.Get(failKey)
 	if failCountInt, ok := failCount.(int); ok && failCountInt >= 5 {
 		ruleAllowed = false
@@ -139,8 +140,13 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		decodedPassword[i] ^= XorKey
 	}
 
-	// 校验密码（bcrypt）
+	fakeHash := "$2a$10$C6UzMDM.H6dfI/f/IKcEeO6pC0s3z1c7C1jP4y5tZ5yF0p6Yk0YZa"
 	hash := singleton.Conf.Site.AdminPassword
+	if !allowed {
+		hash = fakeHash
+	}
+
+	// 校验密码（bcrypt）
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(decodedPassword)); err != nil {
 		allowed = false
 	}
@@ -160,6 +166,8 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	// 登录成功，清除失败计数
 	singleton.Cache.Delete(failKey)
 	singleton.Cache.Delete(ipFailKey)
+	// 存储随机数，设置5分钟过期
+	singleton.Cache.Set(nonceKey, true, 300)
 
 	// 构造管理员用户
 	user := model.User{
@@ -177,7 +185,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		return
 	}
 	user.Token = token
-	user.TokenExpired = time.Now().UTC().AddDate(0, 2, 0)
+	user.TokenExpired = time.Now().UTC().AddDate(0, 0, 7)
 
 	// 保存到数据库（可选）
 	singleton.DB.Save(&user)
