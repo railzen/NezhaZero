@@ -177,7 +177,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		return
 	}
 	user.Token = token
-	user.TokenExpired = time.Now().UTC().AddDate(0, 2, 0)
+	user.TokenExpired = time.Now().UTC().AddDate(0, 0, 7)
 
 	// 保存到数据库（可选）
 	singleton.DB.Save(&user)

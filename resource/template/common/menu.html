@@ -24,7 +24,12 @@
                 {{if .Admin}}
                 <div class="ui simple dropdown">
                     <div class="text">
-                        <i class="user icon"></i>{{.Admin.Name}}
+                        {{if .Admin.AvatarURL}}
+                            <img class="ui avatar image" src="{{.Admin.AvatarURL}}">
+                        {{else}}
+                            <i class="user icon"></i>
+                        {{end}}
+                        {{.Admin.Name}}
                     </div>
                     <i class="dropdown icon"></i>
                     <div class="menu">
