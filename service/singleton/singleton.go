@@ -108,7 +108,7 @@ func CleanMonitorHistory() {
 	DB.Unscoped().Delete(&model.MonitorHistory{}, "(created_at < ? AND server_id != 0) OR monitor_id NOT IN (SELECT `id` FROM monitors)", time.Now().AddDate(0, 0, -1))
 	DB.Unscoped().Delete(&model.Transfer{}, "server_id NOT IN (SELECT `id` FROM servers)")
 	//清除token过期的用户
-	DB.Unscoped().Delete(&model.User{}, "id IN (SELECT id FROM users WHERE token_expired < ?)", time.Now().UTC())
+	DB.Unscoped().Where("token_expired < ?", time.Now().UTC()).Delete(&model.User{})
 	// 计算可清理流量记录的时长
 	var allServerKeep time.Time
 	specialServerKeep := make(map[uint64]time.Time)

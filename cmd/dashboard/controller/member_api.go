@@ -991,10 +991,13 @@ func (ma *memberAPI) logout(c *gin.Context) {
 		})
 		return
 	}
-	singleton.DB.Model(admin).UpdateColumns(model.User{
-		Token:        "",
-		TokenExpired: time.Now().UTC(),
-	})
+	/*
+		singleton.DB.Model(admin).UpdateColumns(model.User{
+			Token:        "",
+			TokenExpired: time.Now().UTC(),
+		})
+	*/
+	singleton.DB.Unscoped().Where("id = ? AND token = ?", admin.ID, admin.Token).Delete(&model.User{})
 	// 清除浏览器中的 Cookie
 	c.SetCookie(singleton.Conf.Site.CookieName, "", -1, "", "", false, true)
 	c.JSON(http.StatusOK, model.Response{
