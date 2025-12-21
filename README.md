@@ -17,7 +17,7 @@
 
 
 ## Abstract
-基于哪吒V0版本进行二次修改，主要更新了GEOIP库和管理界面安装Agent的链接，同时进行了一些样式优化。
+基于哪吒V0版本进行二次修改，主要更新了GEOIP库和管理界面安装Agent的链接，修复了部分失效的CDN引用，增加用户名密码登陆功能和IP复制功能，同时进行了一些样式优化。
 
 最新Agent版本以上面标签展示为准，放在Release里面仅便于使用。Agent已经关闭自动升级功能，如无必要不会升级。稳定后面板将尽可能减少更新以稳定版本，但目前还在快速迭代，不建议使用。一键安装脚本如下：
 
@@ -25,7 +25,24 @@
 curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/naza.sh -o naza.sh && chmod +x naza.sh && ./naza.sh
 ```
 
+## Compatible API
 
+合并了哪吒V1版本的部分读取功能API。目前支持了（v0.20.20预览版）：
+
+- 支持了账号密码登录（默认关闭，用户名和密码在后台设置后启用）
+- 前台界面的所有 API （包括 WebSocket）
+- 后台界面的部分只读 API
+- 支持服务器、告警、通知的信息获取
+- 兼容 [Nezha-Mobile](https://github.com/hiDandelion/Nezha-Mobile) 的大部分只读功能
+- 关于鉴权
+  - 基于配置文件实现鉴权，密码可以通过修改配置文件后重启面板进行修改
+  - 支持V1版本 `/api/v1/login` 接口实现登录
+    - 账号：设置界面的管理员列表
+    - 密码：设置界面的管理员密码
+  - 支持三种提供 API Key 的方式
+    - Cookie: `nz-jwt` （v1 版本默认使用）
+    - Header: `Authorization: Bearer <API Key>` （v1 版本 API 使用）
+    - Header: `Authorization: <API Key>` （v0 版本 API 使用）
 
 ## Screenshots
 
@@ -53,3 +70,9 @@ You can change the dashboard language in the settings page (`/setting`) after th
     localStorage.setItem("semiTransparent", true); 
 </script>
 ```
+
+## Acknowledgements
+
+- [nezhahq/nezha](https://github.com/nezhahq/nezha): Original Nezha Dashboard. 原版哪吒面板
+- [chenx-dust/nezha-compat](https://github.com/chenx-dust/nezha-compat):哪吒面板的V1版本API实现
+- [hi2shark/nazhua](https://github.com/hi2shark/nazhua):哪吒探针前台主题实现

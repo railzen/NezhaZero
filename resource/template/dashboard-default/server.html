@@ -55,19 +55,22 @@
                         </button>
                     </td>
                 -->
-                    <td style="display: flex; justify-content: space-between; align-items: center; white-space: nowrap;">
-                        <span>{{$server.Host.IP}}</span>
-                        <button class="ui icon mini button ip-copy"
-                            data-clipboard-text="{{$server.Host.IP}}"
-                            data-tooltip="{{tr "ClickToCopy"}} IPv4"
-                            style="margin-left: 2px; flex-shrink: 0;">
-                            <i class="copy icon"></i>
-                        </button>
+                    <td style="white-space: nowrap; vertical-align: middle;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>{{$server.Host.IP}}</span>
+                            <button class="ui icon mini button ip-copy"
+                                data-clipboard-text="{{$server.Host.IP}}"
+                                data-tooltip="{{tr "ClickToCopy"}} IPv4"
+                                style="margin-left: 2px; flex-shrink: 0;">
+                                <i class="copy icon"></i>
+                            </button>
+                        </div>
                     </td>
 
+
                     <td>{{$server.Host.Version}}</td>
-                    <td>{{$server.EnableDDNS}}</td>
-                    <td>{{$server.HideForGuest}}</td>
+                    <td>{{if $server.EnableDDNS}}Y{{else}}N{{end}}</td>
+                    <td>{{if $server.HideForGuest}}Y{{else}}N{{end}}</td>
                     <!-- 
                         <td>
                             <button class="ui icon green mini button" data-clipboard-text="{{$server.Secret}}" data-tooltip="{{tr "ClickToCopy"}}">
@@ -272,6 +275,16 @@ document.addEventListener("DOMContentLoaded", function() {
 table.ui.basic.table td:nth-child(3),
 table.ui.basic.table th:nth-child(3) {
     min-width: 100px; /* 可以根据需要调整 */
+}
+/* 让 Group 列最小宽度为 100px */
+table.ui.basic.table td:nth-child(4),
+table.ui.basic.table th:nth-child(4) {
+    min-width: 50px; /* 可以根据需要调整 */
+}
+/* 让 Agent 列最小宽度为 100px */
+table.ui.basic.table td:nth-child(6),
+table.ui.basic.table th:nth-child(6) {
+    min-width: 70px; /* 可以根据需要调整 */
 }
 </style>
 

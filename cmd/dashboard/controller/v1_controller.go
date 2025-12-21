@@ -61,11 +61,11 @@ func (cv *compatV1) serve() {
 	auth.GET("/alert-rule", cv.listAlertRule)
 	auth.GET("/service/list", cv.listService)
 
-	auth.POST("/terminal", cv.createTerminal)
-	auth.GET("/ws/terminal/:id", cv.terminalStream)
+	//auth.POST("/terminal", cv.createTerminal)
+	//auth.GET("/ws/terminal/:id", cv.terminalStream)
 
-	auth.GET("/file", cv.createFM)
-	auth.GET("/ws/file/:id", cv.fmStream)
+	//auth.GET("/file", cv.createFM)
+	//auth.GET("/ws/file/:id", cv.fmStream)
 }
 
 func idToUuid(id uint64) string {

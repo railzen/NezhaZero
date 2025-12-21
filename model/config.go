@@ -21,13 +21,13 @@ var Languages = map[string]string{
 }
 
 var Themes = map[string]string{
-	"default":       "Default",
+	"server-status": "ServerStatus",
+	"nazhua":        "Nazhua",
 	"daynight":      "JackieSung DayNight",
 	"mdui":          "Neko Mdui",
 	"hotaru":        "Hotaru",
 	"angel-kanade":  "AngelKanade",
-	"server-status": "ServerStatus",
-	"nazhua":        "Nazhua",
+	"default":       "Default",
 	"custom":        "Custom(local)",
 }
 

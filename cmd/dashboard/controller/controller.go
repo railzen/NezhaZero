@@ -47,15 +47,17 @@ func ServeWeb(port uint) *http.Server {
 	r.Use(mygin.RecordPath)
 	r.StaticFS("/static", http.FS(resource.StaticFS))
 	routers(r)
-	r.NoMethod(func(c *gin.Context) {
+	page404 := func(c *gin.Context) {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusNotFound,
-			Title: "错误的请求方法",
+			Title: "该页面不存在",
 			Msg:   "该页面内容可能已着陆火星",
 			Link:  "/",
 			Btn:   "返回首页",
 		}, true)
-	})
+	}
+	r.NoRoute(page404)
+	r.NoMethod(page404)
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", port),
@@ -84,8 +86,20 @@ func routers(r *gin.Engine) {
 
 	updateNoRoute = func() {
 		if singleton.Conf.UseTemplateHandleNoRoute {
-			r.NoRoute(cp.home)
+			// 所有未匹配的请求，包括静态文件，都指向首页 handler
+			r.NoRoute(func(c *gin.Context) {
+				// 如果是 API 请求，直接返回 404 JSON
+				if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+					c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+					return
+				}
+
+				// 其他请求全部由首页模板处理
+				// 首页模板可以自己根据 URL 输出 HTML 或静态资源
+				cp.home(c)
+			})
 		} else {
+			// 保持原有逻辑
 			r.NoRoute(func(c *gin.Context) {
 				mygin.ShowErrorPage(c, mygin.ErrInfo{
 					Code:  http.StatusNotFound,
