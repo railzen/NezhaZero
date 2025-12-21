@@ -367,6 +367,9 @@ other = "Send Notification To Specific Notification Group"
 [NotificationMessagesDoNotHideIP]
 other = "Show Full IP Address in Notification Messages"
 
+[UseTemplateHandleNoRoute]
+other = "Use Template to Handle No Route Situation"
+
 [Save]
 other = "Save"
 

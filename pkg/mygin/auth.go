@@ -40,24 +40,25 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 		// 用户鉴权
 		token, _ := c.Cookie(singleton.Conf.Site.CookieName)
 		token = strings.TrimSpace(token)
+		if token == "" {
+			token = c.GetHeader("Authorization")
+			// 兼容 v1 的鉴权
+			token = strings.TrimPrefix(token, "Bearer ")
+		}
 		if token != "" {
 			var u model.User
+			// 优先检索用户 Token
 			if err := singleton.DB.Where("token = ?", token).First(&u).Error; err == nil {
 				isLogin = u.TokenExpired.After(time.Now().UTC())
 			}
 			if isLogin {
 				c.Set(model.CtxKeyAuthorizedUser, &u)
-			}
-		}
-
-		// API鉴权
-		if opt.AllowAPI {
-			apiToken := c.GetHeader("Authorization")
-			if apiToken != "" {
+			} else if opt.AllowAPI {
+				// 回退到 API 鉴权
 				var u model.User
 				singleton.ApiLock.RLock()
-				if _, ok := singleton.ApiTokenList[apiToken]; ok {
-					err := singleton.DB.First(&u).Where("id = ?", singleton.ApiTokenList[apiToken].UserID).Error
+				if _, ok := singleton.ApiTokenList[token]; ok {
+					err := singleton.DB.First(&u).Where("id = ?", singleton.ApiTokenList[token].UserID).Error
 					isLogin = err == nil
 				}
 				singleton.ApiLock.RUnlock()

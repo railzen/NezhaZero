@@ -27,6 +27,7 @@ var Themes = map[string]string{
 	"hotaru":        "Hotaru",
 	"angel-kanade":  "AngelKanade",
 	"server-status": "ServerStatus",
+	"nazhua":        "Nazhua",
 	"custom":        "Custom(local)",
 }
 
@@ -89,6 +90,7 @@ type Config struct {
 
 	EnablePlainIPInNotification     bool // 通知信息IP不打码
 	DisableSwitchTemplateInFrontend bool // 前台禁用切换模板功能
+	UseTemplateHandleNoRoute        bool // 用模板处理无路由情况
 
 	// IP变更提醒
 	EnableIPChangeNotification bool
@@ -141,9 +143,8 @@ func (c *Config) Read(path string) error {
 	if c.Site.Brand == "" {
 		c.Site.Brand = "Nezha Monitoring"
 	}
-	if c.Site.CookieName == "" {
-		c.Site.CookieName = "nezha-dashboard"
-	}
+	// 强制设置为 nz-jwt 以保证 v1 兼容性
+	c.Site.CookieName = "nz-jwt"
 	if c.Site.Theme == "" {
 		c.Site.Theme = "default"
 	}

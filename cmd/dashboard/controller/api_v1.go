@@ -122,7 +122,6 @@ func (v *apiV1) RegisterServer(c *gin.Context) {
 	}
 }
 
-
 func (v *apiV1) monitorHistoriesById(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)

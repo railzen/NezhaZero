@@ -367,6 +367,9 @@ other = "將提醒發送至指定通知分組"
 [NotificationMessagesDoNotHideIP]
 other = "通知信息中顯示完整IP地址"
 
+[UseTemplateHandleNoRoute]
+other = "使用界面主題處理無路由狀況"
+
 [Save]
 other = "保存"
 

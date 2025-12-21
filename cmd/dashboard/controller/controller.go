@@ -26,6 +26,8 @@ import (
 	"github.com/naiba/nezha/service/singleton"
 )
 
+var updateNoRoute func()
+
 func ServeWeb(port uint) *http.Server {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
@@ -45,17 +47,15 @@ func ServeWeb(port uint) *http.Server {
 	r.Use(mygin.RecordPath)
 	r.StaticFS("/static", http.FS(resource.StaticFS))
 	routers(r)
-	page404 := func(c *gin.Context) {
+	r.NoMethod(func(c *gin.Context) {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusNotFound,
-			Title: "该页面不存在",
+			Title: "错误的请求方法",
 			Msg:   "该页面内容可能已着陆火星",
 			Link:  "/",
 			Btn:   "返回首页",
 		}, true)
-	}
-	r.NoRoute(page404)
-	r.NoMethod(page404)
+	})
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", port),
@@ -81,6 +81,23 @@ func routers(r *gin.Engine) {
 		ma := &memberAPI{api}
 		ma.serve()
 	}
+
+	updateNoRoute = func() {
+		if singleton.Conf.UseTemplateHandleNoRoute {
+			r.NoRoute(cp.home)
+		} else {
+			r.NoRoute(func(c *gin.Context) {
+				mygin.ShowErrorPage(c, mygin.ErrInfo{
+					Code:  http.StatusNotFound,
+					Title: "该页面不存在",
+					Msg:   "该页面内容可能已着陆火星",
+					Link:  "/",
+					Btn:   "返回首页",
+				}, true)
+			})
+		}
+	}
+	updateNoRoute()
 }
 
 func loadThirdPartyTemplates(tmpl *template.Template) *template.Template {

@@ -2,6 +2,7 @@ package singleton
 
 import (
 	"log"
+	"sync/atomic"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -15,10 +16,11 @@ import (
 var Version = "debug"
 
 var (
-	Conf  *model.Config
-	Cache *cache.Cache
-	DB    *gorm.DB
-	Loc   *time.Location
+	Conf        *model.Config
+	Cache       *cache.Cache
+	DB          *gorm.DB
+	Loc         *time.Location
+	OnlineUsers = new(atomic.Uint64)
 )
 
 func InitTimezoneAndCache() {

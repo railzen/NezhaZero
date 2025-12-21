@@ -367,6 +367,9 @@ other = "Enviar Alerta a Grupo de Notificación Específico"
 [NotificationMessagesDoNotHideIP]
 other = "Mostrar Dirección IP Completa en Mensajes de Notificación"
 
+[UseTemplateHandleNoRoute]
+other = "Uzu Ŝablonon por Pritrakti Neniun Itineran Situacion"
+
 [Save]
 other = "Guardar"
 

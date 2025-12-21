@@ -15,7 +15,7 @@ const firstNotificationDelay = time.Minute * 15
 var (
 	NotificationList    map[string]map[uint64]*model.Notification // [NotificationMethodTag][NotificationID] -> model.Notification
 	NotificationIDToTag map[uint64]string                         // [NotificationID] -> NotificationTag
-	notificationsLock   sync.RWMutex
+	NotificationsLock   sync.RWMutex
 )
 
 // InitNotification 初始化 Tag <-> ID <-> Notification 的映射
@@ -27,8 +27,8 @@ func InitNotification() {
 // loadNotifications 从 DB 初始化通知方式相关参数
 func loadNotifications() {
 	InitNotification()
-	notificationsLock.Lock()
-	defer notificationsLock.Unlock()
+	NotificationsLock.Lock()
+	defer NotificationsLock.Unlock()
 
 	var notifications []model.Notification
 	if err := DB.Find(&notifications).Error; err != nil {
@@ -53,8 +53,8 @@ func SetDefaultNotificationTagInDB(n *model.Notification) {
 
 // OnRefreshOrAddNotification 刷新通知方式相关参数
 func OnRefreshOrAddNotification(n *model.Notification) {
-	notificationsLock.Lock()
-	defer notificationsLock.Unlock()
+	NotificationsLock.Lock()
+	defer NotificationsLock.Unlock()
 
 	var isEdit bool
 	if _, ok := NotificationIDToTag[n.ID]; ok {
@@ -93,8 +93,8 @@ func UpdateNotificationInList(n *model.Notification) {
 
 // OnDeleteNotification 在map中删除通知方式
 func OnDeleteNotification(id uint64) {
-	notificationsLock.Lock()
-	defer notificationsLock.Unlock()
+	NotificationsLock.Lock()
+	defer NotificationsLock.Unlock()
 
 	delete(NotificationList[NotificationIDToTag[id]], id)
 	delete(NotificationIDToTag, id)
@@ -142,8 +142,8 @@ func SendNotification(notificationTag string, desc string, muteLabel *string, ex
 		}
 	}
 	// 向该通知方式组的所有通知方式发出通知
-	notificationsLock.RLock()
-	defer notificationsLock.RUnlock()
+	NotificationsLock.RLock()
+	defer NotificationsLock.RUnlock()
 	for _, n := range NotificationList[notificationTag] {
 		log.Println("NEZHA>> 尝试通知", n.Name)
 	}
