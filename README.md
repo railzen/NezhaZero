@@ -75,4 +75,5 @@ You can change the dashboard language in the settings page (`/setting`) after th
 
 - [nezhahq/nezha](https://github.com/nezhahq/nezha): Original Nezha Dashboard. 原版哪吒面板
 - [chenx-dust/nezha-compat](https://github.com/chenx-dust/nezha-compat):哪吒面板的V1版本API实现
-- [hi2shark/nazhua](https://github.com/hi2shark/nazhua):哪吒探针前台主题实现
+- [hamster1963/nezha-dash](https://github.com/hamster1963/nezha-dash):哪吒探针nezha-dash前台主题实现
+- [hi2shark/nazhua](https://github.com/hi2shark/nazhua):哪吒探针Nazhua前台主题实现
