@@ -1,0 +1,200 @@
+{{define "theme-nezha-dash/home"}}
+<!doctype html>
+<html>
+  <head>
+    <script>
+      // 在页面渲染前就执行主题初始化
+      try {
+        const storageKey = "vite-ui-theme"
+        let theme = localStorage.getItem(storageKey)
+        if (theme === "system" || !theme) {
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+        }
+        document.documentElement.classList.add(theme)
+      } catch (e) {
+        document.documentElement.classList.add("light")
+      }
+    </script>
+    <style>
+      /* Prevent FOUC in Safari */
+      html:not(.dark):not(.light) * {
+        visibility: hidden;
+      }
+
+      :root {
+        color-scheme: light;
+        --bg: #ffffff;
+      }
+
+      html.dark {
+        color-scheme: dark;
+        --bg: #242424;
+      }
+
+      html.light {
+        color-scheme: light;
+        --bg: #ffffff;
+      }
+
+      html {
+        background-color: var(--bg) !important;
+      }
+
+      body {
+        background-color: var(--bg) !important;
+      }
+
+      #root {
+        background-color: var(--bg) !important;
+        visibility: hidden;
+      }
+
+      #root.loaded {
+        visibility: visible;
+        animation: fadein 0.2s;
+      }
+
+      @keyframes fadein {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+    <script>
+      ;(function () {
+        const storageKey = "vite-ui-theme"
+        const theme = localStorage.getItem(storageKey) || "system"
+        const root = document.documentElement
+
+        function updateThemeColor(isDark) {
+          const themeColor = isDark ? "#242424" : "#fafafa"
+          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor)
+        }
+
+        function setTheme(newTheme) {
+          root.classList.remove("light", "dark")
+          root.classList.add(newTheme)
+          updateThemeColor(newTheme === "dark")
+        }
+
+        if (theme === "system") {
+          const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+          setTheme(systemTheme)
+
+          window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+            setTheme(e.matches ? "dark" : "light")
+          })
+        } else {
+          setTheme(theme)
+        }
+
+        // Add loaded class after React has mounted
+        window.addEventListener("load", () => {
+          const root = document.getElementById("root")
+          if (root) {
+            // 使用 RAF 确保在下一帧渲染
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                root.classList.add("loaded")
+              })
+            })
+          }
+        })
+      })()
+    </script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/static/theme-nezha-dash/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>哪吒监控 Nezha Monitoring</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/static/theme-nezha-dash/manifest.json" />
+    <meta name="theme-color" content="hsl(0 0% 98%)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Nezha Monitoring" />
+    <link rel="apple-touch-icon" href="/static/theme-nezha-dash/android-chrome-192x192.png" />
+
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/gh/lipis/flag-icons@7.0.0/css/flag-icons.min.css" />
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/font-logos@1/assets/font-logos.css" />
+    <script type="module" crossorigin src="/static/theme-nezha-dash/assets/index.DU_q5RRf.js"></script>
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/cookie.CY119PWS.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/react.DgAoxHLg.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/@tanstack.CikJw9XV.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/scheduler.BNqrtbQi.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/react-dom.JbxUwDTu.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/sonner.ogZZ7mS8.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/clsx.B-dksMZM.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/dayjs.DKiog7sr.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/tailwind-merge.D696Ktp4.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/tslib.CDuPK5Eb.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/get-nonce.C-Z93AgS.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/react-style-singleton.xL3wDk2D.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/react-remove-scroll-bar.B5OzcDMZ.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/use-sidecar.BrWDbX6R.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/use-callback-ref.4p6boKwx.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/react-remove-scroll.CV7mZUr_.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/aria-hidden.DQ5UC2Eg.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/@floating-ui.B9husLcu.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/@radix-ui.BJUMhTe-.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/lucide-react.C3LfqSA4.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/cmdk.BDwddPaT.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/react-router.BU8YW4E-.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/react-i18next.DL3Xsuzl.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/class-variance-authority.CUqo0Wgp.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/@heroicons.BMK2tJMW.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/number-flow.CoOLLoAi.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/@number-flow.BghH9KWP.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/luxon.BDQ5ptpc.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/motion-utils.DBsP9okC.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/motion-dom.DT4nJXQX.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/framer-motion.CCwiR7P-.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/d3-array.D58Sek1Z.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/d3-geo.FeLgzO-e.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/country-flag-icons.D4lwPBzr.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/lodash.BZrXVHo7.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/tiny-invariant.BaFNuDhB.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/react-is.BpBQ4hf7.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/d3-path.CimkQT29.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/d3-shape.BzTdDXm-.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/prop-types.DohLfCOR.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/fast-equals.C7I1S-bJ.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/react-smooth.JENzmoJS.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/internmap.BkD7Hj8s.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/d3-time.D3vfyj6H.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/d3-time-format.DcBaTboK.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/d3-color.9lF95FHy.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/d3-interpolate.B3PSBtlY.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/d3-format.CzD4bSOQ.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/d3-scale.B-kmDnyi.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/victory-vendor.B8cZCsSC.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/decimal.js-light.ZKFLnszB.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/recharts-scale.DvxaJYSb.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/eventemitter3.Sdgem2A8.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/recharts.CSefTgEY.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/diacritics.BVTyVR-8.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/i18n-iso-countries.ChYdZHhl.js">
+    <link rel="modulepreload" crossorigin href="/static/theme-nezha-dash/assets/i18next.C77IuWVK.js">
+    <link rel="stylesheet" crossorigin href="/static/theme-nezha-dash/assets/index.0q0yEpJE.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+<script>
+  //window.CustomBackgroundImage = 'https://....png'
+  //window.CustomMobileBackgroundImage = 'https://....png'
+  //window.CustomLogo = 'https://....png'
+  //window.CustomDesc = '这是一个自定义描述'
+  //window.ShowNetTransfer = true
+  window.DisableAnimatedMan = true
+  //window.CustomIllustration = 'https://....png'
+  //window.FixedTopServerName = true
+  //window.CustomLinks =
+    '[{"link":"https://github.com/hamster1963/nezha-dash","name":"GitHub"}]'
+  //window.ForceTheme = 'light'
+</script>
+{{end}}

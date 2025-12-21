@@ -23,6 +23,7 @@ var Languages = map[string]string{
 var Themes = map[string]string{
 	"server-status": "ServerStatus",
 	"nazhua":        "Nazhua",
+	"nezha-dash":    "Nezha Dash",
 	"daynight":      "JackieSung DayNight",
 	"mdui":          "Neko Mdui",
 	"hotaru":        "Hotaru",
