@@ -57,7 +57,7 @@
                 -->
                     <td style="white-space: nowrap; vertical-align: middle;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>{{$server.Host.IP}}</span>
+                            <span style="white-space: normal;">{{$server.Host.IP}}</span>
                             <button class="ui icon mini button ip-copy"
                                 data-clipboard-text="{{$server.Host.IP}}"
                                 data-tooltip="{{tr "ClickToCopy"}} IPv4"
@@ -279,12 +279,17 @@ table.ui.basic.table th:nth-child(3) {
 /* 让 Group 列最小宽度为 100px */
 table.ui.basic.table td:nth-child(4),
 table.ui.basic.table th:nth-child(4) {
-    min-width: 50px; /* 可以根据需要调整 */
+    min-width: 45px; /* 可以根据需要调整 */
+}
+/* 让 IP 列最小宽度为 100px */
+table.ui.basic.table td:nth-child(5),
+table.ui.basic.table th:nth-child(5) {
+    min-width: 180px; /* 可以根据需要调整 */
 }
 /* 让 Agent 列最小宽度为 100px */
 table.ui.basic.table td:nth-child(6),
 table.ui.basic.table th:nth-child(6) {
-    min-width: 70px; /* 可以根据需要调整 */
+    min-width: 45px; /* 可以根据需要调整 */
 }
 </style>
 
