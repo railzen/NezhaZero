@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-dashboard:
     strategy:
       fail-fast: true
       matrix:
@@ -63,47 +63,106 @@ jobs:
           name: dashboard-${{ env.GOOS }}-${{ env.GOARCH }}
           path: |
             ./dist/*/*
+  build-agent:
+    strategy:
+      fail-fast: true
+      matrix:
+        goos: [linux, windows, darwin, freebsd]
+        goarch: [amd64, arm64, 386]
+        include:
+          - goos: linux
+            goarch: 386
+          - goos: linux
+            goarch: s390x
+          - goos: linux
+            goarch: riscv64
+          - goos: linux
+            goarch: arm
+          - goos: linux
+            goarch: mips
+            gomips: softfloat
+          - goos: linux
+            goarch: mipsle
+            gomips: softfloat
+          - goos: freebsd
+            goarch: arm
+        exclude:
+          - goos: darwin
+            goarch: 386
 
+    name: Build artifacts
+    runs-on: ubuntu-latest
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+      GOMIPS: ${{ matrix.gomips }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.20.14"
+
+      - name: Build
+        if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          workdir: agent
+          args: build --single-target --clean
+
+      - name: Archive
+        run: |
+          zip -jr agent/dist/nezha-agent_${GOOS}_${GOARCH}.zip agent/dist/*/*
+          pwd
+          ls -R agent/dist/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nezha-agent_${{ env.GOOS }}_${{ env.GOARCH }}.zip
+          path: |
+            ./agent/dist/nezha-agent_${{ env.GOOS }}_${{ env.GOARCH }}.zip
 
   release:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
-    needs: build
+    needs: [build-dashboard, build-agent]
     name: Release
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./assets
-          
-      - name: Download Github Repos
-        uses: actions/checkout@v4
-        with:
-          path: ./repos
 
       - name: Archive and compress binaries
         run: |
-          find assets/*/*/* -type f | while read -r file; do
-            chmod +x $file
+          find assets/*/*/* -type f ! -name "*.zip" | while read -r file; do
+            chmod +x "$file"
             dir=$(dirname "$file")
             filename=$(basename "$file")
             fileWithoutExt="${filename%.*}"
             zip -jr "$dir/$fileWithoutExt.zip" "$file"
           done
+          ls -alR assets
 
       - name: Release
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
             assets/*/*/*.zip
-          # repos/agent/bin/*.zip
+            assets/*/*.zip
           generateReleaseNotes: true
           prerelease: true
           
   release-docker:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
-    needs: build
+    needs: build-dashboard
     name: Release Docker images
     permissions:
       contents: read
