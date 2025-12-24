@@ -624,7 +624,7 @@ function manualTrigger(btn, cronId) {
         $.suiAlert({
           title: "触发成功，等待执行结果",
           type: "success",
-          description: resp.message,
+          description: "Success",
           time: "3",
           position: "top-center",
         });
