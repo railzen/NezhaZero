@@ -1,7 +1,7 @@
 package model
 
 import (
-	pb "github.com/naiba/nezha/proto"
+	pb "github.com/railzen/nezha-zero/proto"
 )
 
 const (

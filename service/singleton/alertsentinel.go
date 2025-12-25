@@ -9,7 +9,7 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 
-	"github.com/naiba/nezha/model"
+	"github.com/railzen/nezha-zero/model"
 )
 
 const (

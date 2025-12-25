@@ -1,8 +1,8 @@
 package general
 
 import (
-	"github.com/naiba/nezha/model"
-	"github.com/naiba/nezha/service/singleton"
+	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/service/singleton"
 )
 
 type UserInfo struct {

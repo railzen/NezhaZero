@@ -1,4 +1,4 @@
-module github.com/naiba/nezha
+module github.com/railzen/nezha-zero
 
 go 1.21
 

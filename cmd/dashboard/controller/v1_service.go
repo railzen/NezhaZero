@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/naiba/nezha/model"
-	"github.com/naiba/nezha/service/singleton"
+	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/service/singleton"
 )
 
 func (cv *compatV1) listService(c *gin.Context) {

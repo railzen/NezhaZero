@@ -830,7 +830,7 @@ show_usage() {
 show_menu() {
     printf "
     ${green}哪吒监控管理脚本 For v0${plain}
-    --- https://github.com/naiba/nezha ---
+    --- https://github.com/railzen/nezha-zero ---
     ${red}v0面板已停止维护，请及时升级至v1，详见https://nezha.wiki/${plain}
     ${green}1.${plain}  安装面板端
     ${green}2.${plain}  修改面板配置

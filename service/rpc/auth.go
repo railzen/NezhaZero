@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/naiba/nezha/service/singleton"
+	"github.com/railzen/nezha-zero/service/singleton"
 )
 
 type authHandler struct {

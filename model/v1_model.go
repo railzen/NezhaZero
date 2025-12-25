@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	pb "github.com/naiba/nezha/proto"
+	pb "github.com/railzen/nezha-zero/proto"
 )
 
 type V1CommonInterface interface {

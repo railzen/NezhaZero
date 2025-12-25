@@ -7,8 +7,8 @@ import (
 	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
 
-	"github.com/naiba/nezha/pkg/utils"
-	pb "github.com/naiba/nezha/proto"
+	"github.com/railzen/nezha-zero/pkg/utils"
+	pb "github.com/railzen/nezha-zero/proto"
 )
 
 const (

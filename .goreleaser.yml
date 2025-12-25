@@ -9,7 +9,7 @@ builds:
       - CC=aarch64-linux-gnu-gcc
     ldflags:
       - -s -w
-      - -X github.com/naiba/nezha/service/singleton.Version={{.Version}}
+      - -X github.com/railzen/nezha-zero/service/singleton.Version={{.Version}}
       - -extldflags "-static -fpic"
     flags:
       - -trimpath
@@ -25,7 +25,7 @@ builds:
       - CC=x86_64-linux-gnu-gcc
     ldflags:
       - -s -w
-      - -X github.com/naiba/nezha/service/singleton.Version={{.Version}}
+      - -X github.com/railzen/nezha-zero/service/singleton.Version={{.Version}}
       - -extldflags "-static -fpic"
     flags:
       - -trimpath
@@ -41,7 +41,7 @@ builds:
       - CC=s390x-linux-gnu-gcc
     ldflags:
       - -s -w
-      - -X github.com/naiba/nezha/service/singleton.Version={{.Version}}
+      - -X github.com/railzen/nezha-zero/service/singleton.Version={{.Version}}
       - -extldflags "-static -fpic"
     flags:
       - -trimpath
@@ -57,7 +57,7 @@ builds:
       - CC=x86_64-w64-mingw32-gcc
     ldflags:
       - -s -w
-      - -X github.com/naiba/nezha/service/singleton.Version={{.Version}}
+      - -X github.com/railzen/nezha-zero/service/singleton.Version={{.Version}}
       - -extldflags "-static -fpic"
     flags:
       - -trimpath

@@ -15,13 +15,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/naiba/nezha/model"
-	"github.com/naiba/nezha/pkg/mygin"
-	"github.com/naiba/nezha/pkg/utils"
-	"github.com/naiba/nezha/pkg/websocketx"
-	"github.com/naiba/nezha/proto"
-	"github.com/naiba/nezha/service/rpc"
-	"github.com/naiba/nezha/service/singleton"
+	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/mygin"
+	"github.com/railzen/nezha-zero/pkg/utils"
+	"github.com/railzen/nezha-zero/pkg/websocketx"
+	"github.com/railzen/nezha-zero/proto"
+	"github.com/railzen/nezha-zero/service/rpc"
+	"github.com/railzen/nezha-zero/service/singleton"
 )
 
 type commonPage struct {

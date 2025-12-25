@@ -3,7 +3,7 @@
 #========================================================
 #   System Required: macOS 10.13+
 #   Description: Nezha Agent Install Script (macOS)
-#   Github: https://github.com/naiba/nezha
+#   Github: https://github.com/railzen/nezha-zero
 #========================================================
 
 NZ_BASE_PATH="/opt/nezha"
@@ -228,7 +228,7 @@ show_usage() {
 show_menu() {
     echo -e "
     ${green}Nezha Agent Management Script${plain} ${red}macOS${plain}
-    --- https://github.com/naiba/nezha ---
+    --- https://github.com/railzen/nezha-zero ---
     ${green}1.${plain}  Install Agent
     ${green}2.${plain}  Modify Agent Configuration
     ${green}3.${plain}  View Agent Log

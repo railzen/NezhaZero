@@ -17,13 +17,13 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 
-	"github.com/naiba/nezha/model"
-	"github.com/naiba/nezha/pkg/mygin"
-	"github.com/naiba/nezha/pkg/utils"
-	"github.com/naiba/nezha/proto"
-	"github.com/naiba/nezha/resource"
-	"github.com/naiba/nezha/service/rpc"
-	"github.com/naiba/nezha/service/singleton"
+	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/mygin"
+	"github.com/railzen/nezha-zero/pkg/utils"
+	"github.com/railzen/nezha-zero/proto"
+	"github.com/railzen/nezha-zero/resource"
+	"github.com/railzen/nezha-zero/service/rpc"
+	"github.com/railzen/nezha-zero/service/singleton"
 )
 
 var updateNoRoute func()

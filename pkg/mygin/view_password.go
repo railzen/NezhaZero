@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/naiba/nezha/model"
-	"github.com/naiba/nezha/service/singleton"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/service/singleton"
 	"golang.org/x/crypto/bcrypt"
 )
 
