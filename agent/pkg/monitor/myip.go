@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nezhahq/agent/pkg/util"
+	"github.com/railzen/nezha-zero/agent/pkg/util"
 )
 
 var (

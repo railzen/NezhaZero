@@ -10,7 +10,7 @@ import (
 	"os/user"
 	"path/filepath"
 
-	pb "github.com/nezhahq/agent/proto"
+	pb "github.com/railzen/nezha-zero/agent/proto"
 )
 
 type Task struct {

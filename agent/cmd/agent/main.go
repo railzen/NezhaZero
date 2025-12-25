@@ -30,14 +30,14 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/resolver"
 
-	"github.com/nezhahq/agent/model"
-	fm "github.com/nezhahq/agent/pkg/fm"
-	"github.com/nezhahq/agent/pkg/monitor"
-	"github.com/nezhahq/agent/pkg/processgroup"
-	"github.com/nezhahq/agent/pkg/pty"
-	"github.com/nezhahq/agent/pkg/util"
-	utlsx "github.com/nezhahq/agent/pkg/utls"
-	pb "github.com/nezhahq/agent/proto"
+	"github.com/railzen/nezha-zero/agent/model"
+	fm "github.com/railzen/nezha-zero/agent/pkg/fm"
+	"github.com/railzen/nezha-zero/agent/pkg/monitor"
+	"github.com/railzen/nezha-zero/agent/pkg/processgroup"
+	"github.com/railzen/nezha-zero/agent/pkg/pty"
+	"github.com/railzen/nezha-zero/agent/pkg/util"
+	utlsx "github.com/railzen/nezha-zero/agent/pkg/utls"
+	pb "github.com/railzen/nezha-zero/agent/proto"
 )
 
 // Agent 运行时参数。如需添加新参数，记得同时在 service.go 中添加

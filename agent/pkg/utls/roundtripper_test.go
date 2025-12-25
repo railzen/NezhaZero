@@ -6,8 +6,8 @@ import (
 
 	utls "github.com/refraction-networking/utls"
 
-	"github.com/nezhahq/agent/pkg/util"
-	utlsx "github.com/nezhahq/agent/pkg/utls"
+	"github.com/railzen/nezha-zero/agent/pkg/util"
+	utlsx "github.com/railzen/nezha-zero/agent/pkg/utls"
 )
 
 const url = "https://www.patreon.com/login"

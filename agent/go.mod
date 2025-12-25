@@ -1,4 +1,4 @@
-module github.com/nezhahq/agent
+module github.com/railzen/nezha-zero/agent
 
 go 1.20
 

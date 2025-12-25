@@ -8,7 +8,7 @@ import (
 
 	"github.com/ebitengine/purego"
 
-	"github.com/nezhahq/agent/pkg/util"
+	"github.com/railzen/nezha-zero/agent/pkg/util"
 )
 
 type (

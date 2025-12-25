@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strconv"
 
-	"github.com/nezhahq/agent/pkg/util"
+	"github.com/railzen/nezha-zero/agent/pkg/util"
 )
 
 type ROCmSMI struct {

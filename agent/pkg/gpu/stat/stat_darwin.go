@@ -3,7 +3,7 @@
 package stat
 
 import (
-	"github.com/nezhahq/agent/pkg/gpu"
+	"github.com/railzen/nezha-zero/agent/pkg/gpu"
 )
 
 func GetGPUStat() (float64, error) {
