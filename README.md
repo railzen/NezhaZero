@@ -5,7 +5,7 @@
   <br>
 	<a href="https://nezha-v0.mereith.dev/guide/dashboard.html" target="_blank"><img src="https://img.shields.io/badge/Docs-Available-orange?style=for-the-badge&logo=gitbook&logoColor=white" alt="查看文档"></a>
 	<a href="https://github.com/railzen/nezha-zero" target="_blank"><img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/railzen/nezha-zero?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard"></a>
-	<a href="https://github.com/nezhahq/agent/releases/tag/v0.20.5" target="_blank"><img src="https://img.shields.io/badge/Agent-v0.20.5-bridhtgreen?logo=github&style=for-the-badge"></a>
+	<a href="https://github.com/nezhahq/agent/releases/tag/v0.20.5" target="_blank"><img src="https://img.shields.io/badge/Agent-v0.20.20-bridhtgreen?logo=github&style=for-the-badge"></a>
 	<a href="https://github.com/nezhahq/nezha" target="_blank"><img src="https://img.shields.io/badge/NEZHA-NAIBA-blue?logo=github&style=for-the-badge" alt="访问哪吒仓库"></a>
   </br>
   <p><b>Nezha Monitoring: Self-hostable, lightweight, servers and websites monitoring tool.</b></p>
@@ -27,7 +27,7 @@ curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/naza.sh
 
 ## Compatible API
 
-合并了哪吒V1版本的部分读取功能API。目前支持了（v0.20.20预览版）：
+合并了哪吒V1版本的部分读取功能API。目前支持了：
 
 - 支持了账号密码登录（默认关闭，用户名和密码在后台设置后启用）
 - 前台界面的所有 API （包括 WebSocket）

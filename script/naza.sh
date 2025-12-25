@@ -13,7 +13,7 @@ yellow='\033[0;33m'
 plain='\033[0m'
 export PATH="$PATH:/usr/local/bin"
 
-NZ_MAIN_DEFAULT_VERSION="v0.20.19"
+NZ_MAIN_DEFAULT_VERSION="v0.20.20"
 
 os_arch=""
 [ -e /etc/os-release ] && grep -i "PRETTY_NAME" /etc/os-release | grep -qi "alpine" && os_alpine='1'
@@ -396,7 +396,7 @@ install_agent() {
     # fi
 
     _version=${NZ_MAIN_VERSION}
-    #_version="v0.20.5"
+    _version="v0.20.20"
 
     # Nezha Monitoring Folder
     sudo mkdir -p $NZ_AGENT_PATH
@@ -515,7 +515,7 @@ modify_dashboard_config() {
         read -r nz_github_oauth_client_secret
         printf "请输入 GitHub/Gitee 登录名作为管理员，多个以逗号隔开: "
         read -r nz_admin_logins
-        printf "请输入面板密码: (默认随机生成)"
+        printf "请输入面板密码(默认随机生成): "
         read -r nz_admin_panel_passwd
         printf "请输入站点标题: "
         read -r nz_site_title
@@ -554,7 +554,7 @@ modify_dashboard_config() {
     if [ "$IS_DOCKER_NEZHA" = 1 ]; then
         sed -i "s/nz_site_port/${nz_site_port}/" /tmp/nezha-docker-compose.yaml
         sed -i "s/nz_grpc_port/${nz_grpc_port}/g" /tmp/nezha-docker-compose.yaml
-        sed -i "s/nz_image_url/${Docker_IMG}/" /tmp/nezha-docker-compose.yaml
+        sed -i "s|nz_image_url|${Docker_IMG}|" /tmp/nezha-docker-compose.yaml
     elif [ "$IS_DOCKER_NEZHA" = 0 ]; then
         sed -i "s/80/${nz_site_port}/" /tmp/nezha-config.yaml
     fi
