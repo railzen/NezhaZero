@@ -133,7 +133,7 @@ pre_check() {
     GITHUB_URL="github.com"
     Get_Docker_URL="get.docker.com"
     Get_Docker_Argu=" "
-    Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
+    Docker_IMG="railzen/nezha-zero-dashboard:${_version}"
 
 #    if [ -n "$CUSTOM_MIRROR" ]; then
 #        GITHUB_RAW_URL="raw.githubusercontent.com/railzen/nezha-zero/main/script"
@@ -395,8 +395,8 @@ install_agent() {
     #     echo "当前最新版本为： ${_version}"
     # fi
 
-    #_version=${NZ_MAIN_VERSION}
-    _version="v0.20.5"
+    _version=${NZ_MAIN_VERSION}
+    #_version="v0.20.5"
 
     # Nezha Monitoring Folder
     sudo mkdir -p $NZ_AGENT_PATH
@@ -583,8 +583,8 @@ modify_dashboard_config() {
         fi
     fi
 
-    success "Dashboard 配置 修改成功，请稍等 Dashboard 重启生效"
     success "您的密码是：$nz_admin_panel_passwd"
+    success "Dashboard 配置 修改成功，请稍等 Dashboard 重启生效"
 
     restart_and_update
 
@@ -615,21 +615,20 @@ restart_and_update() {
 }
 
 restart_and_update_docker() {
-    #update_docker_compose_image
-    #sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml pull
+    update_docker_compose_image
+    sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml pull
     sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml down
     sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml up -d
 }
 
-#update_docker_compose_image() {
-#    yaml_file_path="${NZ_DASHBOARD_PATH}/docker-compose.yaml"
-#   if grep -q "registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard$" "$yaml_file_path"; then
-#        sed -i 's|registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard$|registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard:v0.20.13|' "$yaml_file_path"
-#    fi
-#    if grep -q "ghcr.io/naiba/nezha-dashboard$" "$yaml_file_path"; then
-#        sed -i 's|ghcr.io/naiba/nezha-dashboard$|ghcr.io/naibahq/nezha-dashboard:v0.20.13|' "$yaml_file_path"
-#    fi
-#}
+update_docker_compose_image() {
+    yaml_file_path="${NZ_DASHBOARD_PATH}/docker-compose.yaml"
+
+    if grep -q "railzen/nezha-zero-dashboard" "$yaml_file_path"; then
+    	sed -i "s|railzen/nezha-zero-dashboard[^ ]*|${Docker_IMG}|" "$yaml_file_path"
+        #sed -i 's|ghcr.io/naiba/nezha-dashboard$|ghcr.io/naibahq/nezha-dashboard:v0.20.13|' "$yaml_file_path"
+    fi
+}
 
 restart_and_update_standalone() {
     # _version=$(curl -m 10 -sL "https://api.github.com/repos/naiba/nezha/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
@@ -883,7 +882,7 @@ show_menu() {
     ${green}2.${plain}  修改面板配置
     ${green}3.${plain}  启动面板
     ${green}4.${plain}  停止面板
-    ${green}5.${plain}  重启面板
+    ${green}5.${plain}  更新并重启面板
     ${green}6.${plain}  查看面板日志
     ${green}7.${plain}  卸载管理面板
     ————————————————-
