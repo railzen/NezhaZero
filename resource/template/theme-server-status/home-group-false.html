@@ -23,7 +23,7 @@
         aria-expanded="false" @click="showCharts(node.ID)">
             <td class="node-cell status center">
                 <div class="status-container">
-                    <div v-if="node.online !== false" class="status-icon online"></div>
+                    <div v-if="node.online" class="status-icon online"></div>
                     <div v-else class="status-icon offline"></div>
                 </div>
             </td>
@@ -60,20 +60,20 @@
             <td style="text-align: center;" class="node-cell network">@#node.network#@</td>
             <td style="text-align: center;" class="node-cell traffic">@#node.traffic#@</td>
             <td class="node-cell cpu">
-                <div :class="['progress', node.online !== false ? 'progress-online' : 'progress-offline']">
+                <div :class="['progress', node.online ? 'progress-online' : 'progress-offline']">
                     <div :style="node.cpu.style" :class="node.cpu.class"><small>@#node.cpu.percent#@%</small>
                     </div>
                 </div>
             </td>
             <td class="node-cell memory">
-                <div :class="['progress', node.online !== false ? 'progress-online' : 'progress-offline']">
+                <div :class="['progress', node.online ? 'progress-online' : 'progress-offline']">
                     <div :style="node.memory.style" :class="node.memory.class">
                         <small>@#node.memory.percent#@%</small>
                     </div>
                 </div>
             </td>
             <td class="node-cell hdd">
-                <div :class="['progress', node.online !== false ? 'progress-online' : 'progress-offline']">
+                <div :class="['progress', node.online ? 'progress-online' : 'progress-offline']">
                     <div :style="node.hdd.style" :class="node.hdd.class"><small>@#node.hdd.percent#@%</small>
                     </div>
                 </div>
