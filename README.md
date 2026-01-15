@@ -22,7 +22,7 @@
 最新Agent版本以上面标签展示为准，放在Release里面仅便于使用。Agent已经关闭自动升级功能，如无必要不会升级。稳定后面板将尽可能减少更新以稳定版本，但目前还在快速迭代，不建议使用。一键安装脚本如下：
 
 ```shell
-curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/naza.sh -o naza.sh && chmod +x naza.sh && ./naza.sh
+curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh
 ```
 
 ## Compatible API
@@ -44,12 +44,16 @@ curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/naza.sh
     - Header: `Authorization: Bearer <API Key>` （v1 版本 API 使用）
     - Header: `Authorization: <API Key>` （v0 版本 API 使用）
 
+
 ## Screenshots
 
 
 #### **Dashboard**
 
-![image_2](agent/web/image_2.png)
+
+| Dashboard                                             | Login Panel                                          |
+| --------------------- | ------------------------ |
+|  <img src="agent/web/image_2.png" width="3000px"/>                            | <img src="agent/web/image_3.png" width="1500px" /> |
 
 | Default Theme                                                                                 | DayNight [@JackieSung](https://github.com/JackieSung4ev)                                               | hotaru                                                                     |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
