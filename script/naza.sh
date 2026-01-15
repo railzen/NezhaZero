@@ -52,7 +52,6 @@ info() {
 }
 
 geo_check() {
-    return
     api_list="https://blog.cloudflare.com/cdn-cgi/trace https://dash.cloudflare.com/cdn-cgi/trace https://developers.cloudflare.com/cdn-cgi/trace"
     ua="Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/81.0"
     set -- "$api_list"
@@ -93,6 +92,9 @@ pre_check() {
             echo "根据geoip api提供的信息，当前IP可能在中国"
             printf "是否选用中国镜像完成安装? [Y/n] (自定义镜像输入 3)："
             read -r input
+            if [ -z "$input" ]; then
+                input=Y
+            fi
             case $input in
             [yY][eE][sS] | [yY])
                 echo "使用中国镜像"
@@ -135,27 +137,27 @@ pre_check() {
     Get_Docker_Argu=" "
     Docker_IMG="railzen/nezha-zero-dashboard:${_version}"
 
-#    if [ -n "$CUSTOM_MIRROR" ]; then
-#        GITHUB_RAW_URL="raw.githubusercontent.com/railzen/nezha-zero/main/script"
-#        GITHUB_URL=$CUSTOM_MIRROR
-#        Get_Docker_URL="get.docker.com"
-#        Get_Docker_Argu=" -s docker --mirror Aliyun"
-#        Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
-#    else
-#        if [ -z "$CN" ]; then
-#            GITHUB_RAW_URL="raw.githubusercontent.com/railzen/nezha-zero/main/script"
-#            GITHUB_URL="github.com"
-#            Get_Docker_URL="get.docker.com"
-#            Get_Docker_Argu=" "
-#            Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
-#        else
-#            GITHUB_RAW_URL="raw.githubusercontent.com/railzen/nezha-zero/main/script"
-#            GITHUB_URL="github.com"
-#            Get_Docker_URL="get.docker.com"
-#            Get_Docker_Argu=" -s docker --mirror Aliyun"
-#            Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
-#        fi
-#    fi
+    if [ -n "$CUSTOM_MIRROR" ]; then
+        GITHUB_RAW_URL="raw.githubusercontent.com/railzen/nezha-zero/main/script"
+        GITHUB_URL=$CUSTOM_MIRROR
+        Get_Docker_URL="get.docker.com"
+        Get_Docker_Argu=" "
+        Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
+    else
+        if [ -z "$CN" ]; then
+            GITHUB_RAW_URL="raw.githubusercontent.com/railzen/nezha-zero/main/script"
+            GITHUB_URL="github.com"
+            Get_Docker_URL="get.docker.com"
+            Get_Docker_Argu=" "
+            Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
+        else
+            GITHUB_RAW_URL="git-api.bjde.com/https://raw.githubusercontent.com/railzen/nezha-zero/main/script"
+            GITHUB_URL="git-api.bjde.com/https://github.com"
+            Get_Docker_URL="get.docker.com"
+            Get_Docker_Argu=" "
+            Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
+        fi
+    fi
 }
 
 installation_check() {
