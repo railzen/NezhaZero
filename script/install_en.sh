@@ -154,9 +154,9 @@ pre_check() {
         else
             GITHUB_RAW_URL="git-api.bjde.com/https://raw.githubusercontent.com/railzen/nezha-zero/main/script"
             GITHUB_URL="git-api.bjde.com/https://github.com"
-            Get_Docker_URL="get.docker.com"
+            Get_Docker_URL="git-api.bjde.com"
             Get_Docker_Argu=" "
-            Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
+            Docker_IMG="git-api.bjde.com\/railzen\/nezha-zero-dashboard:${_version}"
         fi
     fi
 }
