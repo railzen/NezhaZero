@@ -65,14 +65,25 @@ You can change the dashboard language in the settings page (`/setting`) after th
 
 ## Note
 半透明模式的开关默认隐藏，打开半透明模式需要在自定义代码中添加:
-
-```bash
+```html
 <script>
-	// server-status 默认开启分组
+    // server-status 默认开启分组
     localStorage.setItem("showGroup", true);
     // server-status 默认打开半透明模式
     localStorage.setItem("semiTransparent", true); 
 </script>
+```
+
+新增到期时间展示和国家自定义，卸载公开备注（Public Note）中。
+```html
+{
+  "billingDataMod": {
+    // 到期时间,格式为yyyy-mm-dd,长期可以写0000-00-00
+    "endDate": "2027-01-01" 
+  },
+  // 两位国家码，可以手动指定未识别到的国旗，ISO 3166-1 Alpha-2规范
+  "countryCode": "HK"
+}
 ```
 
 ## Acknowledgements
