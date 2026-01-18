@@ -16,6 +16,7 @@ service NezhaService {
 message DiscoverServerRequest {
     string discover_key = 1;
     string device_id    = 2; 
+    string hostname     = 3;
 }
 
 message DiscoverServerResponse {

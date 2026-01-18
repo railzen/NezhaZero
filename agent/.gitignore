@@ -1,4 +1,5 @@
 .DS_Store
+nezha-agent
 /agent
 /cmd/agent/agent
 *.pprof
