@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/ebi-yade/altsvc-go"
@@ -58,6 +59,7 @@ type AgentCliParam struct {
 	UseGiteeToUpgrade     bool   // 强制从Gitee获取更新
 	DisableNat            bool   // 关闭内网穿透
 	DisableSendQuery      bool   // 关闭发送TCP/ICMP/HTTP请求
+	DiscoverServerSecret  string // 自动发现服务器密钥
 }
 
 var (
@@ -157,6 +159,7 @@ func init() {
 	agentCmd.PersistentFlags().BoolVar(&agentConfig.Temperature, "temperature", false, "启用温度监控")
 	agentCmd.PersistentFlags().BoolVar(&agentCliParam.UseGiteeToUpgrade, "gitee", false, "使用Gitee获取更新")
 	agentCmd.PersistentFlags().Uint32VarP(&agentCliParam.IPReportPeriod, "ip-report-period", "u", 30*60, "本地IP更新间隔, 上报频率依旧取决于report-delay的值")
+	agentCmd.PersistentFlags().StringVar(&agentCliParam.DiscoverServerSecret, "auto_discover", "", "自动发现客户端密钥")
 	agentCmd.Flags().BoolVarP(&agentCliParam.Version, "version", "v", false, "查看当前版本号")
 
 	agentConfig.Read(filepath.Dir(ex) + "/config.yml")
@@ -165,10 +168,102 @@ func init() {
 }
 
 func main() {
+	_ = agentCmd.ParseFlags(os.Args[1:])
+	// 自动发现服务器密钥并重启
+	if agentCliParam.DiscoverServerSecret != "" {
+		grpcAddr := agentCliParam.Server
+		discoverKey := agentCliParam.DiscoverServerSecret
+
+		secret, err := CallDiscoverServer(grpcAddr, discoverKey)
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+			os.Exit(1)
+		}
+
+		log.Println("New server secret:", secret)
+		time.Sleep(3)
+
+		println("Restarting...")
+		if err := restartSelfForDiscover(secret); err != nil {
+			panic("Restart failed: " + err.Error())
+		}
+		// 这行代码永远不会执行，因为当前进程已被替换
+	}
+
 	if err := agentCmd.Execute(); err != nil {
 		println(err)
 		os.Exit(1)
 	}
+
+}
+
+func restartSelfForDiscover(newClientSecret string) error {
+	executable, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	// 复制原来的参数
+	args := append([]string{}, os.Args...)
+
+	// 遍历 args，删除 --auto_discover
+	newArgs := make([]string, 0, len(args))
+	skipNext := false
+	for _, arg := range args {
+		if skipNext {
+			skipNext = false
+			continue
+		}
+		if arg == "--auto_discover" {
+			// 跳过这个参数以及它的值
+			skipNext = true
+			continue
+		}
+		newArgs = append(newArgs, arg)
+	}
+
+	// 遍历 args，修改或新增 -p 参数
+	foundP := false
+	for i, arg := range newArgs {
+		if arg == "-p" && i+1 < len(newArgs) {
+			newArgs[i+1] = newClientSecret
+			foundP = true
+			break
+		}
+	}
+	if !foundP {
+		// 没有 -p 就追加
+		newArgs = append(newArgs, "-p", newClientSecret)
+	}
+
+	env := os.Environ()
+	return syscall.Exec(executable, newArgs, env)
+}
+
+// CallDiscoverServer 调用 DiscoverServer 并返回 newServerSecret
+func CallDiscoverServer(grpcAddr, discoverKey string) (string, error) {
+	// 建立 gRPC 连接
+	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
+	if err != nil {
+		return "", fmt.Errorf("failed to connect: %w", err)
+	}
+	defer conn.Close()
+
+	client := pb.NewNezhaServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req := &pb.DiscoverServerRequest{
+		DiscoverKey: discoverKey,
+	}
+
+	resp, err := client.DiscoverServer(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("DiscoverServer RPC failed: %w", err)
+	}
+
+	return resp.NewServerSecret, nil
 }
 
 func persistPreRun(cmd *cobra.Command, args []string) {
