@@ -10,6 +10,7 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+	"github.com/railzen/nezha-zero/pkg/utils"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
 )
@@ -83,11 +84,12 @@ type Config struct {
 		OidcAutoCreate  bool   // for OIDC Auto Create
 		OidcAutoLogin   bool   // for OIDC Auto Login
 	}
-	HTTPPort      uint
-	GRPCPort      uint
-	GRPCHost      string
-	ProxyGRPCPort uint
-	TLS           bool
+	HTTPPort        uint
+	GRPCPort        uint
+	GRPCHost        string
+	GRPCDiscoverKey string
+	ProxyGRPCPort   uint
+	TLS             bool
 
 	EnablePlainIPInNotification     bool // 通知信息IP不打码
 	DisableSwitchTemplateInFrontend bool // 前台禁用切换模板功能
@@ -165,6 +167,15 @@ func (c *Config) Read(path string) error {
 			c.Site.AdminPassword = string(hash)
 		}
 		// 否则已经是安全哈希，不用改
+	}
+
+	if c.GRPCDiscoverKey == "" {
+		// 生成 secret
+		newKey, err := utils.GenerateRandomString(18)
+		if err != nil {
+			c.GRPCDiscoverKey = ""
+		}
+		c.GRPCDiscoverKey = newKey
 	}
 
 	if c.Language == "" {

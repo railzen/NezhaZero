@@ -88,7 +88,7 @@ func serviceActions(cmd *cobra.Command, args []string) {
 		{agentConfig.GPU, "--gpu", ""},
 		{agentCliParam.UseGiteeToUpgrade, "--gitee", ""},
 		{agentCliParam.IPReportPeriod != 30*60, "-u", fmt.Sprint(agentCliParam.IPReportPeriod)},
-		{agentCliParam.DiscoverServerSecret != "", "--auto_discover", agentCliParam.DiscoverServerSecret},
+		{agentCliParam.DiscoverServerSecret != "", "--auto-discover", agentCliParam.DiscoverServerSecret},
 	}
 
 	for _, f := range flags {

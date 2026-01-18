@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -159,7 +161,7 @@ func init() {
 	agentCmd.PersistentFlags().BoolVar(&agentConfig.Temperature, "temperature", false, "启用温度监控")
 	agentCmd.PersistentFlags().BoolVar(&agentCliParam.UseGiteeToUpgrade, "gitee", false, "使用Gitee获取更新")
 	agentCmd.PersistentFlags().Uint32VarP(&agentCliParam.IPReportPeriod, "ip-report-period", "u", 30*60, "本地IP更新间隔, 上报频率依旧取决于report-delay的值")
-	agentCmd.PersistentFlags().StringVar(&agentCliParam.DiscoverServerSecret, "auto_discover", "", "自动发现客户端密钥")
+	agentCmd.PersistentFlags().StringVar(&agentCliParam.DiscoverServerSecret, "auto-discover", "", "自动发现客户端密钥")
 	agentCmd.Flags().BoolVarP(&agentCliParam.Version, "version", "v", false, "查看当前版本号")
 
 	agentConfig.Read(filepath.Dir(ex) + "/config.yml")
@@ -181,13 +183,13 @@ func main() {
 		}
 
 		log.Println("New server secret:", secret)
-		time.Sleep(3)
+		time.Sleep(2 * time.Second)
 
 		println("Restarting...")
 		if err := restartSelfForDiscover(secret); err != nil {
+			// 这行代码永远不会执行，因为当前进程已被替换
 			panic("Restart failed: " + err.Error())
 		}
-		// 这行代码永远不会执行，因为当前进程已被替换
 	}
 
 	if err := agentCmd.Execute(); err != nil {
@@ -206,7 +208,7 @@ func restartSelfForDiscover(newClientSecret string) error {
 	// 复制原来的参数
 	args := append([]string{}, os.Args...)
 
-	// 遍历 args，删除 --auto_discover
+	// 遍历 args，删除 --auto-discover
 	newArgs := make([]string, 0, len(args))
 	skipNext := false
 	for _, arg := range args {
@@ -214,7 +216,7 @@ func restartSelfForDiscover(newClientSecret string) error {
 			skipNext = false
 			continue
 		}
-		if arg == "--auto_discover" {
+		if arg == "--auto-discover" {
 			// 跳过这个参数以及它的值
 			skipNext = true
 			continue
@@ -256,6 +258,7 @@ func CallDiscoverServer(grpcAddr, discoverKey string) (string, error) {
 
 	req := &pb.DiscoverServerRequest{
 		DiscoverKey: discoverKey,
+		DeviceId:    GenerateDeviceID(),
 	}
 
 	resp, err := client.DiscoverServer(ctx, req)
@@ -264,6 +267,70 @@ func CallDiscoverServer(grpcAddr, discoverKey string) (string, error) {
 	}
 
 	return resp.NewServerSecret, nil
+}
+
+func GenerateDeviceID() string {
+	var parts []string
+
+	read := func(path string) string {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return ""
+		}
+		return strings.TrimSpace(string(b))
+	}
+
+	// System UUID
+	if runtime.GOOS == "linux" {
+		if v := read("/sys/class/dmi/id/product_uuid"); v != "" {
+			parts = append(parts, v)
+		}
+	}
+
+	// 主板信息
+	if runtime.GOOS == "linux" {
+		if v := read("/sys/class/dmi/id/board_serial"); v != "" {
+			parts = append(parts, v)
+		}
+		if v := read("/sys/class/dmi/id/board_name"); v != "" {
+			parts = append(parts, v)
+		}
+		if v := read("/sys/class/dmi/id/board_vendor"); v != "" {
+			parts = append(parts, v)
+		}
+	}
+
+	// machine-id
+	if b, err := os.ReadFile("/etc/machine-id"); err == nil {
+		if id := strings.TrimSpace(string(b)); id != "" {
+			parts = append(parts, id)
+		}
+	}
+
+	// hostname
+	if hn, err := os.Hostname(); err == nil && hn != "" {
+		parts = append(parts, hn)
+	}
+
+	// OS / ARCH
+	parts = append(parts, runtime.GOOS, runtime.GOARCH)
+
+	// MAC（兜底）
+	if ifaces, err := net.Interfaces(); err == nil {
+		for _, iface := range ifaces {
+			if iface.Flags&net.FlagLoopback != 0 {
+				continue
+			}
+			if len(iface.HardwareAddr) > 0 {
+				parts = append(parts, iface.HardwareAddr.String())
+				break
+			}
+		}
+	}
+
+	raw := strings.Join(parts, "|")
+	sum := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(sum[:])[:32]
 }
 
 func persistPreRun(cmd *cobra.Command, args []string) {

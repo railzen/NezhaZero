@@ -7,11 +7,12 @@
 package proto
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -24,6 +25,7 @@ const (
 type DiscoverServerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DiscoverKey   string                 `protobuf:"bytes,1,opt,name=discover_key,json=discoverKey,proto3" json:"discover_key,omitempty"`
+	DeviceId      string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -61,6 +63,13 @@ func (*DiscoverServerRequest) Descriptor() ([]byte, []int) {
 func (x *DiscoverServerRequest) GetDiscoverKey() string {
 	if x != nil {
 		return x.DiscoverKey
+	}
+	return ""
+}
+
+func (x *DiscoverServerRequest) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
 	}
 	return ""
 }
@@ -753,9 +762,10 @@ var File_proto_nezha_proto protoreflect.FileDescriptor
 
 const file_proto_nezha_proto_rawDesc = "" +
 	"\n" +
-	"\x11proto/nezha.proto\x12\x05proto\":\n" +
+	"\x11proto/nezha.proto\x12\x05proto\"W\n" +
 	"\x15DiscoverServerRequest\x12!\n" +
-	"\fdiscover_key\x18\x01 \x01(\tR\vdiscoverKey\"D\n" +
+	"\fdiscover_key\x18\x01 \x01(\tR\vdiscoverKey\x12\x1b\n" +
+	"\tdevice_id\x18\x02 \x01(\tR\bdeviceId\"D\n" +
 	"\x16DiscoverServerResponse\x12*\n" +
 	"\x11new_server_secret\x18\x01 \x01(\tR\x0fnewServerSecret\"\xf2\x02\n" +
 	"\x04Host\x12\x1a\n" +

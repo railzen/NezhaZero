@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,6 +25,10 @@ import (
 )
 
 var NezhaHandlerSingleton *NezhaHandler
+
+// 全局内存缓存 device_id -> secret
+var DeviceIDToSecret = make(map[string]string)
+var DeviceIDLock sync.Mutex
 
 type NezhaHandler struct {
 	pb.UnimplementedNezhaServiceServer
@@ -85,6 +90,50 @@ func (s *NezhaHandler) ReportTask(c context.Context, r *pb.TaskResult) (*pb.Rece
 	return &pb.Receipt{Proced: true}, nil
 }
 
+func addDiscoverServer() (string, error) {
+	var s model.Server
+
+	// 生成名称
+	name, err := utils.GenerateRandomString(6)
+	if err != nil {
+		return "", err
+	}
+
+	// 生成 secret
+	secret, err := utils.GenerateRandomString(18)
+	if err != nil {
+		return "", err
+	}
+
+	// 初始化 Server 字段
+	s.Name = "AUTO - " + name
+	s.Name = strings.ToUpper(s.Name)
+	s.Secret = secret
+	s.HideForGuest = true
+	s.EnableDDNS = true
+	s.Host = &model.Host{}
+	s.State = &model.HostState{}
+	s.TaskCloseLock = new(sync.Mutex)
+
+	// 写入数据库（只一次）
+	if err := singleton.DB.Create(&s).Error; err != nil {
+		return "", err
+	}
+
+	// 内存结构注册
+	singleton.ServerLock.Lock()
+	singleton.SecretToID[s.Secret] = s.ID
+	singleton.ServerList[s.ID] = &s
+	singleton.ServerTagToIDList[s.Tag] = append(singleton.ServerTagToIDList[s.Tag], s.ID)
+	singleton.ServerLock.Unlock()
+
+	singleton.ReSortServer()
+
+	// 成功时返回 secret
+	return s.Secret, nil
+}
+
+/*
 func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServerRequest,
 ) (*pb.DiscoverServerResponse, error) {
 
@@ -92,12 +141,50 @@ func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServe
 		return nil, status.Error(codes.PermissionDenied, "Invalid Key")
 	}
 
-	secret, err := utils.GenerateRandomString(32)
+	secret, err := addDiscoverServer()
 	if err != nil {
 		return nil, status.Error(codes.PermissionDenied, "Invalid Key")
 	}
 
-	// TODO: 写入数据库，创建 server
+	return &pb.DiscoverServerResponse{
+		NewServerSecret: secret,
+	}, nil
+}
+*/
+
+func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServerRequest,
+) (*pb.DiscoverServerResponse, error) {
+
+	if req.DiscoverKey != singleton.Conf.GRPCDiscoverKey {
+		return nil, status.Error(codes.PermissionDenied, "Invalid Key")
+	}
+
+	if req.DeviceId == "" {
+		return nil, status.Error(codes.InvalidArgument, "DeviceId required")
+	}
+
+	// ====== 内存幂等检查 ======
+	DeviceIDLock.Lock()
+	secret, exists := DeviceIDToSecret[req.DeviceId]
+	DeviceIDLock.Unlock()
+
+	if exists {
+		// 已经添加过设备，直接返回 secret
+		return &pb.DiscoverServerResponse{
+			NewServerSecret: secret,
+		}, nil
+	}
+
+	// ====== 新设备 ======
+	secret, err := addDiscoverServer()
+	if err != nil {
+		return nil, status.Error(codes.Internal, "Failed to create server")
+	}
+
+	// 保存到全局 map
+	DeviceIDLock.Lock()
+	DeviceIDToSecret[req.DeviceId] = secret
+	DeviceIDLock.Unlock()
 
 	return &pb.DiscoverServerResponse{
 		NewServerSecret: secret,
