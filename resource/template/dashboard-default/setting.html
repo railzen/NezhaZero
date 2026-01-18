@@ -25,6 +25,10 @@
                 <input type="text" name="ViewPassword" placeholder="" value="{{.Conf.Site.ViewPassword}}" autocomplete="off">
             </div>
             <div class="field">
+                <label>GRPCDiscoverKey</label>
+                <input type="text" name="GRPCDiscoverKey" placeholder="" value="{{.Conf.GRPCDiscoverKey}}" autocomplete="off">
+            </div>
+            <div class="field">
                 <label>{{tr "Theme"}}</label>
                 <select name="Theme">
                     {{range $k,$v := .Themes}}

@@ -5,6 +5,10 @@
     <div class="ui container">
         <div class="ui grid">
             <div class="right floated right aligned twelve wide column">
+                <button class="ui right labeled nezha-primary-btn icon button"
+                            data-clipboard-text="{{if $.Conf.GRPCHost}}{{if eq $.Conf.Language "zh-CN"}}curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/naza.sh{{else}}curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/install_en.sh{{end}} -o naza.sh && chmod +x naza.sh && ./naza.sh discover_agent {{$.Conf.GRPCHost}} {{$.Conf.GRPCPort}} {{$.Conf.GRPCDiscoverKey}}{{else}}{{tr "NoDomainAlert"}}{{end}}">
+                            <i class="copy icon"></i> 复制安装命令
+                </button>
                 <button class="ui right labeled nezha-primary-btn icon button" onclick="batchEditServerGroup()"><i
                         class="edit icon"></i> {{tr "BatchEditServerGroup"}}
                 </button>
@@ -131,6 +135,7 @@
 <script>
     var clipboard = new ClipboardJS('.ui.icon.green.mini.button');
     var clipboardip = new ClipboardJS('.ui.icon.mini.button');
+    var clipboardAll = new ClipboardJS('button[data-clipboard-text]');
     const checkBoxList = document.querySelectorAll('tbody > tr > td > input.nezha-servers[type=checkbox]')
     function checkAllServer() {
         checkBoxList.forEach(cb => {

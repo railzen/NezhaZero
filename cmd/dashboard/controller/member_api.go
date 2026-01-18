@@ -1030,6 +1030,7 @@ type settingForm struct {
 	IgnoredIPNotification           string
 	IPChangeNotificationTag         string // IP变更提醒的通知组
 	GRPCHost                        string
+	GRPCDiscoverKey                 string
 	Cover                           uint8
 	Password                        string
 	EnableIPChangeNotification      string
@@ -1087,6 +1088,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	singleton.Conf.UseTemplateHandleNoRoute = sf.UseTemplateHandleNoRoute == "on"
 	singleton.Conf.Cover = sf.Cover
 	singleton.Conf.GRPCHost = sf.GRPCHost
+	singleton.Conf.GRPCDiscoverKey = sf.GRPCDiscoverKey
 	singleton.Conf.IgnoredIPNotification = sf.IgnoredIPNotification
 	singleton.Conf.IPChangeNotificationTag = sf.IPChangeNotificationTag
 	singleton.Conf.Site.Brand = sf.Title
