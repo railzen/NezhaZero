@@ -771,3 +771,9 @@ other = "使用者名稱"
 
 [Password]
 other = "密碼"
+
+[AutoDiscover]
+other = "自動發現"
+
+[GRPCDiscoverKey]
+other = "自動發現密鑰"

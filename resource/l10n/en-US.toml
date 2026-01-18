@@ -771,3 +771,9 @@ other = "Username"
 
 [Password]
 other = "Password"
+
+[AutoDiscover]
+other = "Auto Discover"
+
+[GRPCDiscoverKey]
+other = "Discover Secret"

@@ -772,3 +772,9 @@ other = "用户名"
 [Password]
 other = "密码"
 
+[AutoDiscover]
+other = "自动发现"
+
+[GRPCDiscoverKey]
+other = "自动发现密钥"
+
