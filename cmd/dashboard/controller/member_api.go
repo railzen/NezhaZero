@@ -409,6 +409,13 @@ func (ma *memberAPI) addOrEditServer(c *gin.Context) {
 			// 设置新的 Tag-ID 绑定关系
 			singleton.ServerTagToIDList[newTag] = append(singleton.ServerTagToIDList[newTag], s.ID)
 		}
+
+		// 生效自定义国家码
+		publicCountryCode := singleton.ParseCountryCodeFromJson([]byte(s.PublicNote))
+		if publicCountryCode != nil {
+			s.Host.CountryCode = *publicCountryCode
+		}
+
 		singleton.ServerList[s.ID] = &s
 		singleton.ServerLock.Unlock()
 	} else {

@@ -63,7 +63,7 @@ func main() {
 	singleton.InitLocalizer()
 	initSystem()
 
-	// TODO 使用 cmux 在同一端口服务 HTTP 和 gRPC
+	// 开启 gRPC
 	singleton.CleanMonitorHistory()
 	go rpc.ServeRPC(singleton.Conf.GRPCPort)
 	serviceSentinelDispatchBus := make(chan model.Monitor) // 用于传递服务监控任务信息的channel
@@ -71,6 +71,8 @@ func main() {
 	go rpc.DispatchKeepalive()
 	go singleton.AlertSentinelStart()
 	singleton.NewServiceSentinel(serviceSentinelDispatchBus)
+
+	// 开启HTTP服务
 	srv := controller.ServeWeb(singleton.Conf.HTTPPort)
 	go dispatchReportInfoTask()
 	if err := graceful.Graceful(func() error {

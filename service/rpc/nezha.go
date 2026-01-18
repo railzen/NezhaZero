@@ -2,11 +2,9 @@ package rpc
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -186,41 +184,13 @@ func (s *NezhaHandler) ReportSystemInfo(c context.Context, r *pb.Host) (*pb.Rece
 		host.CountryCode = singleton.ServerList[clientID].Host.CountryCode
 	}
 
-	publicCountryCode := parseCountryCode([]byte(singleton.ServerList[clientID].PublicNote))
+	publicCountryCode := singleton.ParseCountryCodeFromJson([]byte(singleton.ServerList[clientID].PublicNote))
 	if publicCountryCode != nil {
 		host.CountryCode = *publicCountryCode
 	}
 
 	singleton.ServerList[clientID].Host = &host
 	return &pb.Receipt{Proced: true}, nil
-}
-
-func parseCountryCode(jsonStr []byte) *string {
-	var m map[string]interface{}
-	if err := json.Unmarshal(jsonStr, &m); err != nil {
-		return nil
-	}
-
-	v, ok := m["countryCode"]
-	if !ok {
-		return nil
-	}
-
-	s, ok := v.(string)
-	if !ok {
-		return nil
-	}
-
-	s = strings.TrimSpace(strings.ToLower(s))
-	if len(s) != 2 {
-		return nil
-	}
-
-	if s[0] < 'a' || s[0] > 'z' || s[1] < 'a' || s[1] > 'z' {
-		return nil
-	}
-
-	return &s
 }
 
 func (s *NezhaHandler) IOStream(stream pb.NezhaService_IOStreamServer) error {
@@ -272,7 +242,7 @@ func (s *NezhaHandler) LookupGeoIP(c context.Context, r *pb.GeoIP) (*pb.GeoIP, e
 	}
 	singleton.ServerList[clientID].Host.CountryCode = location
 
-	publicCountryCode := parseCountryCode([]byte(singleton.ServerList[clientID].PublicNote))
+	publicCountryCode := singleton.ParseCountryCodeFromJson([]byte(singleton.ServerList[clientID].PublicNote))
 	if publicCountryCode != nil {
 		singleton.ServerList[clientID].Host.CountryCode = *publicCountryCode
 	}

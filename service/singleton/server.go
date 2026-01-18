@@ -1,7 +1,9 @@
 package singleton
 
 import (
+	"encoding/json"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/railzen/nezha-zero/model"
@@ -72,4 +74,32 @@ func ReSortServer() {
 		}
 		return SortedServerListForGuest[i].DisplayIndex > SortedServerListForGuest[j].DisplayIndex
 	})
+}
+
+func ParseCountryCodeFromJson(jsonStr []byte) *string {
+	var m map[string]interface{}
+	if err := json.Unmarshal(jsonStr, &m); err != nil {
+		return nil
+	}
+
+	v, ok := m["countryCode"]
+	if !ok {
+		return nil
+	}
+
+	s, ok := v.(string)
+	if !ok {
+		return nil
+	}
+
+	s = strings.TrimSpace(strings.ToLower(s))
+	if len(s) != 2 {
+		return nil
+	}
+
+	if s[0] < 'a' || s[0] > 'z' || s[1] < 'a' || s[1] > 'z' {
+		return nil
+	}
+
+	return &s
 }
