@@ -12,6 +12,8 @@ import (
 	"github.com/railzen/nezha-zero/pkg/geoip"
 	"github.com/railzen/nezha-zero/pkg/grpcx"
 	"github.com/railzen/nezha-zero/pkg/utils"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/jinzhu/copier"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
@@ -24,6 +26,7 @@ import (
 var NezhaHandlerSingleton *NezhaHandler
 
 type NezhaHandler struct {
+	pb.UnimplementedNezhaServiceServer
 	Auth          *authHandler
 	ioStreams     map[string]*ioStreamContext
 	ioStreamMutex *sync.RWMutex
@@ -80,6 +83,25 @@ func (s *NezhaHandler) ReportTask(c context.Context, r *pb.TaskResult) (*pb.Rece
 		})
 	}
 	return &pb.Receipt{Proced: true}, nil
+}
+
+func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServerRequest,
+) (*pb.DiscoverServerResponse, error) {
+
+	if req.DiscoverKey != "123456789abcdef" {
+		return nil, status.Error(codes.PermissionDenied, "Invalid Key")
+	}
+
+	secret, err := utils.GenerateRandomString(32)
+	if err != nil {
+		return nil, status.Error(codes.PermissionDenied, "Invalid Key")
+	}
+
+	// TODO: 写入数据库，创建 server
+
+	return &pb.DiscoverServerResponse{
+		NewServerSecret: secret,
+	}, nil
 }
 
 func (s *NezhaHandler) RequestTask(h *pb.Host, stream pb.NezhaService_RequestTaskServer) error {

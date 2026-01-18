@@ -4,12 +4,21 @@ option go_package = "./proto";
 package proto;
 
 service NezhaService {
-    rpc ReportSystemState(State)returns(Receipt){}
-    rpc ReportSystemInfo(Host)returns(Receipt){}
-    rpc ReportTask(TaskResult)returns(Receipt){}
-    rpc RequestTask(Host)returns(stream Task){}
-    rpc IOStream(stream IOStreamData)returns(stream IOStreamData){}
-    rpc LookupGeoIP(GeoIP)returns(GeoIP){}
+    rpc ReportSystemState(State) returns (Receipt) {}
+    rpc ReportSystemInfo(Host) returns (Receipt) {}
+    rpc ReportTask(TaskResult) returns (Receipt) {}
+    rpc RequestTask(Host) returns (stream Task) {}
+    rpc IOStream(stream IOStreamData) returns (stream IOStreamData) {}
+    rpc LookupGeoIP(GeoIP) returns (GeoIP) {}
+    rpc DiscoverServer(DiscoverServerRequest) returns (DiscoverServerResponse) {}
+}
+
+message DiscoverServerRequest {
+    string discover_key = 1;
+}
+
+message DiscoverServerResponse {
+    string new_server_secret = 1;
 }
 
 message Host {
