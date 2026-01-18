@@ -55,11 +55,11 @@ curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh
 | --------------------- | ------------------------ |
 |  <img src="agent/web/image_2.png" width="3000px"/>                            | <img src="agent/web/image_3.png" width="1500px" /> |
 
-| Default Theme                                                                                 | DayNight [@JackieSung](https://github.com/JackieSung4ev)                                               | hotaru                                                                     |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| ![Default Theme](resource/template/theme-default/screenshot.png)                              | <img src="resource/template/theme-daynight/screenshot.png" width="3000px"/>                            | <img src="resource/template/theme-hotaru/screenshot.png" width="1500px" /> |
-| <div align="center"><b>Neko Mdui <a href="https://github.com/MikoyChinese">@MikoyChinese</a></b></div> |      <div align="center"><b>AngelKanade <a href="https://github.com/adminsama">@adminsama</a></b></div>         |<div align="center"><b>ServerStatus <a href="https://github.com/unclezs">@unclezs</a></b></div> |
-| ![Neko Mdui](resource/template/theme-mdui/screenshot.png)                                              |        ![AngelKanade](resource/template/theme-angel-kanade/screenshot.png)            | ![默认主题魔改](resource/template/theme-server-status/screenshot.png)       |
+| <div align="center"><b>ServerStatus <a href="https://github.com/unclezs">@unclezs</a></b></div> | DayNight [@JackieSung](https://github.com/JackieSung4ev)     | hotaru                                                       |
+| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| ![默认主题魔改](resource/template/theme-server-status/screenshot.jpg) | <img src="resource/template/theme-daynight/screenshot.png" width="3000px"/> | <img src="resource/template/theme-hotaru/screenshot.png" width="1500px" /> |
+| <div align="center"><b>Neko Mdui <a href="https://github.com/MikoyChinese">@MikoyChinese</a></b></div> | <div align="center"><b>AngelKanade <a href="https://github.com/adminsama">@adminsama</a></b></div> | <div align="center"><b>Default Theme</b></div>               |
+| ![Neko Mdui](resource/template/theme-mdui/screenshot.png)    | ![AngelKanade](resource/template/theme-angel-kanade/screenshot.png) | ![Default Theme](resource/template/theme-default/screenshot.png) |
 
 You can change the dashboard language in the settings page (`/setting`) after the dashboard is installed.
 
