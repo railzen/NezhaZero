@@ -410,10 +410,13 @@ func (ma *memberAPI) addOrEditServer(c *gin.Context) {
 			singleton.ServerTagToIDList[newTag] = append(singleton.ServerTagToIDList[newTag], s.ID)
 		}
 
-		// 生效自定义国家码
-		publicCountryCode := singleton.ParseCountryCodeFromJson([]byte(s.PublicNote))
-		if publicCountryCode != nil {
-			s.Host.CountryCode = *publicCountryCode
+		//只有修改了 PublicNote 才重新解析国家码
+		if s.PublicNote != singleton.ServerList[s.ID].PublicNote {
+			// 生效自定义国家码
+			publicCountryCode := singleton.ParseCountryCodeFromJson([]byte(s.PublicNote))
+			if publicCountryCode != nil {
+				s.Host.CountryCode = *publicCountryCode
+			}
 		}
 
 		singleton.ServerList[s.ID] = &s

@@ -109,8 +109,8 @@ func addDiscoverServer() (string, error) {
 	s.Name = "AUTO - " + name
 	s.Name = strings.ToUpper(s.Name)
 	s.Secret = secret
-	s.HideForGuest = true
-	s.EnableDDNS = true
+	s.HideForGuest = false
+	s.EnableDDNS = false
 	s.Host = &model.Host{}
 	s.State = &model.HostState{}
 	s.TaskCloseLock = new(sync.Mutex)

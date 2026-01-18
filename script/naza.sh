@@ -503,11 +503,12 @@ discover_agent() {
         args="$*"
     fi
 
-    _cmd="sudo ${NZ_AGENT_PATH}/nezha-agent service install -s $nz_grpc_host:$nz_grpc_port -p $nz_client_secret $args >/dev/null 2>&1"
+    _cmd="sudo ${NZ_AGENT_PATH}/nezha-agent service install -s $nz_grpc_host:$nz_grpc_port --auto-discover $nz_discover_secret $args >/dev/null 2>&1"
 
     if ! eval "$_cmd"; then
         sudo "${NZ_AGENT_PATH}"/nezha-agent service uninstall >/dev/null 2>&1
-        sudo "${NZ_AGENT_PATH}"/nezha-agent service install -s "$nz_grpc_host:$nz_grpc_port" --auto-discover "$nz_discover_secret" "$args" >/dev/null 2>&1    fi
+        sudo "${NZ_AGENT_PATH}"/nezha-agent service install -s "$nz_grpc_host:$nz_grpc_port" --auto-discover "$nz_discover_secret" "$args" >/dev/null 2>&1    
+    fi
     
     success "Agent 配置 修改成功，请稍等 Agent 重启生效"
 
