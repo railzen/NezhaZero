@@ -74,7 +74,7 @@ You can change the dashboard language in the settings page (`/setting`) after th
 </script>
 ```
 
-新增到期时间展示和国家自定义，卸载公开备注（Public Note）中。
+[Pre-Release支持] 新增到期时间展示和国家自定义，写在公开备注（Public Note）中。修改后需要等待等待5-10分钟或直接重启面板生效。
 ```html
 {
   "billingDataMod": {
