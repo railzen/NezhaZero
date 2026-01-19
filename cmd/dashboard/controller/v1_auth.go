@@ -29,7 +29,10 @@ var passwordLoginLock sync.Mutex
 func (cv *compatV1) login(c *gin.Context) {
 	var lr model.V1LoginRequest
 	now := time.Now().UTC()
-
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	if err := c.ShouldBindJSON(&lr); err != nil {
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return
@@ -193,6 +196,10 @@ func calcNextAllowedTime(now time.Time, failCount int) time.Time {
 }
 
 func (cv *compatV1) refreshToken(c *gin.Context) {
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	if u, ok := c.Get(model.CtxKeyAuthorizedUser); ok {
 		user := u.(*model.User)
 		var err error

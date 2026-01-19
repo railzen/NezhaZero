@@ -777,3 +777,6 @@ other = "Auto Discover"
 
 [GRPCDiscoverKey]
 other = "Discover Secret"
+
+[DisableCompatAPI]
+other = "Disable CompatAPI"

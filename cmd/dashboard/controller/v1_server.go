@@ -15,6 +15,10 @@ import (
 )
 
 func (cv *compatV1) listServer(c *gin.Context) {
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	singleton.SortedServerLock.RLock()
 	defer singleton.SortedServerLock.RUnlock()
 
@@ -107,6 +111,10 @@ func (cv *compatV1) listServer(c *gin.Context) {
 }
 
 func (cv *compatV1) serverStream(c *gin.Context) {
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, V1Response[any]{
@@ -218,7 +226,10 @@ func (cv *compatV1) getServerStat(c *gin.Context, withPublicNote bool) ([]byte, 
 
 func (cv *compatV1) listServerGroup(c *gin.Context) {
 	var sgRes []model.V1ServerGroupResponseItem
-
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	tagID := uint64(1)
 	for tag, ids := range singleton.ServerTagToIDList {
 		sgRes = append(sgRes, model.V1ServerGroupResponseItem{
@@ -259,6 +270,10 @@ func (cv *compatV1) listServerGroup(c *gin.Context) {
 }
 
 func (cv *compatV1) listServiceHistory(c *gin.Context) {
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {

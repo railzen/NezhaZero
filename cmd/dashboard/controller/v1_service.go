@@ -10,6 +10,10 @@ import (
 )
 
 func (cv *compatV1) listService(c *gin.Context) {
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	services := singleton.ServiceSentinelShared.Monitors()
 
 	vs := make([]*model.V1Service, 0, len(services))
@@ -67,6 +71,10 @@ func (cv *compatV1) listService(c *gin.Context) {
 }
 
 func (cv *compatV1) showService(c *gin.Context) {
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	res, err, _ := cv.requestGroup.Do("list-service", func() (interface{}, error) {
 		singleton.AlertsLock.RLock()
 		defer singleton.AlertsLock.RUnlock()
@@ -126,6 +134,10 @@ func (cv *compatV1) showService(c *gin.Context) {
 
 func (cv *compatV1) listServerWithServices(c *gin.Context) {
 	var serverIdsWithService []uint64
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	if err := singleton.DB.Model(&model.MonitorHistory{}).
 		Select("distinct(server_id)").
 		Where("server_id != 0").

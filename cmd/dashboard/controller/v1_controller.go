@@ -84,6 +84,10 @@ func appendBinarySearch[S ~[]E, E model.V1CommonInterface](x, y S, target uint64
 }
 
 func (cv *compatV1) listNotification(c *gin.Context) {
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	singleton.NotificationsLock.RLock()
 	defer singleton.NotificationsLock.RUnlock()
 
@@ -128,6 +132,10 @@ func (cv *compatV1) listNotification(c *gin.Context) {
 }
 
 func (cv *compatV1) listAlertRule(c *gin.Context) {
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	singleton.AlertsLock.RLock()
 	defer singleton.AlertsLock.RUnlock()
 
@@ -193,6 +201,11 @@ func (cv *compatV1) listAlertRule(c *gin.Context) {
 }
 
 func (cv *compatV1) listConfig(c *gin.Context) {
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
+
 	_, isMember := c.Get(model.CtxKeyAuthorizedUser)
 	_, isViewPasswordVerfied := c.Get(model.CtxKeyViewPasswordVerified)
 	authorized := isMember || isViewPasswordVerfied
@@ -219,6 +232,10 @@ func (cv *compatV1) listConfig(c *gin.Context) {
 }
 
 func (cv *compatV1) getProfile(c *gin.Context) {
+	if singleton.Conf.CompatAPIDisable {
+		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		return
+	}
 	auth, ok := c.Get(model.CtxKeyAuthorizedUser)
 	if !ok {
 		c.JSON(401, V1Response[any]{

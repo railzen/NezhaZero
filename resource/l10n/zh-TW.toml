@@ -777,3 +777,6 @@ other = "自動發現"
 
 [GRPCDiscoverKey]
 other = "自動發現密鑰"
+
+[DisableCompatAPI]
+other = "禁止相容API"
