@@ -69,9 +69,58 @@ function postJson(url, data) {
 }
 
 function showFormModal(modelSelector, formID, URL, getData) {
-  $(modelSelector)
-    .modal({
-      closable: true,       // 点击遮罩或关闭按钮可以关闭
+  const $modal = $(modelSelector);
+
+  // 初始化 modal 一次
+  if (!$modal.data("modal-initialized")) {
+    if ($modal.find(".modal-esc-deny").length === 0) {
+      $modal.append(
+        `<div class="actions" style="display:none">
+           <button class="ui deny button modal-esc-deny"></button>
+         </div>`
+      );
+    }
+
+    $modal.modal({
+      closable: false,
+      detachable: true,
+      observeChanges: true,
+      keyboard: true,
+      transition: "scale",
+      duration: 300,
+
+      onShow: function () {
+        $(document).on("keydown.modalEsc", function (e) {
+          if ((e.key === "Escape" || e.keyCode === 27) && $modal.hasClass("active")) {
+            $modal.find(".modal-esc-deny").trigger("click");
+          }
+        });
+
+        // 点击遮罩严格关闭
+        setTimeout(() => {
+          const $dimmer = $modal.closest(".ui.dimmer");
+          let mouseDownOnDimmer = false;
+
+          $dimmer.off("mousedown.modalClickClose mouseup.modalClickClose");
+          $dimmer.on("mousedown.modalClickClose", function (e) {
+            if ($(e.target).hasClass("dimmer")) mouseDownOnDimmer = true;
+          });
+          $dimmer.on("mouseup.modalClickClose", function (e) {
+            if (mouseDownOnDimmer && $(e.target).hasClass("dimmer")) {
+              // ⭐ 触发 hide 前先判断状态
+              if (!$modal.hasClass("animating")) {
+                $modal.find(".modal-esc-deny").trigger("click");
+              }
+            }
+            mouseDownOnDimmer = false;
+          });
+        }, 0);
+      },
+
+      onHidden: function () {
+        $(document).off("keydown.modalEsc");
+      },
+
       onApprove: function () {
         let success = false;
         const btn = $(modelSelector + " .nezha-primary-btn.button");
@@ -168,8 +217,15 @@ function showFormModal(modelSelector, formID, URL, getData) {
           });
         return success;
       },
-    })
-    .modal("show");
+    });
+
+    $modal.data("modal-initialized", true);
+  }
+
+  // 防止动画中重复 show
+  if (!$modal.hasClass("active") && !$modal.hasClass("animating")) {
+    $modal.modal("show");
+  }
 }
 
 function addOrEditAlertRule(rule) {
