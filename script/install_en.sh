@@ -885,6 +885,79 @@ clean_all() {
     fi
 }
 
+migrate_to_nezha_zero() {
+    # 操作前先备份一下，万一失败了可以用来恢复
+    local NZ_DASHBOARD_MIGRATE_PATH="${NZ_DASHBOARD_PATH}_migrate_backup"
+    # 修正拼写错误并使用取反逻辑
+    if ! [ -d "$NZ_DASHBOARD_MIGRATE_PATH" ]; then
+        cp -rf $NZ_DASHBOARD_PATH $NZ_DASHBOARD_MIGRATE_PATH
+    fi
+    
+    # 检查旧版哪吒的安装形式
+    if [ -f "$NZ_DASHBOARD_PATH/app" ]; then
+        local IS_STANDALONE_NAIBA_NEZHA=1
+    fi
+
+    # 检查旧版哪吒的安装形式-Docker
+    if docker compose version >/dev/null 2>&1; then
+        DOCKER_COMPOSE_COMMAND="docker compose"
+        if sudo $DOCKER_COMPOSE_COMMAND ls | grep -qw "$NZ_DASHBOARD_PATH/docker-compose.yaml" >/dev/null 2>&1; then
+            NEZHA_IMAGES=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep -w "nezha-dashboard")
+            if [ -n "$NEZHA_IMAGES" ]; then
+                echo "$NEZHA_IMAGES"
+                IS_DOCKER_NAIBA_NEZHA=1
+            fi
+        fi
+    elif command -v docker-compose >/dev/null 2>&1; then
+        DOCKER_COMPOSE_COMMAND="docker-compose"
+        if sudo $DOCKER_COMPOSE_COMMAND -f "$NZ_DASHBOARD_PATH/docker-compose.yaml" config >/dev/null 2>&1; then
+            NEZHA_IMAGES=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep -w "nezha-dashboard")
+            if [ -n "$NEZHA_IMAGES" ]; then
+                echo "$NEZHA_IMAGES"
+                IS_DOCKER_NAIBA_NEZHA=1
+            fi
+        fi
+    fi
+    
+    if [ "$IS_STANDALONE_NAIBA_NEZHA" = "1" ]; then
+        # 直接更新成最新版的app即可
+        restart_and_update_standalone 0
+    fi
+    
+    if [ "$IS_DOCKER_NAIBA_NEZHA" = "1" ]; then
+        # 删除以前的安装
+        sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml down
+        sudo docker rmi -f ghcr.io/naiba/nezha-dashboard >/dev/null 2>&1
+        sudo docker rmi -f registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard >/dev/null 2>&1
+        
+        # 修改Docker Compose到新版
+        yaml_file_path="${NZ_DASHBOARD_PATH}/docker-compose.yaml"
+        if grep -q "registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard$" "$yaml_file_path"; then
+            sed -i 's|registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard$|${Docker_IMG}|' "$yaml_file_path"
+        fi
+        if grep -q "ghcr.io/naiba/nezha-dashboard$" "$yaml_file_path"; then
+            sed -i 's|ghcr.io/naiba/nezha-dashboard$|${Docker_IMG}|' "$yaml_file_path"
+        fi
+        if grep -q "railzen/nezha-zero-dashboard" "$yaml_file_path"; then
+            sed -i "s|railzen/nezha-zero-dashboard[^ ]*|${Docker_IMG}|" "$yaml_file_path"
+        fi
+        
+        # 执行Docker Compose
+        sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml pull
+        sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml down
+        sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml up -d
+    fi
+    
+    if [ "$IS_DOCKER_NAIBA_NEZHA" != "1" ] && [ "$IS_STANDALONE_NAIBA_NEZHA" != "1" ]; then
+        # 两种都没有，没检测到安装
+        err "No installation was found. Please check_systemd your installation!"
+        exit -1
+    fi
+
+    success "Migrate success!"
+    exit 0     
+}
+
 show_usage() {
     echo "Nezha Monitor Management Script Usage: "
     echo "--------------------------------------------------------"
@@ -925,7 +998,8 @@ show_menu() {
     ${green}11.${plain} Uninstall Agent
     ${green}12.${plain} Restart Agent
     ————————————————-
-    ${green}13.${plain} Update Script
+    ${green}98.${plain} Migrate To Nezha Zero
+    ${green}99.${plain} Update Script
     ————————————————-
     ${green}0.${plain}  Exit Script
     "
@@ -970,7 +1044,10 @@ show_menu() {
         12)
             restart_agent
             ;;
-        13)
+        98)
+            migrate_to_nezha_zero
+            ;;
+        99)
             update_script
             ;;
         *)
