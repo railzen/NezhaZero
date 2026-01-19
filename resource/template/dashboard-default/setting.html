@@ -24,9 +24,14 @@
                 <label>{{tr "AccessPassword"}}</label>
                 <input type="text" name="ViewPassword" placeholder="" value="{{.Conf.Site.ViewPassword}}" autocomplete="off">
             </div>
-            <div class="field">
+            <div class="field" style="display: flex; flex-direction: column;">
                 <label>{{tr "GRPCDiscoverKey"}}</label>
-                <input type="text" name="GRPCDiscoverKey" placeholder="" value="{{.Conf.GRPCDiscoverKey}}" autocomplete="off">
+                <div style="display: flex; align-items: center;">
+                    <input type="text" name="GRPCDiscoverKey" placeholder="" value="{{.Conf.GRPCDiscoverKey}}" autocomplete="off" style="flex-grow: 1; margin-right: 5px;">
+                    <button type="button" class="ui icon button ip-copy" onclick="generateRandomString()" style="flex-shrink: 0;">
+                        <i class="refresh icon"></i>
+                    </button>
+                </div>
             </div>
             <div class="field">
                 <label>{{tr "Theme"}}</label>
@@ -174,5 +179,18 @@
     {{ if .Conf.UseTemplateHandleNoRoute }}
     $('.checkbox.template-handle-no-route').checkbox('set checked')
     {{ end }}
+</script>
+<script>
+    function generateRandomString() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let randomString = '';
+        for (let i = 0; i < 18; i++) {
+            const randomIndex = Math.floor(Math.random() * chars.length);
+            randomString += chars[randomIndex];
+        }
+
+        // 更新输入框的值
+        document.querySelector('input[name="GRPCDiscoverKey"]').value = randomString;
+    }
 </script>
 {{end}}
