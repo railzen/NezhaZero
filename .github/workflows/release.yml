@@ -130,8 +130,9 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     needs: [build-dashboard, build-agent]
+    environment: release-environment
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/') && vars.DO_RELEASE == 'true'
     name: Release
     steps:
       - name: Download artifacts
