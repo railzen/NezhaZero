@@ -17,25 +17,38 @@
 
 
 ## 概要/Abstract
-本项目基于哪吒V0版本进行二次修改，主要更新了GEOIP库和管理界面安装Agent的链接，修复了部分失效的CDN引用，增加用户名密码登陆功能和IP复制功能，增加设备自动发现（仅支持Linux），同时进行了一些样式优化。
+本项目基于哪吒V0版本进行二次修改，主要更新了GEOIP库和管理界面安装Agent的链接，修复了部分失效的CDN引用，增加用户名密码登陆功能和IP复制功能，增加设备自动发现（仅支持Linux），支持国家码手动修正，将ServerStatus主题和管理后台所有的静态文件本地化，同时进行了一些样式优化。
 
-最新Agent版本以上面标签展示为准，放在Release里面仅便于使用。Agent已经关闭自动升级功能，如无必要不会升级。稳定后面板将尽可能减少更新以稳定版本，但目前还在快速迭代，不建议使用。一键安装脚本如下：
+最新Agent版本以上面标签展示为准，放在Release里面仅便于使用。Agent已经关闭自动升级功能，如无必要不会升级。稳定后面板将尽可能减少更新以稳定版本，但目前还在快速迭代，暂时不建议长期使用。一键安装脚本如下：
 
 ```shell
 curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh
 ```
 
+## 老版本迁移/Migiate
+
+本项目是基于哪吒V0 Final的v0.20.13版本进行修改的，因此兼容v0.20.13版本配置和数据库，可以直接迁移。迁移脚本基于v0.20.13版本测试通过，其他版本理论也可以用。版本迁移前还请做好备份。迁移命令如下：
+
+```shell
+curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh migrate_to_nezha_zero
+```
+
+## 自动发现/Auto Discover
+
+作者比较眼馋哪吒V1和Komari的自动发现功能，所以自己也搓了一个，仅支持Linux。服务器列表首页会有一键安装链接可供复制，根据机器码进行自动发现和添加。
+
 ## 兼容API/Compatible API
 
 合并了哪吒V1版本的部分读取功能API。目前支持了：
 
-- 支持了账号密码登录（默认关闭，用户名和密码在后台设置后启用）
+- 支持了账号密码登录（默认关闭，用户名是oauth的用户名，密码在后台设置配置）
 - 前台界面的所有 API （包括 WebSocket）
 - 后台界面的部分只读 API
 - 支持服务器、告警、通知的信息获取
 - 兼容 [Nezha-Mobile](https://github.com/hiDandelion/Nezha-Mobile) 的大部分只读功能
+- 支持开启和关闭V1版本API
 - 关于鉴权
-  - 基于配置文件实现鉴权，密码可以通过修改配置文件后重启面板进行修改
+  - 基于配置文件实现鉴权，密码可以设置界面进行修改
   - 支持V1版本 `/api/v1/login` 接口实现登录
     - 账号：设置界面的管理员列表
     - 密码：设置界面的管理员密码
@@ -51,9 +64,9 @@ curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh
 #### **Dashboard**
 
 
-| Dashboard                                             | Login Panel                                          |
-| --------------------- | ------------------------ |
-|  <img src="agent/web/image_2.png" width="3000px"/>                            | <img src="agent/web/image_3.png" width="1500px" /> |
+| Dashboard                                                   | Login Panel                                        |
+| ----------------------------------------------------------- | -------------------------------------------------- |
+| <img src="agent/web/LookGlass_0_20_21.jpg" width="3000px"/> | <img src="agent/web/image_3.png" width="1500px" /> |
 
 | <div align="center"><b>ServerStatus <a href="https://github.com/unclezs">@unclezs</a></b></div> | DayNight [@JackieSung](https://github.com/JackieSung4ev)     | hotaru                                                       |
 | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
