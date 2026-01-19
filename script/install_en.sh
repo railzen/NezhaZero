@@ -364,7 +364,7 @@ selinux() {
     fi
 }
 
-install_agent() {
+pre_install_agent_bin() {
 
     if [ -d "${NZ_AGENT_PATH}" ]; then
         echo "> Exist old Agent，reinstall..."
@@ -423,6 +423,10 @@ install_agent() {
     sudo unzip -qo nezha-agent_linux_${os_arch}.zip &&
         sudo mv nezha-agent $NZ_AGENT_PATH &&
         sudo rm -rf nezha-agent_linux_${os_arch}.zip README.md
+}
+
+install_agent() {
+    pre_install_agent_bin
 
     if [ $# -ge 3 ]; then
         modify_agent_config "$@"
@@ -436,63 +440,7 @@ install_agent() {
 }
 
 discover_agent() {
-    if [ -d "${NZ_AGENT_PATH}" ]; then
-        echo "> Exist old Agent，reinstall..."
-        sudo ${NZ_AGENT_PATH}/nezha-agent service uninstall
-        sudo rm -rf $NZ_AGENT_PATH
-        clean_all
-    fi
-
-    install_base
-    selinux
-
-    echo "> Install Agent"
-
-    # echo "Obtaining Agent version number"
-
-
-    # _version=$(curl -m 10 -sL "https://api.github.com/repos/nezhahq/agent/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
-    # if [ -z "$_version" ]; then
-    #     _version=$(curl -m 10 -sL "https://gitee.com/api/v5/repos/naibahq/agent/releases/latest" | awk -F '"' '{for(i=1;i<=NF;i++){if($i=="tag_name"){print $(i+2)}}}')
-    # fi
-    # if [ -z "$_version" ]; then
-    #     _version=$(curl -m 10 -sL "https://fastly.jsdelivr.net/gh/nezhahq/agent/" | grep "option\.value" | awk -F "'" '{print $2}' | sed 's/nezhahq\/agent@/v/g')
-    # fi
-    # if [ -z "$_version" ]; then
-    #     _version=$(curl -m 10 -sL "https://gcore.jsdelivr.net/gh/nezhahq/agent/" | grep "option\.value" | awk -F "'" '{print $2}' | sed 's/nezhahq\/agent@/v/g')
-    # fi
-
-    # if [ -z "$_version" ]; then
-    #     err "Fail to obtain Agent version, please check if the network can link https://api.github.com/repos/nezhahq/agent/releases/latest"
-    #     return 1
-    # else
-    #     echo "The current latest version is: ${_version}"
-    # fi
-
-    _version=${NZ_MAIN_VERSION}
-    _version=${NZ_AGENT_DEFAULT_VERSION}
-
-    # Nezha Monitoring Folder
-    sudo mkdir -p $NZ_AGENT_PATH
-
-    echo "Downloading Agent"
-    if [ -z "$CN" ]; then
-        #NZ_AGENT_URL="https://${GITHUB_URL}/nezhahq/agent/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
-        NZ_AGENT_URL="https://${GITHUB_URL}/railzen/nezha-zero/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
-    else
-        #NZ_AGENT_URL="https://${GITHUB_URL}/naibahq/agent/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
-        NZ_AGENT_URL="https://${GITHUB_URL}/railzen/nezha-zero/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
-    fi
-
-    _cmd="wget -t 2 -T 60 -O nezha-agent_linux_${os_arch}.zip $NZ_AGENT_URL >/dev/null 2>&1"
-    if ! eval "$_cmd"; then
-        err "Fail to download agent, please check if the network can link ${GITHUB_URL}"
-        return 1
-    fi
-
-    sudo unzip -qo nezha-agent_linux_${os_arch}.zip &&
-        sudo mv nezha-agent $NZ_AGENT_PATH &&
-        sudo rm -rf nezha-agent_linux_${os_arch}.zip README.md
+    pre_install_agent_bin
 
     echo "> Modify Agent Configuration"
     nz_grpc_host=$1
