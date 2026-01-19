@@ -120,6 +120,16 @@ td {
   color: white !important;
 }
 
+/* 鼠标悬停效果 */
+.nezha-primary-btn:hover {
+  background-color: #1a43cc !important; /* 加深蓝色 */
+}
+
+/* 鼠标按下效果 */
+.nezha-primary-btn:active {
+  background-color: #022288 !important; /* 进一步加深 */
+}
+
 .nezha-primary-font {
   color: #0338d6 !important;
 }
