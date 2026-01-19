@@ -22,15 +22,16 @@ var Languages = map[string]string{
 }
 
 var Themes = map[string]string{
-	"server-status": "ServerStatus",
-	"nazhua":        "Nazhua",
-	"nezha-dash":    "Nezha Dash",
-	"daynight":      "JackieSung DayNight",
-	"mdui":          "Neko Mdui",
-	"hotaru":        "Hotaru",
-	"angel-kanade":  "AngelKanade",
-	"default":       "Default",
-	"custom":        "Custom(local)",
+	"server-status":        "ServerStatus",
+	"server-status-origin": "ServerStatus Origin",
+	"nazhua":               "Nazhua",
+	"nezha-dash":           "Nezha Dash",
+	"daynight":             "JackieSung DayNight",
+	"mdui":                 "Neko Mdui",
+	"hotaru":               "Hotaru",
+	"angel-kanade":         "AngelKanade",
+	"default":              "Default",
+	"custom":               "Custom(local)",
 }
 
 var DashboardThemes = map[string]string{
