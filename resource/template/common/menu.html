@@ -1,24 +1,44 @@
 {{define "common/menu"}}
 <div class="ui large top fixed menu nb-menu">
-    <div class="ui container">
+    <div class="ui container" style="display: flex; justify-content: space-between; align-items: center;">
         <a class="item" href="/">
-            <img src="/static/logo.svg?v20210804">
+            <img src="/static/logo.svg?v20210804" class="logo">
         </a>
         {{if .IsAdminPage}}
-        <a class='item{{if eq .MatchedPath "/server"}} active{{end}}' href="/server"><i class="server icon"></i>{{tr "Server"}}</a>
-        <a class='item{{if eq .MatchedPath "/monitor"}} active{{end}}' href="/monitor"><i class="rss icon"></i>{{tr "Services"}}</a>
-        <a class='item{{if eq .MatchedPath "/cron"}} active{{end}}' href="/cron"><i class="clock icon"></i>{{tr "Task"}}</a>
-        <a class='item{{if eq .MatchedPath "/notification"}} active{{end}}' href="/notification"><i class="bell icon"></i>{{tr "Notification"}}</a>
-        <a class='item{{if eq .MatchedPath "/ddns"}} active{{end}}' href="/ddns"><i class="globe icon"></i>{{tr "DDNS"}}</a>
-        <a class='item{{if eq .MatchedPath "/nat"}} active{{end}}' href="/nat"><i class="exchange icon"></i>{{tr "NAT"}}</a>
-        <a class='item{{if eq .MatchedPath "/setting"}} active{{end}}' href="/setting">
-            <i class="settings icon"></i>{{tr "Settings"}}
-        </a>
+            <a class='item wide-link{{if eq .MatchedPath "/server"}} active{{end}}' href="/server"><i class="server icon"></i> {{tr "Server"}}</a>
+            <a class='item wide-link{{if eq .MatchedPath "/monitor"}} active{{end}}' href="/monitor"><i class="rss icon"></i> {{tr "Services"}}</a>
+            <a class='item wide-link{{if eq .MatchedPath "/cron"}} active{{end}}' href="/cron"><i class="clock icon"></i> {{tr "Task"}}</a>
+            <a class='item wide-link{{if eq .MatchedPath "/notification"}} active{{end}}' href="/notification"><i class="bell icon"></i> {{tr "Notification"}}</a>
+            <a class='item wide-link{{if eq .MatchedPath "/ddns"}} active{{end}}' href="/ddns"><i class="globe icon"></i> {{tr "DDNS"}}</a>
+            <a class='item wide-link{{if eq .MatchedPath "/nat"}} active{{end}}' href="/nat"><i class="exchange icon"></i> {{tr "NAT"}}</a>
+            <a class='item wide-link{{if eq .MatchedPath "/setting"}} active{{end}}' href="/setting"><i class="settings icon"></i> {{tr "Settings"}}</a>
         {{else}}
-        <a class='item{{if eq .MatchedPath "/"}} active{{end}}' href="/"><i class="home icon"></i>{{tr "Home"}}</a>
-        <a class='item{{if eq .MatchedPath "/service"}} active{{end}}' href="/service"><i class="rss icon"></i>{{tr "Services"}}</a>
-        <a class='item{{if eq .MatchedPath "/network"}} active{{end}}' href="/network"><i class="server icon"></i>{{tr "NetworkSpiter"}}</a>
+            <a class='item wide-link{{if eq .MatchedPath "/"}} active{{end}}' href="/"><i class="home icon"></i> {{tr "Home"}}</a>
+            <a class='item wide-link{{if eq .MatchedPath "/service"}} active{{end}}' href="/service"><i class="rss icon"></i> {{tr "Services"}}</a>
+            <a class='item wide-link{{if eq .MatchedPath "/network"}} active{{end}}' href="/network"><i class="server icon"></i> {{tr "NetworkSpiter"}}</a>
         {{end}}
+
+        <a href="javascript:void(0);" class="item" id="menu-toggle-button">
+            <i class="bars icon"></i>
+        </a>
+
+        <div class="left menu" id="menu-items">
+            {{if .IsAdminPage}}
+                <a class='item{{if eq .MatchedPath "/server"}} active{{end}}' href="/server"><i class="server icon"></i> {{tr "Server"}}</a>
+                <a class='item{{if eq .MatchedPath "/monitor"}} active{{end}}' href="/monitor"><i class="rss icon"></i> {{tr "Services"}}</a>
+                <a class='item{{if eq .MatchedPath "/cron"}} active{{end}}' href="/cron"><i class="clock icon"></i> {{tr "Task"}}</a>
+                <a class='item{{if eq .MatchedPath "/notification"}} active{{end}}' href="/notification"><i class="bell icon"></i> {{tr "Notification"}}</a>
+                <a class='item{{if eq .MatchedPath "/ddns"}} active{{end}}' href="/ddns"><i class="globe icon"></i> {{tr "DDNS"}}</a>
+                <a class='item{{if eq .MatchedPath "/nat"}} active{{end}}' href="/nat"><i class="exchange icon"></i> {{tr "NAT"}}</a>
+                <a class='item{{if eq .MatchedPath "/setting"}} active{{end}}' href="/setting"><i class="settings icon"></i> {{tr "Settings"}}</a>
+            {{else}}
+                <a class='item{{if eq .MatchedPath "/"}} active{{end}}' href="/"><i class="home icon"></i> {{tr "Home"}}</a>
+                <a class='item{{if eq .MatchedPath "/service"}} active{{end}}' href="/service"><i class="rss icon"></i> {{tr "Services"}}</a>
+                <a class='item{{if eq .MatchedPath "/network"}} active{{end}}' href="/network"><i class="server icon"></i> {{tr "NetworkSpiter"}}</a>
+            {{end}}
+        </div>
+
+        <!-- Right menu for user/admin -->
         <div class="right menu">
             <div class="item">
                 {{if .Admin}}
@@ -58,4 +78,80 @@
     </div>
 </div>
 {{template "component/confirm" .}}
+
+<style>
+    @media (max-width: 767px) {
+        .logo {
+            max-width: 23px; /* logo size adjustment */
+        }
+
+        /* 当屏幕宽度小于950px时，隐藏 app-link */
+        .item.wide-link {
+            display: none !important;
+        }
+
+        /* Initially hide the menu items on mobile */
+        #menu-items {
+            display: none;
+            position: fixed;
+            top: 60px; /* Adjust this value if needed */
+            left: 0; /* Ensure menu slides from the left */
+            background-color: #fff;
+            width: 200px; /* Adjust width as needed */
+            z-index: 1000; /* Ensure it floats above other elements */
+            box-shadow: 2px 0 5px rgba(0,0,0,0.3); /* Shadow on the right side */
+            flex-direction: column;
+            padding-top: 20px; /* Space at the top */
+        }
+
+        /* When the menu is toggled, show the items */
+        #menu-items.show {
+            display: flex;
+        }
+
+        /* Show the menu toggle button */
+        #menu-toggle-button {
+            display: inline-block;
+        }
+
+        /* Ensure all menu items are centered and stacked on small screens */
+        #menu-items .item {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 15px 0;
+        }
+    }
+
+    /* Hide the menu toggle button on large screens */
+    @media (min-width: 768px) {
+        /* 当屏幕宽度大于950px时，隐藏 app-link */
+        #menu-toggle-button {
+            display: none; /* Hide the toggle button on larger screens */
+        }
+
+        /* Ensure menu items are displayed inline */
+        #menu-items .item {
+            display: none !important;
+        }
+    }
+</style>
+
+<script>
+    document.getElementById('menu-toggle-button').addEventListener('click', function() {
+        const menuItems = document.getElementById('menu-items');
+        menuItems.classList.toggle('show');
+    });
+
+    // Close the menu when clicking outside (optional)
+    window.addEventListener('click', function(event) {
+        const menuItems = document.getElementById('menu-items');
+        const button = document.getElementById('menu-toggle-button');
+        
+        // Close menu if click is outside the menu and button
+        if (!menuItems.contains(event.target) && !button.contains(event.target)) {
+            menuItems.classList.remove('show');
+        }
+    });
+</script>
 {{end}}
