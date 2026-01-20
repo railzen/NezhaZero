@@ -1,16 +1,16 @@
-{{define "theme-server-status-origin/home"}}
-{{template "theme-server-status-origin/header" .}}
-{{template "theme-server-status-origin/menu" .}}   
+{{define "theme-server-status-dev/home"}}
+{{template "theme-server-status-dev/header" .}}
+{{template "theme-server-status-dev/menu" .}}   
 <!--  showGroup true -->
 <template v-if="showGroup">
     <div class="container-fluid table-responsive content" v-for="group in nodesTag">
-        {{template "theme-server-status-origin/home-group-true" .}} 
+        {{template "theme-server-status-dev/home-group-true" .}} 
     </div>
 </template>
 <!--  showGroup false -->
 <template v-else>
     <div class="container-fluid table-responsive content">
-        {{template "theme-server-status-origin/home-group-false" .}}
+        {{template "theme-server-status-dev/home-group-false" .}}
     </div>
 </template>
 <div class="modal fade" id="mapChartBox" tabindex="-1" role="dialog" aria-labelledby="mapChartTitle" aria-hidden="true" style="padding-left:0">
@@ -29,7 +29,7 @@
         </div>
     </div>
 </div>
-{{template "theme-server-status-origin/footer" .}}
+{{template "theme-server-status-dev/footer" .}}
 <script>
     new Vue({
         el: '#app',

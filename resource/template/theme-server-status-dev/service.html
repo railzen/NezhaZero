@@ -1,13 +1,13 @@
-{{define "theme-server-status-origin/service"}}
-{{template "theme-server-status-origin/header" .}}
-{{template "theme-server-status-origin/menu" .}}
+{{define "theme-server-status-dev/service"}}
+{{template "theme-server-status-dev/header" .}}
+{{template "theme-server-status-dev/menu" .}}
 <!--  showGroup true -->
 <template v-if="showGroup">
     <div v-if="servicesTag.length === 0" class="container-fluid content" style="min-height: .01%;overflow-x: auto;">
         <p>No Valid Service Monitor Configuration Entries Found. Please Verify in the <a href="/monitor">Admin Panel</a>.</p>
     </div>
     <div v-else class="container-fluid content" style="min-height: .01%;overflow-x: auto;" v-for="group in servicesTag">
-        {{template "theme-server-status-origin/service-group-true" .}} 
+        {{template "theme-server-status-dev/service-group-true" .}} 
     </div>
 </template>
 <!--  showGroup false -->
@@ -16,7 +16,7 @@
         <p>No Valid Service Monitor Configuration Entries Found. Please Verify in the <a href="/monitor">Admin Panel</a>.</p>
     </div>
     <div v-else class="container-fluid content" style="min-height: .01%;overflow-x: auto;">
-        {{template "theme-server-status-origin/service-group-false" .}}
+        {{template "theme-server-status-dev/service-group-false" .}}
     </div>
 </template>
 {{if .CycleTransferStats}}
@@ -69,7 +69,7 @@
         </table>
     </div>
 {{end}}
-{{template "theme-server-status-origin/footer" .}}
+{{template "theme-server-status-dev/footer" .}}
 <script>
     new Vue({
         el: '#app',
