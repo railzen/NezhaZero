@@ -4,6 +4,12 @@
         <a class="item" href="/">
             <img src="/static/logo.svg?v20210804" class="logo">
         </a>
+        <a class="item" id="menu-toggle-button">
+            <i class="menu-current-icon icon"></i>
+            <span id="menu-current-title">Server</span>
+            <i class="dropdown icon"></i>
+        </a>
+
         {{if .IsAdminPage}}
             <a class='item wide-link{{if eq .MatchedPath "/server"}} active{{end}}' href="/server"><i class="server icon"></i> {{tr "Server"}}</a>
             <a class='item wide-link{{if eq .MatchedPath "/monitor"}} active{{end}}' href="/monitor"><i class="rss icon"></i> {{tr "Services"}}</a>
@@ -17,13 +23,6 @@
             <a class='item wide-link{{if eq .MatchedPath "/service"}} active{{end}}' href="/service"><i class="rss icon"></i> {{tr "Services"}}</a>
             <a class='item wide-link{{if eq .MatchedPath "/network"}} active{{end}}' href="/network"><i class="server icon"></i> {{tr "NetworkSpiter"}}</a>
         {{end}}
-
-        <a class="item" id="menu-toggle-button">
-            <i class="menu-current-icon icon"></i>
-            <span id="menu-current-title">Server</span>
-            <i class="angle down icon"></i>
-        </a>
-
 
         <div class="left menu" id="menu-items">
             {{if .IsAdminPage}}
@@ -83,8 +82,13 @@
 
 <style>
     @media (max-width: 731px) {
+        /* 仅针对 .right.menu 下的 .item 元素移除 ::before */
+        .right.menu .item::before {
+            content: none !important;  /* 去除伪元素 */
+        }
+
         .logo {
-            max-width: 23px; /* logo size adjustment */
+            max-width: 25px; /* logo size adjustment */
         }
 
         /* 当屏幕宽度小于950px时，隐藏 app-link */
@@ -113,6 +117,8 @@
 
         /* Show the menu toggle button */
         #menu-toggle-button {
+            width: auto; /* 宽度自适应 */
+            flex-grow: 1; /* 占据剩余空间 */
             display: block;
         }
 
