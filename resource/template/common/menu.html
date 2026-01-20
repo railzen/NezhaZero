@@ -1,6 +1,6 @@
 {{define "common/menu"}}
 <div class="ui large top fixed menu nb-menu">
-    <div class="ui container" style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="ui container">
         <a class="item" href="/">
             <img src="/static/logo.svg?v20210804" class="logo">
         </a>
@@ -18,9 +18,12 @@
             <a class='item wide-link{{if eq .MatchedPath "/network"}} active{{end}}' href="/network"><i class="server icon"></i> {{tr "NetworkSpiter"}}</a>
         {{end}}
 
-        <a href="javascript:void(0);" class="item" id="menu-toggle-button">
-            <i class="bars icon"></i>
+        <a class="item" id="menu-toggle-button">
+            <i class="menu-current-icon icon"></i>
+            <span id="menu-current-title">Server</span>
+            <i class="angle down icon"></i>
         </a>
+
 
         <div class="left menu" id="menu-items">
             {{if .IsAdminPage}}
@@ -38,7 +41,6 @@
             {{end}}
         </div>
 
-        <!-- Right menu for user/admin -->
         <div class="right menu">
             <div class="item">
                 {{if .Admin}}
@@ -80,7 +82,7 @@
 {{template "component/confirm" .}}
 
 <style>
-    @media (max-width: 767px) {
+    @media (max-width: 731px) {
         .logo {
             max-width: 23px; /* logo size adjustment */
         }
@@ -94,24 +96,24 @@
         #menu-items {
             display: none;
             position: fixed;
-            top: 60px; /* Adjust this value if needed */
-            left: 0; /* Ensure menu slides from the left */
+            top: 50px; /* Adjust this value if needed */
+            left: 0px; /* Ensure menu slides from the left */
             background-color: #fff;
             width: 200px; /* Adjust width as needed */
             z-index: 1000; /* Ensure it floats above other elements */
             box-shadow: 2px 0 5px rgba(0,0,0,0.3); /* Shadow on the right side */
             flex-direction: column;
-            padding-top: 20px; /* Space at the top */
+            padding-top: 0px; /* Space at the top */
         }
 
         /* When the menu is toggled, show the items */
         #menu-items.show {
-            display: flex;
+            display: block;
         }
 
         /* Show the menu toggle button */
         #menu-toggle-button {
-            display: inline-block;
+            display: block;
         }
 
         /* Ensure all menu items are centered and stacked on small screens */
@@ -119,12 +121,11 @@
             display: block;
             width: 100%;
             text-align: center;
-            padding: 15px 0;
         }
     }
 
     /* Hide the menu toggle button on large screens */
-    @media (min-width: 768px) {
+    @media (min-width: 732px) {
         /* 当屏幕宽度大于950px时，隐藏 app-link */
         #menu-toggle-button {
             display: none; /* Hide the toggle button on larger screens */
@@ -153,5 +154,29 @@
             menuItems.classList.remove('show');
         }
     });
+
+(function () {
+        const activeItem =
+            document.querySelector('.item.wide-link.active') ||
+            document.querySelector('#menu-items .item.active');
+
+        if (!activeItem) return;
+
+        // 取 icon
+        const icon = activeItem.querySelector('i');
+        const currentIcon = document.querySelector('.menu-current-icon');
+
+        if (icon && currentIcon) {
+            currentIcon.className = icon.className; // 完整复制 icon class
+        }
+
+        // 取文字（去掉 icon）
+        const textNode = activeItem.cloneNode(true);
+        const textIcon = textNode.querySelector('i');
+        if (textIcon) textIcon.remove();
+
+        document.getElementById('menu-current-title').innerText =
+            textNode.textContent.trim();
+    })();
 </script>
 {{end}}
