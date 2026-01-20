@@ -88,6 +88,8 @@ You can change the dashboard language in the settings page (`/setting`) after th
 ```html
 {
   "billingDataMod": {
+    // 开始时间,格式为yyyy-mm-dd,
+    "startDate": "2025-10-01",
     // 到期时间,格式为yyyy-mm-dd,长期可以写0000-00-00
     "endDate": "2027-01-01" 
   },
