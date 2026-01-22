@@ -663,9 +663,10 @@ restart_and_update_docker() {
 update_docker_compose_image() {
     yaml_file_path="${NZ_DASHBOARD_PATH}/docker-compose.yaml"
 
-    if grep -q "railzen/nezha-zero-dashboard" "$yaml_file_path"; then
+    if grep -q "ghcr.io/railzen/nezha-zero-dashboard" "$yaml_file_path"; then
+    	sed -i "s|ghcr.io/railzen/nezha-zero-dashboard[^ ]*|ghcr.io/railzen/nezha-zero-dashboard:latest|" "$yaml_file_path"
+    elif grep -q "railzen/nezha-zero-dashboard" "$yaml_file_path"; then
     	sed -i "s|railzen/nezha-zero-dashboard[^ ]*|${Docker_IMG}|" "$yaml_file_path"
-        #sed -i 's|ghcr.io/naiba/nezha-dashboard$|ghcr.io/naibahq/nezha-dashboard:v0.20.13|' "$yaml_file_path"
     fi
 }
 
