@@ -460,7 +460,7 @@
                             data.servers[i].live = false
                         } else {
                             const lastActive = new Date(ns.LastActive).getTime()
-                            data.servers[i].live = data.now - lastActive <= 10 * 1000;
+                            data.servers[i].live = data.now - lastActive <= 20 * 1000;
                         }
                     }
                     if(this.showGroup) {

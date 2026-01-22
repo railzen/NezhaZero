@@ -68,7 +68,7 @@ func DispatchTask(serviceSentinelDispatchBus <-chan model.Monitor) {
 }
 
 func DispatchKeepalive() {
-	singleton.Cron.AddFunc("@every 60s", func() {
+	singleton.Cron.AddFunc("@every 30s", func() {
 		singleton.SortedServerLock.RLock()
 		defer singleton.SortedServerLock.RUnlock()
 		for i := 0; i < len(singleton.SortedServerList); i++ {
