@@ -5,7 +5,7 @@
   <br>
     <a href="https://nezha-v0.mereith.dev/guide/dashboard.html" target="_blank"><img src="https://img.shields.io/badge/Docs-Available-orange?style=for-the-badge&logo=gitbook&logoColor=white" alt="查看文档"></a>
     <a href="https://github.com/railzen/nezha-zero" target="_blank"><img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/railzen/nezha-zero?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard"></a>
-    <a href="https://github.com/nezhahq/agent/releases/tag/v0.20.5" target="_blank"><img src="https://img.shields.io/badge/Agent-v0.20.20-bridhtgreen?logo=github&style=for-the-badge"></a>
+    <a href="https://github.com/railzen/nezha-zero/releases" target="_blank"><img src="https://img.shields.io/badge/Agent-v0.20.21-bridhtgreen?logo=github&style=for-the-badge"></a>
     <a href="https://github.com/nezhahq/nezha" target="_blank"><img src="https://img.shields.io/badge/NEZHA-NAIBA-blue?logo=github&style=for-the-badge" alt="访问哪吒仓库"></a>
   </br>
   <p><b>Nezha Monitoring: Self-hostable, lightweight, servers and websites monitoring tool.</b></p>
@@ -83,7 +83,7 @@ You can change the dashboard language in the settings page (`/setting`) after th
 </script>
 ```
 
-[Pre-Release支持] 新增到期时间展示和国家自定义，写在公开备注（Public Note）中。完整版配置在这里[账单信息备注](https://github.com/nezhahq/nezha/pull/425#issuecomment-2389107872)
+新增到期时间展示和国家自定义，写在公开备注（Public Note）中。完整版配置在这里[账单信息备注](https://github.com/nezhahq/nezha/pull/425#issuecomment-2389107872)
 
 ```html
 {
