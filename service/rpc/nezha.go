@@ -133,25 +133,6 @@ func addDiscoverServer() (string, error) {
 	return s.Secret, nil
 }
 
-/*
-func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServerRequest,
-) (*pb.DiscoverServerResponse, error) {
-
-	if req.DiscoverKey != "123456789abcdef" {
-		return nil, status.Error(codes.PermissionDenied, "Invalid Key")
-	}
-
-	secret, err := addDiscoverServer()
-	if err != nil {
-		return nil, status.Error(codes.PermissionDenied, "Invalid Key")
-	}
-
-	return &pb.DiscoverServerResponse{
-		NewServerSecret: secret,
-	}, nil
-}
-*/
-
 func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServerRequest,
 ) (*pb.DiscoverServerResponse, error) {
 
@@ -163,7 +144,7 @@ func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServe
 		return nil, status.Error(codes.InvalidArgument, "DeviceId required")
 	}
 
-	// ====== 内存幂等检查 ======
+	// 内存幂等检查
 	DeviceIDLock.Lock()
 	secret, exists := DeviceIDToSecret[req.DeviceId]
 	DeviceIDLock.Unlock()
@@ -175,7 +156,7 @@ func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServe
 		}, nil
 	}
 
-	// ====== 新设备 ======
+	// 新设备
 	secret, err := addDiscoverServer()
 	if err != nil {
 		return nil, status.Error(codes.Internal, "Failed to create server")

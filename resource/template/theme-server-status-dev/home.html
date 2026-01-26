@@ -1077,13 +1077,35 @@
                     return "lifetime";
                 }
 
+                let parsedEndDate;
+
+                // 已包含时区信息
+                if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(endDate)) {
+                    parsedEndDate = new Date(endDate);
+                } else {
+                    let normalized = endDate.trim();
+
+                    // 只有日期：2027-01-01
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+                        normalized = normalized + 'T00:00:00';
+                    }
+                    // 日期 + 时间，但没 T
+                    else if (/^\d{4}-\d{2}-\d{2} /.test(normalized)) {
+                        normalized = normalized.replace(' ', 'T');
+                    }
+
+                    // 默认 UTC+8
+                    normalized += '+08:00';
+                    parsedEndDate = new Date(normalized);
+                }
+
                 // 检查 endDate 是否为合法的Date
-                if (isNaN(new Date(endDate).getTime())) {
+                if (isNaN(parsedEndDate.getTime())) {
                     return  type === 1 ? null : "NaN";
                 }
                 
                 // 获取当前时间，并调整时区
-                const currentTime = this.getAdjustTimezone(new Date(endDate), new Date());
+                const currentTime = this.getAdjustTimezone(parsedEndDate, new Date());
 
                 // 获取计费周期和自动续订日期
                 const billingCycle = this.getNoteElementValue(note, "billingDataMod", "cycle") || "月";
@@ -1096,7 +1118,7 @@
                 const autoRenewal = this.getNoteElementValue(note, "billingDataMod", "autoRenewal") == 1;
 
                 // 确定到期时间
-                const end = autoRenewal ? autoEndDate.date : new Date(endDate);
+                const end = autoRenewal ? autoEndDate.date : parsedEndDate;
 
                 // 直接返回处理后的到期时间
                 if (type === 1) return end;
