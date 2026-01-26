@@ -47,7 +47,7 @@
             </td>
             <td style="text-align: center;" class="node-cell uptime">@#node.uptime#@</td>
             <td v-if="nodesNoTag.some(item => item.additional && item.additional.remaining && Object.keys(item.additional.remaining).length > 0)" style="text-align: center;" class="node-cell remaining">
-                <template v-if="node.additional && node.additional.remaining.days">
+                <template v-if="node.additional && node.additional.remaining.days != null">
                     <span v-if="node.additional.remaining.days == 'lifetime'" :style="{ color: '#8a8a8a' }">FREE</span>
                     <span v-else-if="node.additional.remaining.days < 0">{{tr "Expired"}}</span>
                     <span v-else class="node-cell-remaining-days" :style="{

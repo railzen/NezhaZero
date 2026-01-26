@@ -139,7 +139,7 @@
                     // 设置 remaining 属性
                     if (remainingEndDate) nodes[server.ID].remaining.endDate = remainingEndDate;
                     if (remainingFormat) nodes[server.ID].remaining.format = remainingFormat;
-                    if (remainingDays) nodes[server.ID].remaining.days = remainingDays;
+                    if (remainingDays != null) nodes[server.ID].remaining.days = remainingDays;
                     if (remainingPercent) nodes[server.ID].remaining.percent = this.toFixed2(100 - remainingPercent);
 
                     // 处理 billingDataMod 的 price 配置
