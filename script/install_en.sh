@@ -387,15 +387,6 @@ pre_install_agent_bin() {
 
 
     # _version=$(curl -m 10 -sL "https://api.github.com/repos/nezhahq/agent/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
-    # if [ -z "$_version" ]; then
-    #     _version=$(curl -m 10 -sL "https://gitee.com/api/v5/repos/naibahq/agent/releases/latest" | awk -F '"' '{for(i=1;i<=NF;i++){if($i=="tag_name"){print $(i+2)}}}')
-    # fi
-    # if [ -z "$_version" ]; then
-    #     _version=$(curl -m 10 -sL "https://fastly.jsdelivr.net/gh/nezhahq/agent/" | grep "option\.value" | awk -F "'" '{print $2}' | sed 's/nezhahq\/agent@/v/g')
-    # fi
-    # if [ -z "$_version" ]; then
-    #     _version=$(curl -m 10 -sL "https://gcore.jsdelivr.net/gh/nezhahq/agent/" | grep "option\.value" | awk -F "'" '{print $2}' | sed 's/nezhahq\/agent@/v/g')
-    # fi
 
     # if [ -z "$_version" ]; then
     #     err "Fail to obtain Agent version, please check if the network can link https://api.github.com/repos/nezhahq/agent/releases/latest"
@@ -404,7 +395,6 @@ pre_install_agent_bin() {
     #     echo "The current latest version is: ${_version}"
     # fi
 
-    _version=${NZ_MAIN_VERSION}
     _version=${NZ_AGENT_DEFAULT_VERSION}
 
     # Nezha Monitoring Folder
@@ -412,10 +402,8 @@ pre_install_agent_bin() {
 
     echo "Downloading Agent"
     if [ -z "$CN" ]; then
-        #NZ_AGENT_URL="https://${GITHUB_URL}/nezhahq/agent/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
         NZ_AGENT_URL="https://${GITHUB_URL}/railzen/nezha-zero/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
     else
-        #NZ_AGENT_URL="https://${GITHUB_URL}/naibahq/agent/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
         NZ_AGENT_URL="https://${GITHUB_URL}/railzen/nezha-zero/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
     fi
 
@@ -677,9 +665,6 @@ restart_and_update_standalone() {
     # fi
     # if [ -z "$_version" ]; then
     #     _version=$(curl -m 10 -sL "https://gcore.jsdelivr.net/gh/naiba/nezha/" | grep "option\.value" | awk -F "'" '{print $2}' | sed 's/naiba\/nezha@/v/g')
-    # fi
-    # if [ -z "$_version" ]; then
-    #     _version=$(curl -m 10 -sL "https://gitee.com/api/v5/repos/naibahq/nezha/releases/latest" | awk -F '"' '{for(i=1;i<=NF;i++){if($i=="tag_name"){print $(i+2)}}}')
     # fi
 
     _version=${NZ_MAIN_VERSION}
