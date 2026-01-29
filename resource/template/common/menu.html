@@ -5,8 +5,10 @@
             <img src="/static/logo.svg?v20210804" class="logo">
         </a>
         <a class="item" id="menu-toggle-button">
-            <i class="menu-current-icon icon"></i>
-            <span id="menu-current-title">Server</span>
+            <div>
+                <i class="menu-current-icon icon"></i>
+                <span id="menu-current-title">Server</span>
+            </div>
             <i class="dropdown icon"></i>
         </a>
 
@@ -82,16 +84,24 @@
 
 <style>
     @media (max-width: 731px) {
+		/* 保证 nb-menu 固定在视觉视口顶部 */
+		.nb-menu {
+		    top: 0; /* 初始值，JS 会覆盖 */
+		    position: fixed;
+		    left: 0;
+		    right: 0;
+		    z-index: 1200;
+		    background-color: #fff; /* 避免透明 */
+		}
         /* 仅针对 .right.menu 下的 .item 元素移除 ::before */
         .right.menu .item::before {
             content: none !important;  /* 去除伪元素 */
         }
 
         .logo {
-            max-width: 25px; /* logo size adjustment */
+            max-width: 26px; /* logo size adjustment */
         }
 
-        /* 当屏幕宽度小于950px时，隐藏 app-link */
         .item.wide-link {
             display: none !important;
         }
@@ -119,7 +129,8 @@
         #menu-toggle-button {
             width: auto; /* 宽度自适应 */
             flex-grow: 1; /* 占据剩余空间 */
-            display: block;
+            justify-content: space-between; /* 左右两端布局 */
+            padding: 0 0.8em;              /* 左右内边距 */
         }
 
         /* Ensure all menu items are centered and stacked on small screens */
@@ -184,5 +195,29 @@
         document.getElementById('menu-current-title').innerText =
             textNode.textContent.trim();
     })();
+(function() {
+    const menu = document.querySelector('.nb-menu');
+    if (!menu) return;
+
+    function adjustMenuTop() {
+        const offsetTop = window.visualViewport ? window.visualViewport.offsetTop : 0;
+        // 只调整 nb-menu 的 top
+        menu.style.top = offsetTop + 'px';
+        // 强制硬件加速，减少跳动
+        menu.style.transform = 'translateZ(0)';
+    }
+
+    // 页面加载时初始化
+    window.addEventListener('load', adjustMenuTop);
+
+    if (window.visualViewport) {
+        // 地址栏收起/展开 或滑动时调整
+        window.visualViewport.addEventListener('resize', adjustMenuTop);
+        window.visualViewport.addEventListener('scroll', adjustMenuTop);
+    }
+
+    adjustMenuTop();
+})();
+
 </script>
 {{end}}
