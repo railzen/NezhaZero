@@ -22,7 +22,7 @@
 curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh
 ```
 
-## 老版本迁移/Migiate
+## 一键迁移/Migiate
 
 本项目是基于哪吒V0 Final的v0.20.13版本进行修改的，因此兼容v0.20.13版本配置和数据库，可以直接迁移。迁移脚本基于v0.20.13版本测试通过，其他版本理论也可以用。版本迁移前还请做好备份。迁移命令如下：
 
@@ -60,7 +60,7 @@ curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh migrate_t
 
 | Dashboard                                                   | Login Panel                                        |
 | ----------------------------------------------------------- | -------------------------------------------------- |
-| <img src="agent/web/LookGlass_0_20_21.jpg" width="3000px"/> | <img src="agent/web/image_3.png" width="1500px" /> |
+| <img src="agent/web/LookGlass_0_20_21.jpg" width="2800px"/> | <img src="agent/web/image_3.png" width="2200px" /> |
 
 | <div align="center"><b>ServerStatus <a href="https://github.com/unclezs">@unclezs</a></b></div>        | DayNight [@JackieSung](https://github.com/JackieSung4ev)                                           | hotaru                                                                     |
 | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
