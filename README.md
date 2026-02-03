@@ -5,7 +5,7 @@
   <br>
     <a href="https://nezha-v0.mereith.dev/guide/dashboard.html" target="_blank"><img src="https://img.shields.io/badge/Docs-Available-orange?style=for-the-badge&logo=gitbook&logoColor=white" alt="查看文档"></a>
     <a href="https://github.com/railzen/nezha-zero" target="_blank"><img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/railzen/nezha-zero?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard"></a>
-    <a href="https://github.com/railzen/nezha-zero/releases" target="_blank"><img src="https://img.shields.io/badge/Agent-v0.20.21-bridhtgreen?logo=github&style=for-the-badge"></a>
+    <a href="https://github.com/railzen/nezha-zero/releases" target="_blank"><img src="https://img.shields.io/badge/Agent-v0.20.22-bridhtgreen?logo=github&style=for-the-badge"></a>
     <a href="https://github.com/nezhahq/nezha" target="_blank"><img src="https://img.shields.io/badge/NEZHA-NAIBA-blue?logo=github&style=for-the-badge" alt="访问哪吒仓库"></a>
   </br>
   <p><b>Nezha Monitoring: Self-hostable, lightweight, servers and websites monitoring tool.</b></p>
@@ -14,9 +14,23 @@
 
 ## 概要/Abstract
 
-本项目基于哪吒V0版本进行二次修改，主要更新了GEOIP库和管理界面安装Agent的链接，修复了部分失效的CDN引用，增加用户名密码登陆功能和IP复制功能，增加设备自动发现（仅支持Linux），支持国家码手动修正，将ServerStatus主题和管理后台所有的静态文件本地化，同时进行了一些样式优化。
+本项目基于哪吒V0版本进行二次修改，主要更新了：
 
-最新Agent版本以上面标签展示为准，放在Release里面仅便于使用。Agent已经关闭自动升级功能，如无必要不会升级。稳定后面板将尽可能减少更新以稳定版本，但目前还在快速迭代，暂时不建议长期使用。一键安装脚本如下：
+- 最新的GEOIP库和管理界面安装Agent的链接
+
+- 修复了部分失效的CDN引用，管理后台的所有静态文件本地化
+
+- 增加用户名密码登陆功能
+
+- 增加IPV4复制按钮
+
+- 增加设备自动发现
+
+- 支持国家码手动指定
+
+- 有限的移动端优化和一些样式优化。
+
+最新Agent版本以上面标签展示为准。Agent已经关闭自动升级功能，如无必要不会升级。面板也将尽可能减少更新，后续将只进行缺陷修复。一键安装脚本如下：
 
 ```shell
 curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh
