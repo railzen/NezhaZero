@@ -450,12 +450,14 @@ discover_agent() {
         sudo "${NZ_AGENT_PATH}"/nezha-agent service uninstall >/dev/null 2>&1
         sudo "${NZ_AGENT_PATH}"/nezha-agent service install -s "$nz_grpc_host:$nz_grpc_port" --auto-discover "$nz_discover_secret" "$args" >/dev/null 2>&1    
     fi
-    
-    success "Agent configuration modified successfully, please wait for Agent self-restart to take effect"
 
-    if [ $# = 0 ]; then
-        before_show_menu
-    fi
+    if [ $? -eq 0 ]; then
+        success "Agent configuration modified successfully, please wait for Agent self-restart to take effect"
+    else
+        err "Agent discover failed，please retry..."
+    fi  
+
+    exit 0
 }
 
 modify_agent_config() {
