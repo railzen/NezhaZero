@@ -248,7 +248,7 @@ before_show_menu() {
 }
 
 install_base() {
-    (command -v curl >/dev/null 2>&1 && command -v wget >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1 && command -v getenforce >/dev/null 2>&1) ||
+    (command -v curl >/dev/null 2>&1 && command -v wget >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1) ||
         (install_soft curl wget unzip)
 }
 
