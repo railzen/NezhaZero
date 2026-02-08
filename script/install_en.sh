@@ -894,18 +894,20 @@ migrate_to_nezha_zero() {
         DOCKER_COMPOSE_COMMAND="docker compose"
         if sudo $DOCKER_COMPOSE_COMMAND ls | grep -qw "$NZ_DASHBOARD_PATH/docker-compose.yaml" >/dev/null 2>&1; then
             NEZHA_IMAGES=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep -w "nezha-dashboard")
+            echo "CMD:$DOCKER_COMPOSE_COMMAND IMAGE:$NEZHA_IMAGES"
             if [ -n "$NEZHA_IMAGES" ]; then
                 echo "$NEZHA_IMAGES"
-                IS_DOCKER_NAIBA_NEZHA=1
+                local IS_DOCKER_NAIBA_NEZHA=1
             fi
         fi
     elif command -v docker-compose >/dev/null 2>&1; then
         DOCKER_COMPOSE_COMMAND="docker-compose"
         if sudo $DOCKER_COMPOSE_COMMAND -f "$NZ_DASHBOARD_PATH/docker-compose.yaml" config >/dev/null 2>&1; then
             NEZHA_IMAGES=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep -w "nezha-dashboard")
+            echo "CMD:$DOCKER_COMPOSE_COMMAND IMAGE:$NEZHA_IMAGES"
             if [ -n "$NEZHA_IMAGES" ]; then
                 echo "$NEZHA_IMAGES"
-                IS_DOCKER_NAIBA_NEZHA=1
+                local IS_DOCKER_NAIBA_NEZHA=1
             fi
         fi
     fi
