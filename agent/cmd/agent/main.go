@@ -178,6 +178,7 @@ func main() {
 
 		secret, err := CallDiscoverServer(grpcAddr, discoverKey)
 		if err != nil {
+			fmt.Fprintf(os.Stdout, "\033[31m[Error] %v\033[0m\n", err)
 			log.Fatalf("Error: %v", err)
 			os.Exit(1)
 		}
@@ -247,7 +248,7 @@ func CallDiscoverServer(grpcAddr, discoverKey string) (string, error) {
 	// 建立 gRPC 连接
 	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
 	if err != nil {
-		return "", fmt.Errorf("failed to connect: %w", err)
+		return "", fmt.Errorf("Failed to connect: %w", err)
 	}
 	defer conn.Close()
 
