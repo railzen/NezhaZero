@@ -112,6 +112,9 @@ You can change the dashboard language in the settings page (`/setting`) after th
 }
 ```
 
+## Star历史/Star History
+[![Star History Chart](https://api.star-history.com/svg?repos=railzen/nezha-zero&type=date&legend=top-left)](https://www.star-history.com/#railzen/nezha-zero&type=date&legend=top-left)
+
 ## 致谢/Acknowledgements
 
 - [nezhahq/nezha](https://github.com/nezhahq/nezha): Original Nezha Dashboard. 原版哪吒面板
