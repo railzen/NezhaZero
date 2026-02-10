@@ -862,6 +862,32 @@ uninstall_agent() {
     fi
 }
 
+update_agent(){
+    install_base
+    selinux
+    _version=${NZ_AGENT_DEFAULT_VERSION}
+
+    # Nezha Monitoring Folder
+    sudo mkdir -p $NZ_AGENT_PATH
+
+    if [ -z "$CN" ]; then
+        NZ_AGENT_URL="https://${GITHUB_URL}/railzen/nezha-zero/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
+    else
+        NZ_AGENT_URL="https://${GITHUB_URL}/railzen/nezha-zero/releases/download/${_version}/nezha-agent_linux_${os_arch}.zip"
+    fi
+
+    _cmd="wget -t 2 -T 60 -O nezha-agent_linux_${os_arch}.zip $NZ_AGENT_URL >/dev/null 2>&1"
+    if ! eval "$_cmd"; then
+        return 1
+    fi
+
+    sudo unzip -qo nezha-agent_linux_${os_arch}.zip &&
+        sudo mv -f nezha-agent $NZ_AGENT_PATH &&
+        sudo rm -rf nezha-agent_linux_${os_arch}.zip README.md
+        
+    [ -f "${NZ_AGENT_PATH}/nezha-agent" ] && sudo ${NZ_AGENT_PATH}/nezha-agent service restart
+}
+
 restart_agent() {
     echo "> 重启 Agent"
 
@@ -1109,6 +1135,9 @@ if [ $# -gt 0 ]; then
             ;;
         "update_script")
             update_script 0
+            ;;
+        "update_agent")
+            update_agent 0
             ;;
         *) show_usage ;;
     esac
