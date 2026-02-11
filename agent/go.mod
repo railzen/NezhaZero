@@ -1,11 +1,12 @@
 module github.com/railzen/nezha-zero/agent
 
-go 1.20
+go 1.21
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/UserExistsError/conpty v0.1.4
 	github.com/artdarek/go-unzip v1.0.0
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/creack/pty v1.1.23
 	github.com/dean2021/goss v0.0.0-20230129073947-df90431348f1
 	github.com/ebi-yade/altsvc-go v0.1.1

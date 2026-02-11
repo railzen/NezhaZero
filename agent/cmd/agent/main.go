@@ -1,11 +1,13 @@
 package main
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -21,6 +24,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/ebi-yade/altsvc-go"
 	"github.com/nezhahq/service"
 	ping "github.com/prometheus-community/pro-bing"
@@ -62,6 +66,17 @@ type AgentCliParam struct {
 	DisableNat            bool   // 关闭内网穿透
 	DisableSendQuery      bool   // 关闭发送TCP/ICMP/HTTP请求
 	DiscoverServerSecret  string // 自动发现服务器密钥
+}
+
+// GitHub API 结构
+type GitHubAsset struct {
+	Name        string `json:"name"`
+	DownloadURL string `json:"browser_download_url"`
+}
+
+type GitHubRelease struct {
+	TagName string        `json:"tag_name"`
+	Assets  []GitHubAsset `json:"assets"`
 }
 
 var (
@@ -556,8 +571,8 @@ func doTask(task *pb.Task) {
 		handleTcpPingTask(task, &result)
 	case model.TaskTypeCommand:
 		handleCommandTask(task, &result)
-	// case model.TaskTypeUpgrade:
-	// 	handleUpgradeTask(task, &result)
+	case model.TaskTypeUpgrade:
+		handleUpgradeTask(task, &result)
 	case model.TaskTypeTerminalGRPC:
 		handleTerminalTask(task)
 		return
@@ -630,36 +645,360 @@ func reportHost() bool {
 	return true
 }
 
-// // doSelfUpdate 执行更新检查 如果更新成功则会结束进程
-// func doSelfUpdate(useLocalVersion bool) {
-// 	v := semver.MustParse("0.1.0")
-// 	if useLocalVersion {
-// 		v = semver.MustParse(version)
-// 	}
-// 	printf("检查更新: %v", v)
-// 	var latest *selfupdate.Release
-// 	var err error
-// 	if monitor.CachedCountryCode != "cn" && !agentCliParam.UseGiteeToUpgrade {
-// 		latest, err = selfupdate.UpdateSelf(v, "nezhahq/agent")
-// 	} else {
-// 		latest, err = selfupdate.UpdateSelfGitee(v, "naibahq/agent")
-// 	}
-// 	if err != nil {
-// 		printf("更新失败: %v", err)
-// 		return
-// 	}
-// 	if !latest.Version.Equals(v) {
-// 		printf("已经更新至: %v, 正在结束进程", latest.Version)
-// 		os.Exit(1)
-// 	}
-// }
+// doSelfUpdate 执行更新检查 如果更新成功则会结束进程
+func doSelfUpdate(useLocalVersion bool) {
+	v := semver.MustParse("0.1.0")
+	if useLocalVersion {
+		v = semver.MustParse(version)
+	}
 
-// func handleUpgradeTask(*pb.Task, *pb.TaskResult) {
-// 	if agentCliParam.DisableForceUpdate {
-// 		return
-// 	}
-// 	doSelfUpdate(false)
-// }
+	// 1. 获取最新 release 信息
+	release, err := getLatestRelease("railzen", "nezha-zero")
+	if err != nil {
+		fmt.Fprintf(os.Stdout, "Get version failed: %v\n", err)
+		return
+	}
+
+	// 2. 解析版本号
+	latestVersion, err := semver.Parse(strings.TrimPrefix(release.TagName, "v"))
+	if err != nil {
+		fmt.Fprintf(os.Stdout, "Parse version failed: %v\n", err)
+		return
+	}
+
+	// 3. 比较版本
+	if latestVersion.LTE(v) {
+		fmt.Fprintf(os.Stdout, "Has already been latest version: %v\n", v)
+		return
+	}
+
+	// 4. 查找正确的文件
+	expectedName := fmt.Sprintf("nezha-agent_%s_%s.zip", runtime.GOOS, runtime.GOARCH)
+	var assetURL, assetName string
+	for _, asset := range release.Assets {
+		if asset.Name == expectedName {
+			assetURL = asset.DownloadURL
+			assetName = asset.Name
+			break
+		}
+	}
+
+	if assetURL == "" {
+		fmt.Fprintf(os.Stdout, "Err:can not find file %s\n", expectedName)
+		return
+	}
+
+	fmt.Fprintf(os.Stdout, "New Ver:%s, File:%s\n", latestVersion, assetName)
+
+	// 5. 获取当前可执行文件路径
+	exe, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stdout, "GetRead tmp dir failed: %v\n", err)
+		return
+	}
+
+	// 6. 创建临时目录
+	tmpDir, err := os.MkdirTemp("", "nezha-update-*")
+	if err != nil {
+		fmt.Fprintf(os.Stdout, "Make temp dir failed: %v\n", err)
+		return
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// 7. 下载文件
+	zipPath := filepath.Join(tmpDir, assetName)
+	if err := downloadFile(assetURL, zipPath); err != nil {
+		fmt.Fprintf(os.Stdout, "Download failed: %v\n", err)
+		return
+	}
+	//fmt.Fprintf(os.Stdout, "Download Complete!\n")
+
+	// 8. 解压文件
+	if err := unzip(zipPath, tmpDir); err != nil {
+		fmt.Fprintf(os.Stdout, "Unzip failed: %v\n", err)
+		return
+	}
+
+	// 9. 查找解压后的二进制文件
+	var binaryPath string
+	files, err := os.ReadDir(tmpDir)
+	if err != nil {
+		fmt.Fprintf(os.Stdout, "Read tmp dir failed: %v\n", err)
+		return
+	}
+
+	for _, file := range files {
+		if !file.IsDir() {
+			// 查找 nezha-agent 相关的可执行文件
+			if strings.Contains(file.Name(), "nezha-agent") &&
+				!strings.HasSuffix(file.Name(), ".zip") {
+				binaryPath = filepath.Join(tmpDir, file.Name())
+			}
+		}
+	}
+
+	if binaryPath == "" {
+		// 尝试查找任何名为 nezha-agent 的文件
+		for _, file := range files {
+			if !file.IsDir() && (file.Name() == "nezha-agent" ||
+				strings.HasPrefix(file.Name(), "nezha-agent")) {
+				binaryPath = filepath.Join(tmpDir, file.Name())
+				break
+			}
+		}
+	}
+
+	if binaryPath == "" {
+		fmt.Fprintf(os.Stdout, "Can't find unpressed file.\n")
+		return
+	}
+
+	// 备份原文件
+	backupPath := exe + ".bak"
+	if err := os.Rename(exe, backupPath); err != nil {
+		fmt.Fprintf(os.Stdout, "Backup failed: %v\n", err)
+		return
+	}
+
+	// 复制新文件
+	if err := copyFile(binaryPath, exe); err != nil {
+		// 恢复备份
+		os.Rename(backupPath, exe)
+		fmt.Fprintf(os.Stdout, "Copy err: %v\n", err)
+		return
+	}
+
+	// 设置可执行权限
+	if err := os.Chmod(exe, 0755); err != nil {
+		fmt.Fprintf(os.Stdout, "Set chmod failed: %v\n", err)
+	}
+
+	// 删除备份
+	os.Remove(backupPath)
+
+	fmt.Fprintf(os.Stdout, "Upgrade to Ver: %v, Restarting service...\n", latestVersion)
+	restartService()
+}
+
+// 获取最新 release
+func getLatestRelease(owner, repo string) (*GitHubRelease, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 添加 User-Agent 头（GitHub API 要求）
+	req.Header.Set("User-Agent", "Nezha-Agent-Updater")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("GitHub API Status Code: %d", resp.StatusCode)
+	}
+
+	var release GitHubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return nil, err
+	}
+
+	return &release, nil
+}
+
+// 下载文件
+func downloadFile(url, filepath string) error {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", "Nezha-Agent-Updater")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Download fail,status code: %d", resp.StatusCode)
+	}
+
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	return err
+}
+
+// 解压 ZIP 文件
+func unzip(zipPath, destDir string) error {
+	r, err := zip.OpenReader(zipPath)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		fpath := filepath.Join(destDir, f.Name)
+
+		// 检查目录遍历漏洞
+		if !strings.HasPrefix(fpath, filepath.Clean(destDir)+string(os.PathSeparator)) {
+			return fmt.Errorf("Invaild file path: %s", fpath)
+		}
+
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(fpath, os.ModePerm)
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+			return err
+		}
+
+		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		if err != nil {
+			return err
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			outFile.Close()
+			return err
+		}
+
+		_, err = io.Copy(outFile, rc)
+		outFile.Close()
+		rc.Close()
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// 复制文件
+func copyFile(src, dst string) error {
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+
+	_, err = io.Copy(destination, source)
+	return err
+}
+
+// restartService 重启 nezha-agent 服务，跨平台支持
+func restartService() {
+	switch runtime.GOOS {
+	case "windows":
+		// Windows: 使用 sc 或 net 命令
+		cmds := [][]string{
+			{"sc", "stop", "nezha-agent"},
+			{"sc", "start", "nezha-agent"},
+			{"net", "stop", "nezha-agent"},
+			{"net", "start", "nezha-agent"},
+		}
+
+		for _, args := range cmds {
+			cmd := exec.Command(args[0], args[1:]...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Run()
+		}
+
+		// 如果服务方式失败，尝试直接启动进程
+		exe, err := os.Executable()
+		if err == nil {
+			cmd := exec.Command(exe, os.Args[1:]...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Start()
+		}
+
+	case "linux", "freebsd", "netbsd", "openbsd", "dragonfly", "solaris":
+		// Linux/Unix: 尝试多种服务管理器
+		cmds := [][]string{
+			{"systemctl", "restart", "nezha-agent.service"},
+			{"systemctl", "restart", "nezha-agent"},
+			{"service", "nezha-agent", "restart"},
+			{"rc-service", "nezha-agent", "restart"},
+			{"initctl", "restart", "nezha-agent"},
+		}
+
+		for _, args := range cmds {
+			cmd := exec.Command(args[0], args[1:]...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err == nil {
+				fmt.Fprintf(os.Stdout, "Service restarted.\n")
+				os.Exit(0)
+			}
+		}
+
+		// 如果服务管理器失败，尝试直接重启自己
+		exe, err := os.Executable()
+		if err == nil {
+			cmd := exec.Command(exe, os.Args[1:]...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Start()
+		}
+
+	case "darwin":
+		// macOS
+		cmds := [][]string{
+			{"launchctl", "unload", "/Library/LaunchDaemons/nezha-agent.plist"},
+			{"launchctl", "load", "/Library/LaunchDaemons/nezha-agent.plist"},
+			{"brew", "services", "restart", "nezha-agent"},
+		}
+
+		for _, args := range cmds {
+			cmd := exec.Command(args[0], args[1:]...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Run()
+		}
+
+	default:
+		// 未知系统，直接启动新进程
+		exe, err := os.Executable()
+		if err == nil {
+			cmd := exec.Command(exe, os.Args[1:]...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Start()
+		}
+	}
+
+	fmt.Fprintf(os.Stdout, "Service restart failed.\n")
+	os.Exit(0)
+}
+
+func handleUpgradeTask(*pb.Task, *pb.TaskResult) {
+	if agentCliParam.DisableForceUpdate {
+		return
+	}
+	doSelfUpdate(false)
+}
 
 func handleTcpPingTask(task *pb.Task, result *pb.TaskResult) {
 	if agentCliParam.DisableSendQuery {
