@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nezhahq/service"
+	"github.com/railzen/nezha-zero/agent/pkg/service"
 	"github.com/spf13/cobra"
 )
 

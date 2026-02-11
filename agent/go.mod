@@ -10,19 +10,19 @@ require (
 	github.com/creack/pty v1.1.23
 	github.com/dean2021/goss v0.0.0-20230129073947-df90431348f1
 	github.com/ebi-yade/altsvc-go v0.1.1
-	github.com/ebitengine/purego v0.8.1
+	github.com/ebitengine/purego v0.8.2
 	github.com/iamacarpet/go-winpty v1.0.4
 	github.com/jaypipes/ghw v0.12.0
 	github.com/json-iterator/go v1.1.12
-	github.com/nezhahq/service v0.0.0-20240704142721-eba37f9cc709
 	github.com/prometheus-community/pro-bing v0.4.1
 	github.com/quic-go/quic-go v0.40.1
+	github.com/railzen/nezha-zero/agent/pkg/service v0.0.0-20260211173207-cf992082d675
 	github.com/refraction-networking/utls v1.6.3
 	github.com/shirou/gopsutil/v4 v4.24.10
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	golang.org/x/net v0.29.0
-	golang.org/x/sys v0.26.0
+	golang.org/x/sys v0.28.0
 	google.golang.org/grpc v1.64.1
 	google.golang.org/protobuf v1.34.2
 	sigs.k8s.io/yaml v1.4.0
@@ -52,6 +52,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/nezhahq/xsyslog v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

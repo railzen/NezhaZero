@@ -26,9 +26,9 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/ebi-yade/altsvc-go"
-	"github.com/nezhahq/service"
 	ping "github.com/prometheus-community/pro-bing"
 	"github.com/quic-go/quic-go/http3"
+	"github.com/railzen/nezha-zero/agent/pkg/service"
 	utls "github.com/refraction-networking/utls"
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/spf13/cobra"
