@@ -43,7 +43,12 @@
             <tbody>
                 {{range $server := .Servers}}
                 <tr class="server-row">
-                    <td><input type="checkbox" class="nezha-servers" value="{{$server.ID}}" /></td>
+                    <td>
+                        <input type="checkbox" class="nezha-servers" value="{{$server.ID}}" style="margin-right: 10px;"/>
+                        {{if $server.Host.IP}}
+                        <i class="fi fi-{{if $server.Host.CountryCode}}{{$server.Host.CountryCode}}{{else}}un{{end}}"></i>
+                        {{end}}
+                    </td>
                     <td>{{$server.ID}}({{$server.DisplayIndex}})</td>
                     <td>{{$server.Name}}</td>
                     <td>{{$server.Tag}}</td>
