@@ -16,7 +16,7 @@ import (
 	"os/exec"
 	"syscall"
 
-	"github.com/nezhahq/xsyslog"
+	"github.com/railzen/nezha-zero/agent/pkg/xsyslog"
 )
 
 const defaultLogDirectory = "/var/log"

@@ -1,6 +1,6 @@
 module github.com/railzen/nezha-zero/agent
 
-go 1.21
+go 1.20
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
@@ -16,7 +16,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/prometheus-community/pro-bing v0.4.1
 	github.com/quic-go/quic-go v0.40.1
-	github.com/railzen/nezha-zero/agent/pkg/service v0.0.0-20260211173207-cf992082d675
+	github.com/railzen/nezha-zero/agent/pkg/service v0.0.0-20260212021917-05681318be5d
 	github.com/refraction-networking/utls v1.6.3
 	github.com/shirou/gopsutil/v4 v4.24.10
 	github.com/spf13/cobra v1.8.1
@@ -52,13 +52,13 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/nezhahq/xsyslog v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-20 v0.4.1 // indirect
+	github.com/railzen/nezha-zero/agent/pkg/xsyslog v0.0.0-20260212021917-05681318be5d // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect

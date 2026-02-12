@@ -1,6 +1,2 @@
-github.com/ebitengine/purego v0.8.2 h1:jPPGWs2sZ1UgOSgD2bClL0MJIqu58nOmIcBuXr62z1I=
-github.com/ebitengine/purego v0.8.2/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
-github.com/nezhahq/xsyslog v1.0.1 h1:xWpx8ZHtoRuUYo7Cs0EZ/kvA6O/y3Ebj5VPdX49xlZw=
-github.com/nezhahq/xsyslog v1.0.1/go.mod h1:wRJ6n/bly5i71/ZWhnoA39v0rFvr3Q1PSlIlExbX3fk=
 golang.org/x/sys v0.28.0 h1:Fksou7UEQUWlKvIdsqzJmUmCX3cZuD2+P3XyyzwMhlA=
 golang.org/x/sys v0.28.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
