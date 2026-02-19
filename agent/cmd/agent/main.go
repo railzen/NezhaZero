@@ -191,8 +191,27 @@ func main() {
 		grpcAddr := agentCliParam.Server
 		discoverKey := agentCliParam.DiscoverServerSecret
 
-		secret, err := CallDiscoverServer(grpcAddr, discoverKey)
-		if err != nil {
+		var secret string
+		var err error
+
+		// 最多重试 3 次
+		for i := 1; i <= 3; i++ {
+			secret, err = CallDiscoverServer(grpcAddr, discoverKey)
+			if err == nil && secret != "" {
+				break
+			}
+
+			fmt.Fprintf(os.Stdout, "\033[31m[Error] Discover failed (%d/3): %v\033[0m\n", i, err)
+			time.Sleep(2 * time.Second)
+
+			if i >= 3 {
+				fmt.Fprintf(os.Stdout, "\033[31m[Error] %v\033[0m\n", err)
+				log.Fatalf("Error: %v", err)
+				os.Exit(1)
+			}
+		}
+
+		if secret == "" {
 			fmt.Fprintf(os.Stdout, "\033[31m[Error] %v\033[0m\n", err)
 			log.Fatalf("Error: %v", err)
 			os.Exit(1)
