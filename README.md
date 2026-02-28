@@ -14,23 +14,21 @@
 
 ## 概要/Abstract
 
-本项目基于哪吒V0版本进行二次修改，主要更新了：
+#### 本项目基于哪吒V0版本进行二次修改，主要更新了：
 
 - 最新的GEOIP库和管理界面安装Agent的链接
-
 - 修复了部分失效的CDN引用，管理后台的所有静态文件本地化
-
 - 增加用户名密码登陆功能
-
 - 增加IPV4复制按钮
-
-- 增加设备自动发现
-
 - 支持国家码手动指定
+- 有限的移动端优化和一些样式优化
+- 增加设备自动发现功能，类似哪吒V1和Komari的自动发现功能，仅支持Linux
 
-- 有限的移动端优化和一些样式优化。
+#### Todo：
 
-最新Agent版本以上面标签展示为准。Agent已经关闭自动升级功能，如无必要不会升级。面板也将尽可能减少更新，后续将只进行缺陷修复。一键安装脚本如下：
+- 修复Nezha-Dash主题前台密码不校验问题
+
+Agent使用本项目中的Agent二进制，默认非手动操作不会升级。面板将尽可能稳定版本，后续将只进行缺陷修复。一键安装脚本如下：
 
 ```shell
 curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh
@@ -43,10 +41,6 @@ curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh
 ```shell
 curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh migrate_to_nezha_zero
 ```
-
-## 自动发现/Auto Discover
-
-作者比较眼馋哪吒V1和Komari的自动发现功能，所以自己也搓了一个，仅支持Linux。服务器列表首页会有一键安装链接可供复制，根据机器码进行自动发现和添加。
 
 ## 兼容API/Compatible API
 
