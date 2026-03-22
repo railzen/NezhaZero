@@ -23,7 +23,7 @@ require (
 	github.com/miekg/dns v1.1.62
 	github.com/nezhahq/libdns-tencentcloud v0.0.0-20241029120103-889957240fff
 	github.com/nicksnyder/go-i18n/v2 v2.4.0
-	github.com/ory/graceful v0.1.3
+	github.com/ory/graceful v0.2.0
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/robfig/cron/v3 v3.0.1

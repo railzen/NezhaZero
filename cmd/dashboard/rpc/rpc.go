@@ -2,9 +2,15 @@ package rpc
 
 import (
 	"fmt"
+	"log"
 	"net"
+	"net/http"
+	"time"
 
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/railzen/nezha-zero/model"
 	pb "github.com/railzen/nezha-zero/proto"
@@ -21,6 +27,52 @@ func ServeRPC(port uint) {
 		panic(err)
 	}
 	server.Serve(listen)
+}
+
+func ServeMultiplex(port uint, httpHandler http.Handler) error {
+	// 创建gRPC服务器
+	grpcServer := grpc.NewServer(
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             10 * time.Second,
+			PermitWithoutStream: true,
+		}),
+	)
+	rpcService.NezhaHandlerSingleton = rpcService.NewNezhaHandler()
+	pb.RegisterNezhaServiceServer(grpcServer, rpcService.NezhaHandlerSingleton)
+
+	// 创建多路复用处理器
+	multiplexHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 检查是否为gRPC请求
+		if r.ProtoMajor == 2 &&
+			r.Header.Get("Content-Type") == "application/grpc" {
+			grpcServer.ServeHTTP(w, r)
+			return
+		}
+
+		// 检查HTTP/2升级请求
+		if r.Header.Get("Upgrade") == "h2c" {
+			// 这个连接需要升级到HTTP/2，但h2c会自动处理
+			grpcServer.ServeHTTP(w, r)
+			return
+		}
+
+		httpHandler.ServeHTTP(w, r)
+	})
+
+	// 创建HTTP服务器
+	httpServer := &http.Server{
+		Handler:           h2c.NewHandler(multiplexHandler, &http2.Server{}),
+		Addr:              fmt.Sprintf(":%d", port),
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	listen, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return fmt.Errorf("failed to listen on port %d: %w", port, err)
+	}
+
+	log.Printf("HTTP + gRPC multiplex server listening on :%d", port)
+	return httpServer.Serve(listen)
 }
 
 func DispatchTask(serviceSentinelDispatchBus <-chan model.Monitor) {

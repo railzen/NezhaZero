@@ -65,7 +65,6 @@ func main() {
 
 	// 开启 gRPC
 	singleton.CleanMonitorHistory()
-	go rpc.ServeRPC(singleton.Conf.GRPCPort)
 	serviceSentinelDispatchBus := make(chan model.Monitor) // 用于传递服务监控任务信息的channel
 	go rpc.DispatchTask(serviceSentinelDispatchBus)
 	go rpc.DispatchKeepalive()
@@ -75,16 +74,29 @@ func main() {
 	// 开启HTTP服务
 	srv := controller.ServeWeb(singleton.Conf.HTTPPort)
 	go dispatchReportInfoTask()
-	if err := graceful.Graceful(func() error {
-		return srv.ListenAndServe()
-	}, func(c context.Context) error {
-		log.Println("NEZHA>> Graceful::START")
-		singleton.RecordTransferHourlyUsage()
-		log.Println("NEZHA>> Graceful::END")
-		srv.Shutdown(c)
-		return nil
-	}); err != nil {
-		log.Printf("NEZHA>> ERROR: %v", err)
+
+	// 端口复用,如果HTTPPort 和 GRPCPort 配置为相同的端口
+	if singleton.Conf.HTTPPort == singleton.Conf.GRPCPort {
+		log.Printf("NEZHA>> MUX HTTP and gRPC %d", singleton.Conf.GRPCPort)
+		if err := rpc.ServeMultiplex(singleton.Conf.GRPCPort, srv.Handler); err != nil {
+			log.Printf("NEZHA>> ERROR: %v", err)
+		}
+	} else {
+		// 如果端口不同，则分别启动
+		log.Printf("NEZHA>> HTTP=%d, gRPC=%d", singleton.Conf.HTTPPort, singleton.Conf.GRPCPort)
+		go rpc.ServeRPC(singleton.Conf.GRPCPort)
+
+		if err := graceful.Graceful(func() error {
+			return srv.ListenAndServe()
+		}, func(c context.Context) error {
+			log.Println("NEZHA>> Graceful::START")
+			singleton.RecordTransferHourlyUsage()
+			log.Println("NEZHA>> Graceful::END")
+			srv.Shutdown(c)
+			return nil
+		}); err != nil {
+			log.Printf("NEZHA>> ERROR: %v", err)
+		}
 	}
 }
 

@@ -779,4 +779,4 @@ other = "自動發現"
 other = "自動發現密鑰"
 
 [DisableCompatAPI]
-other = "禁止相容API"
+other = "禁止V1相容API"

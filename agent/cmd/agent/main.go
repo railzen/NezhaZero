@@ -35,6 +35,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/resolver"
 
 	"github.com/railzen/nezha-zero/agent/model"
@@ -467,7 +468,14 @@ func run() {
 		} else {
 			securityOption = grpc.WithTransportCredentials(insecure.NewCredentials())
 		}
-		conn, err = grpc.NewClient(agentCliParam.Server, securityOption, grpc.WithPerRPCCredentials(&auth))
+
+		// Keepalive 配置
+		keepaliveParams := keepalive.ClientParameters{
+			Time:    30 * time.Second,
+			Timeout: 60 * time.Second,
+		}
+		conn, err = grpc.NewClient(agentCliParam.Server, securityOption, grpc.WithPerRPCCredentials(&auth), grpc.WithKeepaliveParams(keepaliveParams))
+
 		if err != nil {
 			printf("与面板建立连接失败: %v", err)
 			retry()
@@ -652,9 +660,22 @@ func reportHost() bool {
 	defer hostStatus.Store(false)
 
 	if client != nil && initialized {
-		client.ReportSystemInfo(context.Background(), monitor.GetHost().PB())
+		// 带超时的 ReportSystemInfo
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		_, err := client.ReportSystemInfo(ctx, monitor.GetHost().PB())
+		if err != nil {
+			printf("ReportSystemInfo error: %v", err)
+			return false
+		}
+
+		// GeoIP 查询也加超时
 		if monitor.GeoQueryIP != "" {
-			geoip, err := client.LookupGeoIP(context.Background(), &pb.GeoIP{Ip: monitor.GeoQueryIP})
+			ctx2, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel2()
+
+			geoip, err := client.LookupGeoIP(ctx2, &pb.GeoIP{Ip: monitor.GeoQueryIP})
 			if err == nil {
 				monitor.CachedCountryCode = geoip.GetCountryCode()
 			}
