@@ -19,7 +19,16 @@ import (
 )
 
 func ServeRPC(port uint) {
-	server := grpc.NewServer()
+	server := grpc.NewServer(
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			Time:    3 * time.Minute,
+			Timeout: 30 * time.Second,
+		}),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             10 * time.Second,
+			PermitWithoutStream: true,
+		}),
+	)
 	rpcService.NezhaHandlerSingleton = rpcService.NewNezhaHandler()
 	pb.RegisterNezhaServiceServer(server, rpcService.NezhaHandlerSingleton)
 	listen, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
@@ -32,6 +41,10 @@ func ServeRPC(port uint) {
 func ServeMultiplex(port uint, httpHandler http.Handler) error {
 	// 创建gRPC服务器
 	grpcServer := grpc.NewServer(
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			Time:    3 * time.Minute,
+			Timeout: 30 * time.Second,
+		}),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             10 * time.Second,
 			PermitWithoutStream: true,

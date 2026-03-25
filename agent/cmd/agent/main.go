@@ -471,8 +471,9 @@ func run() {
 
 		// Keepalive 配置
 		keepaliveParams := keepalive.ClientParameters{
-			Time:    30 * time.Second,
-			Timeout: 60 * time.Second,
+			Time:                30 * time.Second,
+			Timeout:             30 * time.Second,
+			PermitWithoutStream: true,
 		}
 		conn, err = grpc.NewClient(agentCliParam.Server, securityOption, grpc.WithPerRPCCredentials(&auth), grpc.WithKeepaliveParams(keepaliveParams))
 
