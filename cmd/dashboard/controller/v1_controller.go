@@ -3,6 +3,7 @@ package controller
 
 import (
 	"cmp"
+	"net/http"
 	"slices"
 	"strconv"
 	"strings"
@@ -85,7 +86,7 @@ func appendBinarySearch[S ~[]E, E model.V1CommonInterface](x, y S, target uint64
 
 func (cv *compatV1) listNotification(c *gin.Context) {
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	singleton.NotificationsLock.RLock()
@@ -133,7 +134,7 @@ func (cv *compatV1) listNotification(c *gin.Context) {
 
 func (cv *compatV1) listAlertRule(c *gin.Context) {
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	singleton.AlertsLock.RLock()
@@ -202,7 +203,7 @@ func (cv *compatV1) listAlertRule(c *gin.Context) {
 
 func (cv *compatV1) listConfig(c *gin.Context) {
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
@@ -233,7 +234,7 @@ func (cv *compatV1) listConfig(c *gin.Context) {
 
 func (cv *compatV1) getProfile(c *gin.Context) {
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	auth, ok := c.Get(model.CtxKeyAuthorizedUser)

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -11,7 +12,7 @@ import (
 
 func (cv *compatV1) listService(c *gin.Context) {
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	services := singleton.ServiceSentinelShared.Monitors()
@@ -72,7 +73,7 @@ func (cv *compatV1) listService(c *gin.Context) {
 
 func (cv *compatV1) showService(c *gin.Context) {
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	res, err, _ := cv.requestGroup.Do("list-service", func() (interface{}, error) {
@@ -135,7 +136,7 @@ func (cv *compatV1) showService(c *gin.Context) {
 func (cv *compatV1) listServerWithServices(c *gin.Context) {
 	var serverIdsWithService []uint64
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	if err := singleton.DB.Model(&model.MonitorHistory{}).

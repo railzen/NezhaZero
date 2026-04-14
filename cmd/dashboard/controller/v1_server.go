@@ -16,7 +16,7 @@ import (
 
 func (cv *compatV1) listServer(c *gin.Context) {
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	singleton.SortedServerLock.RLock()
@@ -112,7 +112,7 @@ func (cv *compatV1) listServer(c *gin.Context) {
 
 func (cv *compatV1) serverStream(c *gin.Context) {
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -227,7 +227,7 @@ func (cv *compatV1) getServerStat(c *gin.Context, withPublicNote bool) ([]byte, 
 func (cv *compatV1) listServerGroup(c *gin.Context) {
 	var sgRes []model.V1ServerGroupResponseItem
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	tagID := uint64(1)
@@ -271,7 +271,7 @@ func (cv *compatV1) listServerGroup(c *gin.Context) {
 
 func (cv *compatV1) listServiceHistory(c *gin.Context) {
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	idStr := c.Param("id")

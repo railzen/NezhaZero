@@ -30,7 +30,7 @@ func (cv *compatV1) login(c *gin.Context) {
 	var lr model.V1LoginRequest
 	now := time.Now().UTC()
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	if err := c.ShouldBindJSON(&lr); err != nil {
@@ -197,7 +197,7 @@ func calcNextAllowedTime(now time.Time, failCount int) time.Time {
 
 func (cv *compatV1) refreshToken(c *gin.Context) {
 	if singleton.Conf.CompatAPIDisable {
-		c.JSON(500, V1Response[any]{Error: "Internal server error"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	if u, ok := c.Get(model.CtxKeyAuthorizedUser); ok {
