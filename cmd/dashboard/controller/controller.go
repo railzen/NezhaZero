@@ -168,8 +168,22 @@ func loadThirdPartyTemplates(tmpl *template.Template) *template.Template {
 	return ret
 }
 
+func isSafeDirName(name string) bool {
+	for _, c := range name {
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_') {
+			return false
+		}
+	}
+	return len(name) > 0 && len(name) <= 64
+}
+
 func loadTemplates(tmpl *template.Template, themeDir string) *template.Template {
 	// load templates
+	if !isSafeDirName(themeDir) {
+		log.Printf("NEZHA>> Suspicious themeDir rejected: %s", themeDir)
+		return tmpl
+	}
+
 	templatePath := filepath.Join("resource", "template", themeDir, "*.html")
 	t, err := tmpl.ParseGlob(templatePath)
 	if err != nil {
