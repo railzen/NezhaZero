@@ -581,7 +581,11 @@ modify_dashboard_config() {
     sed -i "s/nz_site_title/${nz_site_title}/" /tmp/nezha-config.yaml
     if [ "$IS_DOCKER_NEZHA" = 1 ]; then
         sed -i "s/nz_site_port/${nz_site_port}/" /tmp/nezha-docker-compose.yaml
-        sed -i "s/nz_grpc_port/${nz_grpc_port}/g" /tmp/nezha-docker-compose.yaml
+        if [ "$nz_grpc_port" = "$nz_site_port" ]; then
+        	sed -i "s/nz_grpc_port/5555/g" /tmp/nezha-docker-compose.yaml
+        else
+			sed -i "s/nz_grpc_port/${nz_grpc_port}/g" /tmp/nezha-docker-compose.yaml
+		fi
         sed -i "s|nz_image_url|${Docker_IMG}|" /tmp/nezha-docker-compose.yaml
     elif [ "$IS_DOCKER_NEZHA" = 0 ]; then
         sed -i "s/80/${nz_site_port}/" /tmp/nezha-config.yaml

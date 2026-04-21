@@ -6,7 +6,7 @@
         <div class="ui grid">
             <div class="right floated right aligned twelve wide column">
                 <button class="ui right labeled nezha-primary-btn icon button"
-                            data-clipboard-text="{{if $.Conf.GRPCHost}}{{if eq $.Conf.Language "zh-CN"}}curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/naza.sh{{else}}curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/install_en.sh{{end}} -o naza.sh && chmod +x naza.sh && ./naza.sh discover_agent {{$.Conf.GRPCHost}} {{$.Conf.GRPCPort}} {{$.Conf.GRPCDiscoverKey}}{{else}}{{tr "NoDomainAlert"}}{{end}}">
+                            data-clipboard-text="{{if $.Conf.GRPCHost}}{{if eq $.Conf.Language "zh-CN"}}curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/naza.sh{{else}}curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/install_en.sh{{end}} -o naza.sh && chmod +x naza.sh && ./naza.sh discover_agent {{$.Conf.GRPCHost}} {{if $.Conf.ProxyGRPCPort}}{{$.Conf.ProxyGRPCPort}}{{else}}{{$.Conf.GRPCPort}}{{end}} {{$.Conf.GRPCDiscoverKey}} {{if $.Conf.TLS}} --tls{{end}}{{else}}{{tr "NoDomainAlert"}}{{end}}">
                             <i class="copy icon"></i> {{tr "AutoDiscover"}}
                 </button>
                 <button class="ui right labeled nezha-primary-btn icon button" onclick="batchEditServerGroup()"><i
