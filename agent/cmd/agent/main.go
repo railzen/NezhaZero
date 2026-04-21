@@ -280,8 +280,23 @@ func restartSelfForDiscover(newClientSecret string) error {
 
 // CallDiscoverServer 调用 DiscoverServer 并返回 newServerSecret
 func CallDiscoverServer(grpcAddr, discoverKey string) (string, error) {
+	// 根据配置选择安全选项
+	var securityOption grpc.DialOption
+
+	if agentCliParam.TLS {
+		tlsConfig := &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
+		if agentCliParam.InsecureTLS {
+			tlsConfig.InsecureSkipVerify = true
+		}
+		securityOption = grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig))
+	} else {
+		securityOption = grpc.WithTransportCredentials(insecure.NewCredentials())
+	}
+
 	// 建立 gRPC 连接
-	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
+	conn, err := grpc.Dial(grpcAddr, securityOption)
 	if err != nil {
 		return "", fmt.Errorf("Failed to connect: %w", err)
 	}
