@@ -4,6 +4,8 @@ import (
 	"embed"
 	"io/fs"
 	"os"
+	"path"
+	"strings"
 )
 
 // HybridFS combines embed.FS and os.DirFS.
@@ -24,10 +26,22 @@ func NewHybridFS(embed embed.FS, subDir string, localDir string) (*HybridFS, err
 }
 
 func (hfs *HybridFS) Open(name string) (fs.File, error) {
-	// Ensure embed files are not replaced
-	if file, err := hfs.embedFS.Open(name); err == nil {
+	cleanName := path.Clean(name)
+
+	// Reject absolute paths and directory-traversal attempts.
+	if strings.HasPrefix(cleanName, "..") || strings.HasPrefix(cleanName, "/") {
+		return nil, fs.ErrNotExist
+	}
+
+	// Reject Windows-style backslash paths as they are not valid fs paths here.
+	if strings.Contains(cleanName, "\\") {
+		return nil, fs.ErrNotExist
+	}
+
+	// Ensure embed files are not replaced.
+	if file, err := hfs.embedFS.Open(cleanName); err == nil {
 		return file, nil
 	}
 
-	return hfs.dir.Open(name)
+	return hfs.dir.Open(cleanName)
 }
