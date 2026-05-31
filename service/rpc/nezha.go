@@ -291,7 +291,7 @@ func (s *NezhaHandler) IOStream(stream pb.NezhaService_IOStreamServer) error {
 	if err != nil {
 		return err
 	}
-	if id == nil || len(id.Data) < 4 || (id.Data[0] != 0xff && id.Data[1] != 0x05 && id.Data[2] != 0xff && id.Data[3] == 0x05) {
+	if id == nil || len(id.Data) < 4 || id.Data[0] != 0xff || id.Data[1] != 0x05 || id.Data[2] != 0xff || id.Data[3] != 0x05 {
 		return fmt.Errorf("invalid stream id")
 	}
 
