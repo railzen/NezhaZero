@@ -58,7 +58,7 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 				var u model.User
 				singleton.ApiLock.RLock()
 				if _, ok := singleton.ApiTokenList[token]; ok {
-					err := singleton.DB.First(&u).Where("id = ?", singleton.ApiTokenList[token].UserID).Error
+					err := singleton.DB.Where("id = ?", singleton.ApiTokenList[token].UserID).First(&u).Error
 					isLogin = err == nil
 				}
 				singleton.ApiLock.RUnlock()

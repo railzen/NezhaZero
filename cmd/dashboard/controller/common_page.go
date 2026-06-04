@@ -324,6 +324,16 @@ func (cp *commonPage) ws(c *gin.Context) {
 
 func (cp *commonPage) terminal(c *gin.Context) {
 	streamId := c.Param("id")
+	if _, authorized := c.Get(model.CtxKeyAuthorizedUser); !authorized {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusForbidden,
+			Title: "无权访问",
+			Msg:   "用户未登录",
+			Link:  "/login",
+			Btn:   "去登录",
+		}, true)
+		return
+	}
 	if _, err := rpc.NezhaHandlerSingleton.GetStream(streamId); err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
@@ -454,6 +464,16 @@ func (cp *commonPage) createTerminal(c *gin.Context) {
 
 func (cp *commonPage) fm(c *gin.Context) {
 	streamId := c.Param("id")
+	if _, authorized := c.Get(model.CtxKeyAuthorizedUser); !authorized {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusForbidden,
+			Title: "无权访问",
+			Msg:   "用户未登录",
+			Link:  "/login",
+			Btn:   "去登录",
+		}, true)
+		return
+	}
 	if _, err := rpc.NezhaHandlerSingleton.GetStream(streamId); err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
