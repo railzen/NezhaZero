@@ -1,14 +1,15 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -34,17 +35,26 @@ import (
 	GitlabOauth2 "golang.org/x/oauth2/gitlab"
 )
 
-var XorKey byte
+var (
+	rsaPrivateKey    *rsa.PrivateKey
+	RSAPublicKeyNHex string
+	RSAPublicKeyE    int
+)
+
+const (
+	loginChallengeCachePrefix = "login_challenge_"
+	loginChallengeTTL         = 5 * time.Minute
+)
 
 func init() {
-	b := []byte{0}
-	_, _ = rand.Read(b)
-	XorKey = b[0]
-
-	// 可选：避免 0x00
-	if XorKey == 0 || XorKey == 0xFF {
-		XorKey = 0x93
+	// 每次启动随机生成 RSA-2048 密钥对，私钥仅驻留内存
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		panic(fmt.Sprintf("RSA key generation failed: %v", err))
 	}
+	rsaPrivateKey = key
+	RSAPublicKeyNHex = hex.EncodeToString(key.PublicKey.N.Bytes())
+	RSAPublicKeyE = key.PublicKey.E
 }
 
 type oauth2controller struct {
@@ -60,10 +70,8 @@ func (oa *oauth2controller) serve() {
 
 func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	type LoginForm struct {
-		Username  string `form:"username" binding:"required,max=64"`
-		Password  string `form:"password" binding:"required,min=6"`
-		Timestamp int64  `form:"timestamp" binding:"required"`
-		Nonce     string `form:"nonce" binding:"required,min=10,max=64"`
+		Username string `form:"username" binding:"required,max=64"`
+		Password string `form:"password" binding:"required,min=6"`
 	}
 
 	var req LoginForm
@@ -85,21 +93,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	// 获取客户端 IP 地址
 	clientIP := getRealIP(c)
 
-	// 1. 验证时间戳（防止重放攻击）
-	currentTime := time.Now().UnixMilli()
-	delta := math.Abs(float64(currentTime - req.Timestamp))
-	if delta > 300000 { // 300秒有效期
-		ruleAllowed = false
-	}
-
-	// 2. 验证一次性随机数（防止重放攻击）
-	nonceKey := "login_nonce_" + req.Nonce
-	if _, found := singleton.Cache.Get(nonceKey); found {
-		showLoginRuleFailed(c)
-		return
-	}
-
-	// 3. 限制连续失败次数
+	// 1. 限制连续失败次数
 	u := sha1.Sum([]byte(strings.ToLower(req.Username)))
 	failKey := "passwd_fail_" + hex.EncodeToString(u[:])
 	failCount, _ := singleton.Cache.Get(failKey)
@@ -107,7 +101,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		ruleAllowed = false
 	}
 
-	// 4. IP 地址限制
+	// 2. IP 地址限制
 	ipFailKey := "ip_fail_" + clientIP
 	ipFailCount, _ := singleton.Cache.Get(ipFailKey)
 	if ipFailCountInt, ok := ipFailCount.(int); ok && ipFailCountInt >= 5 {
@@ -130,14 +124,40 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		}
 	}
 
-	decodedPassword, err := base64.StdEncoding.DecodeString(req.Password)
-	if err != nil {
+	// RSA 解密：前端提交 challengeID + challenge + password 的加密载荷
+	ciphertext, decodeErr := base64.StdEncoding.DecodeString(req.Password)
+	if decodeErr != nil {
 		allowed = false
 	}
 
-	// XOR解密
-	for i := range decodedPassword {
-		decodedPassword[i] ^= XorKey
+	var plaintext []byte
+	var passwordBytes []byte
+	var challengeID string
+	if decodeErr == nil && len(ciphertext) > 0 {
+		var decryptErr error
+		plaintext, decryptErr = rsa.DecryptPKCS1v15(rand.Reader, rsaPrivateKey, ciphertext)
+		if decryptErr != nil {
+			allowed = false
+		} else {
+			parts := bytes.SplitN(plaintext, []byte{'\n'}, 3)
+			if len(parts) != 3 || len(parts[2]) < 6 {
+				allowed = false
+			} else {
+				challengeID = string(parts[0])
+				challenge := string(parts[1])
+				passwordBytes = parts[2]
+				cacheValue, found := singleton.Cache.Get(loginChallengeCachePrefix + challengeID)
+				cachedChallenge, ok := cacheValue.(string)
+				if !found || !ok || cachedChallenge != challenge {
+					allowed = false
+				}
+			}
+		}
+	}
+
+	// 确保 bcrypt 比较始终执行（防止时序攻击）
+	if len(passwordBytes) == 0 {
+		passwordBytes = []byte("_nezha_invalid_password_placeholder_")
 	}
 
 	fakeHash := "$2a$10$C6UzMDM.H6dfI/f/IKcEeO6pC0s3z1c7C1jP4y5tZ5yF0p6Yk0YZa"
@@ -147,13 +167,16 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	// 校验密码（bcrypt）
-	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(decodedPassword)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), passwordBytes); err != nil {
 		allowed = false
 	}
 
-	//比较结束立即释放密码
-	for i := range decodedPassword {
-		decodedPassword[i] = 0
+	// 比较结束立即清零内存
+	for i := range plaintext {
+		plaintext[i] = 0
+	}
+	for i := range passwordBytes {
+		passwordBytes[i] = 0
 	}
 
 	if !allowed {
@@ -166,8 +189,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	// 登录成功，清除失败计数
 	singleton.Cache.Delete(failKey)
 	singleton.Cache.Delete(ipFailKey)
-	// 存储随机数，设置5分钟过期
-	singleton.Cache.Set(nonceKey, true, 300)
+	singleton.Cache.Delete(loginChallengeCachePrefix + challengeID)
 
 	// 构造管理员用户
 	user := model.User{

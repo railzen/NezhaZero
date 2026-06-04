@@ -41,9 +41,6 @@
             >
           </div>
         </div>
-        <!-- 添加隐藏字段 -->
-        <input type="hidden" id="timestamp" name="timestamp">
-        <input type="hidden" id="nonce" name="nonce">
         <button type="submit" class="ui fluid large nezha-primary-btn button">{{tr "Login"}}</button>
       </form>
 
@@ -81,23 +78,18 @@
       return;
     }
 
-    // XOR+Base64
-    var key = {{.XORKey}}; // 固定 XOR key，前后端一致
-    var out = '';
-
-    for (var i = 0; i < originalPassword.length; i++) {
-      out += String.fromCharCode(originalPassword.charCodeAt(i) ^ key);
+    // RSA 公钥加密。HTTP 环境不能依赖 WebCrypto 的 crypto.subtle，因此这里使用 JS BigInt 实现。
+    let encryptedB64;
+    try {
+      const loginPayload = "{{.LoginChallengeID}}\n{{.LoginChallenge}}\n" + originalPassword;
+      encryptedB64 = rsaEncryptPKCS1v15(loginPayload, "{{.RSAPublicKeyN}}", {{.RSAPublicKeyE}});
+    } catch (e) {
+      showError('加密失败，请刷新页面重试');
+      submitBtn.disabled = false;
+      return;
     }
 
-    passwordField.value = btoa(out);
-
-    // 生成时间戳（毫秒）和随机数
-    var timestamp = Date.now();
-    var nonce = Math.random().toString(36).substring(2) + Date.now().toString(36);
-
-    // 设置隐藏字段的值
-    document.getElementById('timestamp').value = timestamp;
-    document.getElementById('nonce').value = nonce;
+    passwordField.value = encryptedB64;
     
     // 禁用按钮防止重复提交
     submitBtn.disabled = true;
@@ -173,6 +165,83 @@
       passwordField.value = '';
     }
   });
+
+  function rsaEncryptPKCS1v15(message, nHex, exponent) {
+    const messageBytes = new TextEncoder().encode(message);
+    const keyBytes = Math.ceil(nHex.length / 2);
+    if (messageBytes.length > keyBytes - 11) {
+      throw new Error('message too long');
+    }
+
+    const paddingLength = keyBytes - messageBytes.length - 3;
+    const encodedMessage = new Uint8Array(keyBytes);
+    encodedMessage[0] = 0x00;
+    encodedMessage[1] = 0x02;
+    encodedMessage.set(getNonZeroRandomBytes(paddingLength), 2);
+    encodedMessage[2 + paddingLength] = 0x00;
+    encodedMessage.set(messageBytes, 3 + paddingLength);
+
+    const encrypted = modPow(bytesToBigInt(encodedMessage), BigInt(exponent), BigInt('0x' + nHex));
+    return bytesToBase64(bigIntToFixedBytes(encrypted, keyBytes));
+  }
+
+  function getNonZeroRandomBytes(length) {
+    if (!window.crypto || !window.crypto.getRandomValues) {
+      throw new Error('crypto.getRandomValues unavailable');
+    }
+    const bytes = new Uint8Array(length);
+    window.crypto.getRandomValues(bytes);
+    for (let i = 0; i < bytes.length; i++) {
+      while (bytes[i] === 0) {
+        const one = new Uint8Array(1);
+        window.crypto.getRandomValues(one);
+        bytes[i] = one[0];
+      }
+    }
+    return bytes;
+  }
+
+  function modPow(base, exponent, modulus) {
+    let result = 1n;
+    base %= modulus;
+    while (exponent > 0n) {
+      if (exponent & 1n) {
+        result = (result * base) % modulus;
+      }
+      exponent >>= 1n;
+      base = (base * base) % modulus;
+    }
+    return result;
+  }
+
+  function bytesToBigInt(bytes) {
+    let hex = '';
+    for (let i = 0; i < bytes.length; i++) {
+      hex += bytes[i].toString(16).padStart(2, '0');
+    }
+    return BigInt('0x' + hex);
+  }
+
+  function bigIntToFixedBytes(value, length) {
+    let hex = value.toString(16);
+    if (hex.length % 2) {
+      hex = '0' + hex;
+    }
+    const bytes = new Uint8Array(length);
+    const offset = length - hex.length / 2;
+    for (let i = 0; i < hex.length; i += 2) {
+      bytes[offset + i / 2] = parseInt(hex.slice(i, i + 2), 16);
+    }
+    return bytes;
+  }
+
+  function bytesToBase64(bytes) {
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
 
   // 显示错误提示
   function showError(message) {
