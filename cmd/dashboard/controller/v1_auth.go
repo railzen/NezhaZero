@@ -215,7 +215,7 @@ func (cv *compatV1) refreshToken(c *gin.Context) {
 		user.TokenExpired = time.Now().AddDate(0, 0, 14)
 		singleton.DB.Save(&user)
 
-		c.SetCookie("nz-jwt", user.Token, 60*60*24*365, "/", "", false, false)
+		c.SetCookie("nz-jwt", user.Token, 60*60*24*14, "/", "", false, false)
 		c.JSON(200, V1Response[model.V1LoginResponse]{
 			Success: true,
 			Data: model.V1LoginResponse{
