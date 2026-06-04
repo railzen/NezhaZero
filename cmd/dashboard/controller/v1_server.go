@@ -19,11 +19,18 @@ func (cv *compatV1) listServer(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
+	_, isMember := c.Get(model.CtxKeyAuthorizedUser)
+
 	singleton.SortedServerLock.RLock()
 	defer singleton.SortedServerLock.RUnlock()
 
+	serverList := singleton.SortedServerList
+	if !isMember {
+		serverList = singleton.SortedServerListForGuest
+	}
+
 	var ssl []*model.V1Server
-	for _, s := range singleton.SortedServerList {
+	for _, s := range serverList {
 		ipv4, ipv6, _ := utils.SplitIPAddr(s.Host.IP)
 		ssl = append(ssl, &model.V1Server{
 			V1Common: model.V1Common{
@@ -148,14 +155,12 @@ func (cv *compatV1) serverStream(c *gin.Context) {
 
 func (cv *compatV1) getServerStat(c *gin.Context, withPublicNote bool) ([]byte, error) {
 	_, isMember := c.Get(model.CtxKeyAuthorizedUser)
-	_, isViewPasswordVerfied := c.Get(model.CtxKeyViewPasswordVerified)
-	authorized := isMember || isViewPasswordVerfied
-	v, err, _ := cv.requestGroup.Do(fmt.Sprintf("serverStats::%t", authorized), func() (interface{}, error) {
+	v, err, _ := cv.requestGroup.Do(fmt.Sprintf("serverStats::%t", isMember), func() (interface{}, error) {
 		singleton.SortedServerLock.RLock()
 		defer singleton.SortedServerLock.RUnlock()
 
 		var serverList []*model.Server
-		if authorized {
+		if isMember {
 			serverList = singleton.SortedServerList
 		} else {
 			serverList = singleton.SortedServerListForGuest
@@ -230,8 +235,25 @@ func (cv *compatV1) listServerGroup(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
+	_, isMember := c.Get(model.CtxKeyAuthorizedUser)
+
 	tagID := uint64(1)
 	for tag, ids := range singleton.ServerTagToIDList {
+		visibleIDs := ids
+		if !isMember {
+			visibleIDs = make([]uint64, 0, len(ids))
+			singleton.ServerLock.RLock()
+			for _, id := range ids {
+				if s, ok := singleton.ServerList[id]; ok && !s.HideForGuest {
+					visibleIDs = append(visibleIDs, id)
+				}
+			}
+			singleton.ServerLock.RUnlock()
+			if len(visibleIDs) == 0 {
+				tagID++
+				continue
+			}
+		}
 		sgRes = append(sgRes, model.V1ServerGroupResponseItem{
 			Group: model.V1ServerGroup{
 				V1Common: model.V1Common{
@@ -241,7 +263,7 @@ func (cv *compatV1) listServerGroup(c *gin.Context) {
 				},
 				Name: tag,
 			},
-			Servers: ids,
+			Servers: visibleIDs,
 		})
 		tagID++ // 虽然无法保证 tagID 的唯一性，但至少在绝大部分情况下不会出问题
 	}
