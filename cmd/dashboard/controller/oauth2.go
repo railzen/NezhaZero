@@ -180,6 +180,9 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	if !allowed {
+		if challengeID != "" {
+			singleton.Cache.Delete(loginChallengeCachePrefix + challengeID)
+		}
 		incrementFailCount(failKey)
 		incrementFailCount(ipFailKey)
 		showLoginFailed(c)
