@@ -9,7 +9,6 @@ import (
 
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/pkg/mygin"
-	"github.com/railzen/nezha-zero/pkg/utils"
 	"github.com/railzen/nezha-zero/service/singleton"
 )
 
@@ -62,34 +61,10 @@ func (gp *guestPage) login(c *gin.Context) {
 		RegistrationLink = singleton.Conf.Oauth2.OidcRegisterURL
 	}
 
-	loginChallengeID, err := utils.GenerateRandomString(24)
-	if err != nil {
-		mygin.ShowErrorPage(c, mygin.ErrInfo{
-			Code:  http.StatusInternalServerError,
-			Title: "登录失败",
-			Msg:   "无法生成登录挑战",
-		}, true)
-		return
-	}
-	loginChallenge, err := utils.GenerateRandomString(32)
-	if err != nil {
-		mygin.ShowErrorPage(c, mygin.ErrInfo{
-			Code:  http.StatusInternalServerError,
-			Title: "登录失败",
-			Msg:   "无法生成登录挑战",
-		}, true)
-		return
-	}
-	singleton.Cache.Set(loginChallengeCachePrefix+loginChallengeID, loginChallenge, loginChallengeTTL)
-
 	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/login", mygin.CommonEnvironment(c, gin.H{
 		"Title":            singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Login"}),
 		"LoginType":        LoginType,
 		"RegistrationLink": RegistrationLink,
-		"RSAPublicKeyN":    RSAPublicKeyNHex,
-		"RSAPublicKeyE":    RSAPublicKeyE,
-		"LoginChallengeID": loginChallengeID,
-		"LoginChallenge":   loginChallenge,
 		"PasswordEnabled":  singleton.Conf.Site.AdminPassword != "", // 密码登录是否可用
 	}))
 }

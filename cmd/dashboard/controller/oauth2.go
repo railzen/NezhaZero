@@ -66,6 +66,28 @@ func (oa *oauth2controller) serve() {
 	oa.r.GET("/oauth2/login", oa.login)
 	oa.r.GET("/oauth2/callback", oa.callback)
 	oa.r.POST("/auth", oa.passwordLogin)
+	oa.r.GET("/authinfo", oa.newChallenge)
+}
+
+// newChallenge 为前端提供一个新的一次性登录挑战（供登录失败后无刷新重试使用）
+func (oa *oauth2controller) newChallenge(c *gin.Context) {
+	loginChallengeID, err := utils.GenerateRandomString(24)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate challenge"})
+		return
+	}
+	loginChallenge, err := utils.GenerateRandomString(32)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate challenge"})
+		return
+	}
+	singleton.Cache.Set(loginChallengeCachePrefix+loginChallengeID, loginChallenge, loginChallengeTTL)
+	c.JSON(http.StatusOK, gin.H{
+		"challengeID":  loginChallengeID,
+		"challenge":    loginChallenge,
+		"publicKeyN":   RSAPublicKeyNHex,
+		"publicKeyE":   RSAPublicKeyE,
+	})
 }
 
 func (oa *oauth2controller) passwordLogin(c *gin.Context) {
