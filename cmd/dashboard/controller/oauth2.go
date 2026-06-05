@@ -43,6 +43,10 @@ var (
 const (
 	loginChallengeCachePrefix = "login_challenge_"
 	loginChallengeTTL         = 5 * time.Minute
+	authinfoRate1sKey   = "authinfo_r1s"
+	authinfoRate1mKey   = "authinfo_r1m"
+	authinfoRate1sLimit       = 9
+	authinfoRate1mLimit       = 120
 )
 
 func init() {
@@ -70,6 +74,11 @@ func (oa *oauth2controller) serve() {
 
 // newChallenge 为前端提供一个新的一次性登录挑战（供登录失败后无刷新重试使用）
 func (oa *oauth2controller) newChallenge(c *gin.Context) {
+	if !allowAuthinfoRequest() {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "too many requests"})
+		return
+	}
+
 	loginChallengeID, err := utils.GenerateRandomString(24)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate challenge"})
@@ -90,6 +99,11 @@ func (oa *oauth2controller) newChallenge(c *gin.Context) {
 }
 
 func (oa *oauth2controller) passwordLogin(c *gin.Context) {
+	if !allowAuthinfoRequest() {
+		showLoginRuleFailed(c)
+		return
+	}
+
 	type LoginForm struct {
 		Username string `form:"username" binding:"required,max=64"`
 		Password string `form:"password" binding:"required,min=6"`
@@ -257,6 +271,33 @@ func showLoginRuleFailed(c *gin.Context) {
 	mygin.ShowErrorPage(c, mygin.ErrInfo{
 		Code: 400, Title: "登陆失败", Msg: "非法请求，请稍后再试",
 	}, true)
+}
+
+// allowAuthinfoRequest 全站限制 /authinfo 申请频率：1 秒内最多 3 次，1 分钟内最多 60 次。
+func allowAuthinfoRequest() bool {
+	if count, ok := singleton.Cache.Get(authinfoRate1sKey); ok {
+		if c, ok := count.(int); ok && c >= authinfoRate1sLimit {
+			return false
+		}
+	}
+	if count, ok := singleton.Cache.Get(authinfoRate1mKey); ok {
+		if c, ok := count.(int); ok && c >= authinfoRate1mLimit {
+			return false
+		}
+	}
+
+	incrementAuthinfoRate(authinfoRate1sKey, time.Second)
+	incrementAuthinfoRate(authinfoRate1mKey, time.Minute)
+	return true
+}
+
+func incrementAuthinfoRate(key string, window time.Duration) {
+	count, _ := singleton.Cache.Get(key)
+	if c, ok := count.(int); ok {
+		singleton.Cache.Set(key, c+1, window)
+		return
+	}
+	singleton.Cache.Set(key, 1, window)
 }
 
 // 增加失败计数并设置 10 分钟过期

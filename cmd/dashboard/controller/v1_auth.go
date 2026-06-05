@@ -162,6 +162,7 @@ func (cv *compatV1) login(c *gin.Context) {
 	u.TokenExpired = now.AddDate(0, 0, 7)
 	singleton.DB.Save(&u)
 
+	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("nz-jwt", u.Token, 60*60*24*7, "/", "", c.Request.TLS != nil, true)
 
 	c.Set(model.CtxKeyAuthorizedUser, &u)
@@ -215,7 +216,8 @@ func (cv *compatV1) refreshToken(c *gin.Context) {
 		user.TokenExpired = time.Now().AddDate(0, 0, 14)
 		singleton.DB.Save(&user)
 
-		c.SetCookie("nz-jwt", user.Token, 60*60*24*14, "/", "", false, false)
+		c.SetSameSite(http.SameSiteLaxMode)
+		c.SetCookie("nz-jwt", user.Token, 60*60*24*14, "/", "", c.Request.TLS != nil, true)
 		c.JSON(200, V1Response[model.V1LoginResponse]{
 			Success: true,
 			Data: model.V1LoginResponse{
