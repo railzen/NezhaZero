@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/railzen/nezha-zero/model"
@@ -76,6 +77,8 @@ func (cv *compatV1) showService(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
+	_, isMember := c.Get(model.CtxKeyAuthorizedUser)
+
 	res, err, _ := cv.requestGroup.Do("list-service", func() (interface{}, error) {
 		singleton.AlertsLock.RLock()
 		defer singleton.AlertsLock.RUnlock()
@@ -123,9 +126,45 @@ func (cv *compatV1) showService(c *gin.Context) {
 		return
 	}
 
+	cycleTransferStats := res.([]interface{})[1].(map[uint64]model.V1CycleTransferStats)
+	if !isMember {
+		// 过滤掉 HideForGuest 服务器在流量统计中的名称和数据
+		filtered := make(map[uint64]model.V1CycleTransferStats, len(cycleTransferStats))
+		singleton.ServerLock.RLock()
+		for k, v := range cycleTransferStats {
+			serverName := make(map[uint64]string, len(v.ServerName))
+			transfer := make(map[uint64]uint64, len(v.Transfer))
+			nextUpdate := make(map[uint64]time.Time, len(v.NextUpdate))
+			for serverID, name := range v.ServerName {
+				if s, ok := singleton.ServerList[serverID]; ok && s.HideForGuest {
+					continue
+				}
+				serverName[serverID] = name
+				if t, ok2 := v.Transfer[serverID]; ok2 {
+					transfer[serverID] = t
+				}
+				if nu, ok2 := v.NextUpdate[serverID]; ok2 {
+					nextUpdate[serverID] = nu
+				}
+			}
+			filtered[k] = model.V1CycleTransferStats{
+				Name:       v.Name,
+				From:       v.From,
+				To:         v.To,
+				Max:        v.Max,
+				Min:        v.Min,
+				ServerName: serverName,
+				Transfer:   transfer,
+				NextUpdate: nextUpdate,
+			}
+		}
+		singleton.ServerLock.RUnlock()
+		cycleTransferStats = filtered
+	}
+
 	response := model.V1ServiceResponse{
 		Services:           res.([]interface{})[0].(map[uint64]model.V1ServiceResponseItem),
-		CycleTransferStats: res.([]interface{})[1].(map[uint64]model.V1CycleTransferStats),
+		CycleTransferStats: cycleTransferStats,
 	}
 	c.JSON(200, V1Response[model.V1ServiceResponse]{
 		Success: true,
