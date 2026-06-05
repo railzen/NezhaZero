@@ -182,9 +182,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 				challengeID = string(parts[0])
 				challenge := string(parts[1])
 				passwordBytes = parts[2]
-				cacheValue, found := singleton.Cache.Get(loginChallengeCachePrefix + challengeID)
-				cachedChallenge, ok := cacheValue.(string)
-				if !found || !ok || cachedChallenge != challenge {
+				if !consumeLoginChallenge(challengeID, challenge) {
 					allowed = false
 				}
 			}
@@ -216,9 +214,6 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	if !allowed {
-		if challengeID != "" {
-			singleton.Cache.Delete(loginChallengeCachePrefix + challengeID)
-		}
 		incrementFailCount(failKey)
 		incrementFailCount(ipFailKey)
 		showLoginFailed(c)
@@ -228,7 +223,6 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	// 登录成功，清除失败计数
 	singleton.Cache.Delete(failKey)
 	singleton.Cache.Delete(ipFailKey)
-	singleton.Cache.Delete(loginChallengeCachePrefix + challengeID)
 
 	// 构造管理员用户
 	user := model.User{
@@ -272,6 +266,21 @@ func showLoginRuleFailed(c *gin.Context) {
 	mygin.ShowErrorPage(c, mygin.ErrInfo{
 		Code: 400, Title: "登陆失败", Msg: "非法请求，请稍后再试",
 	}, true)
+}
+
+// consumeLoginChallenge 校验并一次性消费登录 challenge，防止并发重放。
+func consumeLoginChallenge(challengeID, challenge string) bool {
+	key := loginChallengeCachePrefix + challengeID
+	cacheValue, found := singleton.Cache.Get(key)
+	if !found {
+		return false
+	}
+	cachedChallenge, ok := cacheValue.(string)
+	if !ok || cachedChallenge != challenge {
+		return false
+	}
+	singleton.Cache.Delete(key)
+	return true
 }
 
 // allowAuthinfoRequest 全站限制 /authinfo 申请频率：1 秒内最多 3 次，1 分钟内最多 60 次。
