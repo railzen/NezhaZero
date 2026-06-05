@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -159,7 +160,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		}
 	}
 
-	// RSA 解密：前端提交 challengeID + challenge + password 的加密载荷
+	// RSA-OAEP(SHA-256) 解密：前端提交 challengeID + challenge + password 的加密载荷
 	ciphertext, decodeErr := base64.StdEncoding.DecodeString(req.Password)
 	if decodeErr != nil {
 		allowed = false
@@ -170,7 +171,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	var challengeID string
 	if decodeErr == nil && len(ciphertext) > 0 {
 		var decryptErr error
-		plaintext, decryptErr = rsa.DecryptPKCS1v15(rand.Reader, rsaPrivateKey, ciphertext)
+		plaintext, decryptErr = rsa.DecryptOAEP(sha256.New(), rand.Reader, rsaPrivateKey, ciphertext, nil)
 		if decryptErr != nil {
 			allowed = false
 		} else {
