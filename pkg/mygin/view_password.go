@@ -2,6 +2,9 @@ package mygin
 
 import (
 	"net/http"
+	"net/url"
+	"path"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
@@ -48,4 +51,29 @@ func ValidateViewPassword(opt ValidateViewPasswordOption) gin.HandlerFunc {
 		}
 		c.Abort()
 	}
+}
+
+// SafeRedirectPath 从 Referer 解析同站相对路径用于跳转，失败则返回 "/"。
+func SafeRedirectPath(c *gin.Context) string {
+	const fallback = "/"
+
+	ref := c.Request.Referer()
+	if ref == "" {
+		return fallback
+	}
+
+	u, err := url.Parse(ref)
+	if err != nil || u.Host != c.Request.Host {
+		return fallback
+	}
+
+	redirectPath := path.Clean(u.EscapedPath())
+	if redirectPath == "" || !strings.HasPrefix(redirectPath, "/") || strings.HasPrefix(redirectPath, "//") || strings.Contains(redirectPath, `\`) {
+		return fallback
+	}
+
+	if u.RawQuery != "" {
+		return redirectPath + "?" + u.RawQuery
+	}
+	return redirectPath
 }
