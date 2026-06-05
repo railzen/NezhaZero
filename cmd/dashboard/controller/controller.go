@@ -35,6 +35,21 @@ func ServeWeb(port uint) *http.Server {
 		gin.SetMode(gin.DebugMode)
 		pprof.Register(r)
 	}
+
+	// 将全部私有/回环网段设为可信代理
+	if err := r.SetTrustedProxies([]string{
+		"127.0.0.0/8",    // IPv4 loopback
+		"10.0.0.0/8",     // RFC1918
+		"172.16.0.0/12",  // RFC1918（含 Docker 默认桥接）
+		"192.168.0.0/16", // RFC1918
+		"169.254.0.0/16", // IPv4 link-local
+		"::1/128",        // IPv6 loopback
+		"fc00::/7",       // IPv6 ULA
+		"fe80::/10",      // IPv6 link-local
+	}); err != nil {
+		log.Printf("NEZHA>> SetTrustedProxies error: %v", err)
+	}
+
 	r.Use(natGateway)
 	tmpl := template.New("").Funcs(funcMap)
 	var err error

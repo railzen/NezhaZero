@@ -10,7 +10,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -113,7 +112,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	// 获取客户端 IP 地址
-	clientIP := getRealIP(c)
+	clientIP := c.ClientIP()
 
 	// 1. 限制连续失败次数
 	u := sha1.Sum([]byte(strings.ToLower(req.Username)))
@@ -244,40 +243,6 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	c.HTML(200, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/redirect", mygin.CommonEnvironment(c, gin.H{
 		"URL": "/",
 	}))
-}
-
-// 使用更可靠的IP获取方式
-func getRealIP(c *gin.Context) string {
-	// 尝试多个头部
-	headers := []string{"X-Real-IP", "CF-Connecting-IP", "True-Client-IP"}
-	for _, header := range headers {
-		if ip := c.GetHeader(header); ip != "" {
-			ip = strings.TrimSpace(ip)
-			// 处理逗号分隔
-			parts := strings.Split(ip, ",")
-			if len(parts) > 0 {
-				candidate := strings.TrimSpace(parts[0])
-				if net.ParseIP(candidate) != nil {
-					return candidate
-				}
-			}
-		}
-	}
-
-	// 处理X-Forwarded-For（需要小心）
-	if xff := c.GetHeader("X-Forwarded-For"); xff != "" {
-		ips := strings.Split(xff, ",")
-		// 客户端IP通常在第一个
-		if len(ips) > 0 {
-			candidate := strings.TrimSpace(ips[0])
-			if net.ParseIP(candidate) != nil {
-				return candidate
-			}
-		}
-	}
-
-	// 最后使用gin的ClientIP
-	return c.ClientIP()
 }
 
 // 显示统一登录失败页面
