@@ -1,2 +1,6 @@
+github.com/ebitengine/purego v0.8.1 h1:sdRKd6plj7KYW33EH5As6YKfe8m9zbN9JMrOjNVF/BE=
+github.com/ebitengine/purego v0.8.1/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
+github.com/railzen/nezha-zero/agent/pkg/xsyslog v0.0.0-20260606112642-db0f9e07d261 h1:zwSIHUbL80j7U8fJlWAOD7wVApEfGoUuyk28kWD/H3k=
+github.com/railzen/nezha-zero/agent/pkg/xsyslog v0.0.0-20260606112642-db0f9e07d261/go.mod h1:WmoRlxxNCYsLJye5+PU8H5Xr1llHlPlyUYB2zDnEbBo=
 golang.org/x/sys v0.28.0 h1:Fksou7UEQUWlKvIdsqzJmUmCX3cZuD2+P3XyyzwMhlA=
 golang.org/x/sys v0.28.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=

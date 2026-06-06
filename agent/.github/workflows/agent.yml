@@ -52,18 +52,18 @@ jobs:
       GOARCH: ${{ matrix.goarch }}
       GOMIPS: ${{ matrix.gomips }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: "1.20.14"
+          go-version: "1.26.x"
 
       - name: Build Test
         if: github.event_name != 'push' || !contains(github.ref, 'refs/tags/')
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser
           version: '~> v2'
@@ -71,7 +71,7 @@ jobs:
 
       - name: Build
         if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser
           version: '~> v2'
@@ -81,7 +81,7 @@ jobs:
         run: zip -jr dist/nezha-agent_${GOOS}_${GOARCH}.zip dist/*/*
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nezha-agent_${{ env.GOOS }}_${{ env.GOARCH }}
           path: |
@@ -94,7 +94,7 @@ jobs:
     name: Release
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: ./assets
 
