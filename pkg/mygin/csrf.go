@@ -29,6 +29,9 @@ func SetCSRFCookie(c *gin.Context) {
 var csrfSkipPaths = map[string]bool{
 	"/auth":          true, // 密码登录
 	"/api/v1/login":  true, // V1 API 登录
+	"/api/logout":    true, // 注销
+	"/view-password": true, // 访问密码验证
+	"/terminal":      true, // 终端连接
 }
 
 // CSRFMiddleware CSRF 防护中间件（Double-Submit Cookie 模式）
