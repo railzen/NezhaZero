@@ -129,7 +129,9 @@ func (v *apiV1) monitorHistoriesById(c *gin.Context) {
 		c.AbortWithStatusJSON(400, gin.H{"code": 400, "message": "id参数错误"})
 		return
 	}
+	singleton.ServerLock.RLock()
 	server, ok := singleton.ServerList[id]
+	singleton.ServerLock.RUnlock()
 	if !ok {
 		c.AbortWithStatusJSON(404, gin.H{
 			"code":    404,
@@ -143,7 +145,7 @@ func (v *apiV1) monitorHistoriesById(c *gin.Context) {
 	authorized := isMember || isViewPasswordVerfied
 
 	if server.HideForGuest && !authorized {
-		c.AbortWithStatusJSON(403, gin.H{"code": 403, "message": "需要认证"})
+		c.AbortWithStatusJSON(404, gin.H{"code": 404, "message": "id不存在"})
 		return
 	}
 

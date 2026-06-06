@@ -97,6 +97,10 @@ func (p *commonPage) issueViewPassword(c *gin.Context) {
 }
 
 func (p *commonPage) service(c *gin.Context) {
+	_, isMember := c.Get(model.CtxKeyAuthorizedUser)
+	_, isViewPasswordVerfied := c.Get(model.CtxKeyViewPasswordVerified)
+	authorized := isMember || isViewPasswordVerfied
+
 	res, _, _ := p.requestGroup.Do("servicePage", func() (interface{}, error) {
 		singleton.AlertsLock.RLock()
 		defer singleton.AlertsLock.RUnlock()
@@ -114,10 +118,44 @@ func (p *commonPage) service(c *gin.Context) {
 			stats, statsStore,
 		}, nil
 	})
+	cycleTransferStats := res.([]interface{})[1].(map[uint64]model.CycleTransferStats)
+	if !authorized {
+		filtered := make(map[uint64]model.CycleTransferStats, len(cycleTransferStats))
+		singleton.ServerLock.RLock()
+		for k, v := range cycleTransferStats {
+			serverName := make(map[uint64]string, len(v.ServerName))
+			transfer := make(map[uint64]uint64, len(v.Transfer))
+			nextUpdate := make(map[uint64]time.Time, len(v.NextUpdate))
+			for serverID, name := range v.ServerName {
+				if s, ok := singleton.ServerList[serverID]; ok && s.HideForGuest {
+					continue
+				}
+				serverName[serverID] = name
+				if t, ok2 := v.Transfer[serverID]; ok2 {
+					transfer[serverID] = t
+				}
+				if nu, ok2 := v.NextUpdate[serverID]; ok2 {
+					nextUpdate[serverID] = nu
+				}
+			}
+			filtered[k] = model.CycleTransferStats{
+				Name:       v.Name,
+				From:       v.From,
+				To:         v.To,
+				Max:        v.Max,
+				Min:        v.Min,
+				ServerName: serverName,
+				Transfer:   transfer,
+				NextUpdate: nextUpdate,
+			}
+		}
+		singleton.ServerLock.RUnlock()
+		cycleTransferStats = filtered
+	}
 	c.HTML(http.StatusOK, mygin.GetPreferredTheme(c, "/service"), mygin.CommonEnvironment(c, gin.H{
 		"Title":              singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ServicesStatus"}),
 		"Services":           res.([]interface{})[0],
-		"CycleTransferStats": res.([]interface{})[1],
+		"CycleTransferStats": cycleTransferStats,
 	}))
 }
 
@@ -129,9 +167,23 @@ func (cp *commonPage) network(c *gin.Context) {
 		monitorInfos         = []byte("{}")
 		id                   uint64
 	)
-	if len(singleton.SortedServerList) > 0 {
-		id = singleton.SortedServerList[0].ID
+	_, isMember := c.Get(model.CtxKeyAuthorizedUser)
+	_, isViewPasswordVerfied := c.Get(model.CtxKeyViewPasswordVerified)
+	authorized := isMember || isViewPasswordVerfied
+
+	pickDefaultServerID := func() uint64 {
+		singleton.SortedServerLock.RLock()
+		defer singleton.SortedServerLock.RUnlock()
+		if authorized && len(singleton.SortedServerList) > 0 {
+			return singleton.SortedServerList[0].ID
+		}
+		if len(singleton.SortedServerListForGuest) > 0 {
+			return singleton.SortedServerListForGuest[0].ID
+		}
+		return 0
 	}
+
+	id = pickDefaultServerID()
 	if err := singleton.DB.Model(&model.MonitorHistory{}).Select("monitor_id, server_id").
 		Where("monitor_id != 0 and server_id != 0").Limit(1).First(&monitorHistory).Error; err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
@@ -142,12 +194,11 @@ func (cp *commonPage) network(c *gin.Context) {
 			Btn:   "返回重试",
 		}, true)
 		return
-	} else {
-		if monitorHistory == nil || monitorHistory.ServerID == 0 {
-			if len(singleton.SortedServerList) > 0 {
-				id = singleton.SortedServerList[0].ID
-			}
-		} else {
+	} else if monitorHistory != nil && monitorHistory.ServerID != 0 {
+		singleton.ServerLock.RLock()
+		server := singleton.ServerList[monitorHistory.ServerID]
+		singleton.ServerLock.RUnlock()
+		if server != nil && (!server.HideForGuest || authorized) {
 			id = monitorHistory.ServerID
 		}
 	}
@@ -166,7 +217,9 @@ func (cp *commonPage) network(c *gin.Context) {
 			}, true)
 			return
 		}
-		_, ok := singleton.ServerList[id]
+		singleton.ServerLock.RLock()
+		server, ok := singleton.ServerList[id]
+		singleton.ServerLock.RUnlock()
 		if !ok {
 			mygin.ShowErrorPage(c, mygin.ErrInfo{
 				Code:  http.StatusForbidden,
@@ -177,11 +230,36 @@ func (cp *commonPage) network(c *gin.Context) {
 			}, true)
 			return
 		}
+		if server.HideForGuest && !authorized {
+			mygin.ShowErrorPage(c, mygin.ErrInfo{
+				Code:  http.StatusNotFound,
+				Title: "请求失败",
+				Msg:   "请求参数有误：server id not found",
+				Link:  "/",
+				Btn:   "返回重试",
+			}, true)
+			return
+		}
+	} else {
+		singleton.ServerLock.RLock()
+		server := singleton.ServerList[id]
+		singleton.ServerLock.RUnlock()
+		if server != nil && server.HideForGuest && !authorized {
+			id = pickDefaultServerID()
+		}
+	}
+	if id == 0 {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusForbidden,
+			Title: "请求失败",
+			Msg:   "请求参数有误：no visible server",
+			Link:  "/",
+			Btn:   "返回重试",
+		}, true)
+		return
 	}
 	monitorHistories := singleton.MonitorAPI.GetMonitorHistories(map[string]any{"server_id": id})
 	monitorInfos, _ = utils.Json.Marshal(monitorHistories)
-	_, isMember := c.Get(model.CtxKeyAuthorizedUser)
-	_, isViewPasswordVerfied := c.Get(model.CtxKeyViewPasswordVerified)
 
 	if err := singleton.DB.Model(&model.MonitorHistory{}).
 		Select("distinct(server_id)").
@@ -197,23 +275,19 @@ func (cp *commonPage) network(c *gin.Context) {
 		}, true)
 		return
 	}
-	if isMember || isViewPasswordVerfied {
-		for _, server := range singleton.SortedServerList {
-			for _, id := range serverIdsWithMonitor {
-				if server.ID == id {
-					servers = append(servers, server)
-				}
-			}
-		}
-	} else {
-		for _, server := range singleton.SortedServerListForGuest {
-			for _, id := range serverIdsWithMonitor {
-				if server.ID == id {
-					servers = append(servers, server)
-				}
+	singleton.SortedServerLock.RLock()
+	serverList := singleton.SortedServerList
+	if !authorized {
+		serverList = singleton.SortedServerListForGuest
+	}
+	for _, server := range serverList {
+		for _, sid := range serverIdsWithMonitor {
+			if server.ID == sid {
+				servers = append(servers, server)
 			}
 		}
 	}
+	singleton.SortedServerLock.RUnlock()
 	serversBytes, _ := utils.Json.Marshal(Data{
 		Now:     time.Now().Unix() * 1000,
 		Servers: servers,

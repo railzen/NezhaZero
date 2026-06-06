@@ -314,6 +314,7 @@ func (cv *compatV1) listServiceHistory(c *gin.Context) {
 
 	singleton.ServerLock.RLock()
 	server, ok := singleton.ServerList[id]
+	singleton.ServerLock.RUnlock()
 	if !ok {
 		c.JSON(404, V1Response[any]{
 			Success: false,
@@ -327,13 +328,12 @@ func (cv *compatV1) listServiceHistory(c *gin.Context) {
 	authorized := isMember || isViewPasswordVerfied
 
 	if server.HideForGuest && !authorized {
-		c.JSON(403, V1Response[any]{
+		c.JSON(404, V1Response[any]{
 			Success: false,
-			Error:   "unauthorized",
+			Error:   "server not found",
 		})
 		return
 	}
-	singleton.ServerLock.RUnlock()
 
 	query := map[string]any{"server_id": id}
 	monitorHistories := singleton.MonitorAPI.GetMonitorHistories(query)
