@@ -78,6 +78,8 @@ func (cv *compatV1) showService(c *gin.Context) {
 		return
 	}
 	_, isMember := c.Get(model.CtxKeyAuthorizedUser)
+	_, isViewPasswordVerfied := c.Get(model.CtxKeyViewPasswordVerified)
+	authorized := isMember || isViewPasswordVerfied
 
 	res, err, _ := cv.requestGroup.Do("list-service", func() (interface{}, error) {
 		singleton.AlertsLock.RLock()
@@ -127,7 +129,7 @@ func (cv *compatV1) showService(c *gin.Context) {
 	}
 
 	cycleTransferStats := res.([]interface{})[1].(map[uint64]model.V1CycleTransferStats)
-	if !isMember {
+	if !authorized {
 		// 过滤掉 HideForGuest 服务器在流量统计中的名称和数据
 		filtered := make(map[uint64]model.V1CycleTransferStats, len(cycleTransferStats))
 		singleton.ServerLock.RLock()
