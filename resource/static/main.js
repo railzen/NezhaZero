@@ -1,3 +1,21 @@
+// CSRF 保护：从 Cookie 读取 CSRF token
+function getCSRFToken() {
+  var match = document.cookie.match(new RegExp('(^| )nz-csrf=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : '';
+}
+
+// 全局 AJAX 设置：自动为非安全方法附加 CSRF token
+$.ajaxSetup({
+  beforeSend: function(xhr, settings) {
+    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+      var csrfToken = getCSRFToken();
+      if (csrfToken) {
+        xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+      }
+    }
+  }
+});
+
 let LANG = {
   Add: "添加",
   Edit: "修改",

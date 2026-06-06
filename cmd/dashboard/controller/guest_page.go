@@ -25,6 +25,7 @@ func (gp *guestPage) serve() {
 		Btn:       "返回首页",
 		Redirect:  "/",
 	}))
+	gr.Use(mygin.EnsureCSRFCookie())
 
 	gr.GET("/login", gp.login)
 

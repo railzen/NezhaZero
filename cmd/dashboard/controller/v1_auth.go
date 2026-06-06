@@ -164,6 +164,7 @@ func (cv *compatV1) login(c *gin.Context) {
 
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("nz-jwt", u.Token, 60*60*24*7, "/", "", c.Request.TLS != nil, true)
+	mygin.SetCSRFCookie(c)
 
 	c.Set(model.CtxKeyAuthorizedUser, &u)
 	c.Set("isAPI", true)
@@ -218,6 +219,7 @@ func (cv *compatV1) refreshToken(c *gin.Context) {
 
 		c.SetSameSite(http.SameSiteLaxMode)
 		c.SetCookie("nz-jwt", user.Token, 60*60*24*14, "/", "", c.Request.TLS != nil, true)
+		mygin.SetCSRFCookie(c)
 		c.JSON(200, V1Response[model.V1LoginResponse]{
 			Success: true,
 			Data: model.V1LoginResponse{
