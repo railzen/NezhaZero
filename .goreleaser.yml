@@ -5,12 +5,10 @@ before:
 builds:
   - id: linux_arm64
     env:
-      - CGO_ENABLED=1
-      - CC=aarch64-linux-gnu-gcc
+      - CGO_ENABLED=0
     ldflags:
       - -s -w
       - -X github.com/railzen/nezha-zero/service/singleton.Version={{.Version}}
-      - -extldflags "-static -fpic"
     flags:
       - -trimpath
     goos:
@@ -21,12 +19,10 @@ builds:
     binary: dashboard-{{ .Os }}-{{ .Arch }}
   - id: linux_amd64
     env:
-      - CGO_ENABLED=1
-      - CC=x86_64-linux-gnu-gcc
+      - CGO_ENABLED=0
     ldflags:
       - -s -w
       - -X github.com/railzen/nezha-zero/service/singleton.Version={{.Version}}
-      - -extldflags "-static -fpic"
     flags:
       - -trimpath
     goos:
@@ -37,12 +33,10 @@ builds:
     binary: dashboard-{{ .Os }}-{{ .Arch }}
   - id: linux_s390x
     env:
-      - CGO_ENABLED=1
-      - CC=s390x-linux-gnu-gcc
+      - CGO_ENABLED=0
     ldflags:
       - -s -w
       - -X github.com/railzen/nezha-zero/service/singleton.Version={{.Version}}
-      - -extldflags "-static -fpic"
     flags:
       - -trimpath
     goos:
@@ -53,12 +47,10 @@ builds:
     binary: dashboard-{{ .Os }}-{{ .Arch }}
   - id: windows_amd64
     env:
-      - CGO_ENABLED=1
-      - CC=x86_64-w64-mingw32-gcc
+      - CGO_ENABLED=0
     ldflags:
       - -s -w
       - -X github.com/railzen/nezha-zero/service/singleton.Version={{.Version}}
-      - -extldflags "-static -fpic"
     flags:
       - -trimpath
     goos:

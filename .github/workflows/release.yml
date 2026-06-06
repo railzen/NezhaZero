@@ -25,9 +25,8 @@ jobs:
 
     name: Build artifacts
     runs-on: ubuntu-latest
-    container:
-      image: goreleaser/goreleaser-cross:v1.26
     env:
+      CGO_ENABLED: 0
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
       GOARM: ${{ matrix.goarm }}

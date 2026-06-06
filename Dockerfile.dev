@@ -3,8 +3,7 @@ ARG GO_VERSION=1.22
 ARG BUILDARCH=amd64
 
 # Stage 1: Builder Stage
-# FROM golang:${GO_VERSION}-alpine AS builder
-FROM crazymax/xgo:${GO_VERSION} AS builder
+FROM golang:${GO_VERSION}-alpine AS builder
 
 # Set up working directory
 WORKDIR /app
@@ -17,11 +16,11 @@ COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod tidy && go mod download
 
-# Step 3: Build the Go application with CGO enabled and specified ldflags
+# Step 3: Build the Go application (pure Go SQLite, no CGO)
 RUN --mount=type=cache,target=/go/pkg/mod \
-    CGO_ENABLED=1 GOOS=linux go build -a \
-    -ldflags "-s -w --extldflags '-static -fpic'" \
-    -installsuffix cgo -o dashboard cmd/dashboard/main.go
+    CGO_ENABLED=0 GOOS=linux go build -trimpath \
+    -ldflags "-s -w" \
+    -o dashboard cmd/dashboard/main.go
 
 
 # Stage 2: Create the final image

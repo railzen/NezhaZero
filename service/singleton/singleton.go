@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	"github.com/patrickmn/go-cache"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
 	"github.com/railzen/nezha-zero/model"
@@ -55,7 +55,9 @@ func InitConfigFromPath(path string) {
 // InitDBFromPath 从给出的文件路径中加载数据库
 func InitDBFromPath(path string) {
 	var err error
-	DB, err = gorm.Open(sqlite.Open(path), &gorm.Config{
+	// busy_timeout 让写冲突时自动等待重试，WAL 提升读写并发
+	dsn := path + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"
+	DB, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		CreateBatchSize: 200,
 	})
 	if err != nil {
