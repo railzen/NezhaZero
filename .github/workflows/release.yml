@@ -201,10 +201,10 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_PAT }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Set up image name
         run: |
@@ -239,7 +239,7 @@ jobs:
           fi
 
       - name: Build and push dashboard image to GHCR
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -249,7 +249,7 @@ jobs:
 
       - name: Build and push dashboard image to Docker Hub
         if: vars.DO_RELEASE == 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
