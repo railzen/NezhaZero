@@ -57,7 +57,7 @@
 
 <body onresize="onResize()">
     <div id="terminal-container"></div>
-    <iframe id="file-list-iframe" src=""></iframe>
+    <iframe id="file-list-iframe" name="file-list-iframe" src=""></iframe>
     <button id="folder-button">📁</button>
 
     <script src="/static/cdn/xterm@5.5.0/lib/xterm.js"></script>
@@ -136,11 +136,27 @@
 
         folderButton.addEventListener('click', () => {
             if (!fileListVisible) {
-                // 显示文件列表
-                const params = new URLSearchParams({
-                    id: "{{.ServerID}}"
-                }).toString();
-                fileListIframe.src = `/file?${params}`;
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/file';
+                form.target = 'file-list-iframe';
+                const idField = document.createElement('input');
+                idField.type = 'hidden';
+                idField.name = 'id';
+                idField.value = '{{.ServerID}}';
+                form.appendChild(idField);
+                const csrfMatch = document.cookie.match(new RegExp('(^| )nz-csrf=([^;]+)'));
+                const csrfToken = csrfMatch ? decodeURIComponent(csrfMatch[2]) : '';
+                if (csrfToken) {
+                    const csrfField = document.createElement('input');
+                    csrfField.type = 'hidden';
+                    csrfField.name = '_csrf';
+                    csrfField.value = csrfToken;
+                    form.appendChild(csrfField);
+                }
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
                 fileListIframe.style.display = 'block';
                 fileListVisible = true;
             } else {

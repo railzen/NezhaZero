@@ -435,6 +435,14 @@ function post(path, params, method = 'post') {
       form.appendChild(hiddenField);
     }
   }
+  const csrfToken = getCSRFToken();
+  if (csrfToken) {
+    const csrfField = document.createElement('input');
+    csrfField.type = 'hidden';
+    csrfField.name = '_csrf';
+    csrfField.value = csrfToken;
+    form.appendChild(csrfField);
+  }
   document.body.appendChild(form);
   form.submit();
   document.body.removeChild(form);

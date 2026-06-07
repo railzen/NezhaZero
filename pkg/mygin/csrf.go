@@ -77,7 +77,6 @@ var csrfSkipPaths = map[string]bool{
 	"/api/v1/login":  true, // V1 API 登录
 	"/api/logout":    true, // 注销
 	"/view-password": true, // 访问密码验证
-	"/terminal":      true, // 终端连接
 }
 
 // CSRFMiddleware CSRF 防护中间件（Double-Submit Cookie 模式）
