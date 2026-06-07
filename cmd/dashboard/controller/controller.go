@@ -33,6 +33,20 @@ func ServeWeb(port uint) *http.Server {
 	r := gin.Default()
 	if singleton.Conf.Debug {
 		gin.SetMode(gin.DebugMode)
+		pprofAuth := mygin.Authorize(mygin.AuthorizeOption{
+			MemberOnly: true,
+			IsPage:     false,
+			Msg:        "访问 pprof 需要登录",
+		})
+		r.Use(func(c *gin.Context) {
+			if strings.HasPrefix(c.Request.URL.Path, "/debug/pprof") {
+				pprofAuth(c)
+				if c.IsAborted() {
+					return
+				}
+			}
+			c.Next()
+		})
 		pprof.Register(r)
 	}
 
