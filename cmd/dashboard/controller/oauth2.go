@@ -245,8 +245,12 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	user.Token = token
 	user.TokenExpired = time.Now().UTC().AddDate(0, 0, 7)
 
-	// 保存到数据库（可选）
-	singleton.DB.Save(&user)
+	if err := user.SavePasswordSession(singleton.DB); err != nil {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code: 400, Title: "登录失败", Msg: "系统错误",
+		}, true)
+		return
+	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24, "", "", c.Request.TLS != nil, true)

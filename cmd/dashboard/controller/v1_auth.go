@@ -160,7 +160,10 @@ func (cv *compatV1) login(c *gin.Context) {
 
 	u.Token = token
 	u.TokenExpired = now.AddDate(0, 0, 7)
-	singleton.DB.Save(&u)
+	if err := u.SavePasswordSession(singleton.DB); err != nil {
+		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
+		return
+	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("nz-jwt", u.Token, 60*60*24*7, "/", "", c.Request.TLS != nil, true)

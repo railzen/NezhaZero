@@ -6,7 +6,10 @@ import (
 	"code.gitea.io/sdk/gitea"
 	"github.com/google/go-github/v47/github"
 	"github.com/xanzy/go-gitlab"
+	"gorm.io/gorm"
 )
+
+const MaxPasswordSessions = 100
 
 type User struct {
 	Common
@@ -21,6 +24,26 @@ type User struct {
 	Token        string    `json:"-"`                       // 认证 Token
 	TokenExpired time.Time `json:"token_expired,omitempty"` // Token 过期时间
 	SuperAdmin   bool      `json:"super_admin,omitempty"`   // 超级管理员
+}
+
+// SavePasswordSession 密码登录保存 Session；同一 Login 最多保留 MaxPasswordSessions 条，
+// 超出时按 updated_at 最早淘汰。OAuth 登录不走此路径。
+func (u *User) SavePasswordSession(db *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(u).Error; err != nil {
+			return err
+		}
+		var ids []uint64
+		if err := tx.Model(&User{}).Where("login = ?", u.Login).
+			Order("updated_at ASC").Pluck("id", &ids).Error; err != nil {
+			return err
+		}
+		if len(ids) <= MaxPasswordSessions {
+			return nil
+		}
+		excess := len(ids) - MaxPasswordSessions
+		return tx.Unscoped().Where("id IN ?", ids[:excess]).Delete(&User{}).Error
+	})
 }
 
 func NewUserFromGitea(gu *gitea.User) User {
