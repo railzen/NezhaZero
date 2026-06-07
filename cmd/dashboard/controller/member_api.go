@@ -193,12 +193,10 @@ func (ma *memberAPI) delete(c *gin.Context) {
 	switch c.Param("model") {
 	case "server":
 		err := singleton.DB.Transaction(func(tx *gorm.DB) error {
-			err = singleton.DB.Unscoped().Delete(&model.Server{}, "id = ?", id).Error
-			if err != nil {
+			if err := tx.Unscoped().Delete(&model.Server{}, "id = ?", id).Error; err != nil {
 				return err
 			}
-			err = singleton.DB.Unscoped().Delete(&model.MonitorHistory{}, "server_id = ?", id).Error
-			if err != nil {
+			if err := tx.Unscoped().Delete(&model.MonitorHistory{}, "server_id = ?", id).Error; err != nil {
 				return err
 			}
 			return nil
