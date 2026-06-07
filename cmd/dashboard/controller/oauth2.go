@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -41,11 +42,13 @@ var (
 	RSAPublicKeyE    int
 )
 
+var loginChallengeConsumeMu sync.Mutex
+
 const (
 	loginChallengeCachePrefix = "login_challenge_"
 	loginChallengeTTL         = 5 * time.Minute
-	authinfoRate1sKey   = "authinfo_r1s"
-	authinfoRate1mKey   = "authinfo_r1m"
+	authinfoRate1sKey         = "authinfo_r1s"
+	authinfoRate1mKey         = "authinfo_r1m"
 	authinfoRate1sLimit       = 9
 	authinfoRate1mLimit       = 120
 )
@@ -92,10 +95,10 @@ func (oa *oauth2controller) newChallenge(c *gin.Context) {
 	}
 	singleton.Cache.Set(loginChallengeCachePrefix+loginChallengeID, loginChallenge, loginChallengeTTL)
 	c.JSON(http.StatusOK, gin.H{
-		"challengeID":  loginChallengeID,
-		"challenge":    loginChallenge,
-		"publicKeyN":   RSAPublicKeyNHex,
-		"publicKeyE":   RSAPublicKeyE,
+		"challengeID": loginChallengeID,
+		"challenge":   loginChallenge,
+		"publicKeyN":  RSAPublicKeyNHex,
+		"publicKeyE":  RSAPublicKeyE,
 	})
 }
 
@@ -271,6 +274,9 @@ func showLoginRuleFailed(c *gin.Context) {
 
 // consumeLoginChallenge 校验并一次性消费登录 challenge，防止并发重放。
 func consumeLoginChallenge(challengeID, challenge string) bool {
+	loginChallengeConsumeMu.Lock()
+	defer loginChallengeConsumeMu.Unlock()
+
 	key := loginChallengeCachePrefix + challengeID
 	cacheValue, found := singleton.Cache.Get(key)
 	if !found {
