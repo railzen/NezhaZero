@@ -273,6 +273,15 @@ func (s *NezhaHandler) ReportSystemInfo(c context.Context, r *pb.Host) (*pb.Rece
 	if singleton.ServerList[clientID].Host != nil {
 		host.CountryCode = singleton.ServerList[clientID].Host.CountryCode
 	}
+	if host.CountryCode == "" && host.IP != "" {
+		_, _, geoIP := utils.SplitIPAddr(host.IP)
+		if netIP := net.ParseIP(geoIP); netIP != nil {
+			record := &geoip.IPInfo{}
+			if location, err := geoip.Lookup(netIP, record); err == nil {
+				host.CountryCode = location
+			}
+		}
+	}
 
 	publicCountryCode := singleton.ParseCountryCodeFromJson([]byte(singleton.ServerList[clientID].PublicNote))
 	if publicCountryCode != nil {
