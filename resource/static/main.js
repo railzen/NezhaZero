@@ -687,7 +687,7 @@ function manualTrigger(btn, cronId) {
   $(btn).toggleClass("loading");
   $.ajax({
     url: "/api/cron/" + cronId + "/manual",
-    type: "GET",
+    type: "POST",
   })
     .done((resp) => {
       $(btn).toggleClass("loading");
