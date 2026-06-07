@@ -136,6 +136,10 @@ func addDiscoverServer() (string, error) {
 func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServerRequest,
 ) (*pb.DiscoverServerResponse, error) {
 
+	if singleton.Conf.GRPCDiscoverKey == "" {
+		return nil, status.Error(codes.FailedPrecondition, "Discover is disabled")
+	}
+
 	if req.DiscoverKey != singleton.Conf.GRPCDiscoverKey {
 		return nil, status.Error(codes.PermissionDenied, "Invalid Key")
 	}
