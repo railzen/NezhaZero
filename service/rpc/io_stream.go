@@ -66,11 +66,16 @@ func (s *NezhaHandler) CloseStream(streamId string) error {
 }
 
 func (s *NezhaHandler) UserConnected(streamId string, userIo io.ReadWriteCloser) error {
-	stream, err := s.GetStream(streamId)
-	if err != nil {
-		return err
-	}
+	s.ioStreamMutex.Lock()
+	defer s.ioStreamMutex.Unlock()
 
+	stream, ok := s.ioStreams[streamId]
+	if !ok {
+		return errors.New("stream not found")
+	}
+	if stream.userIo != nil {
+		return errors.New("user already connected")
+	}
 	stream.userIo = userIo
 	close(stream.userIoConnectCh)
 
@@ -78,11 +83,16 @@ func (s *NezhaHandler) UserConnected(streamId string, userIo io.ReadWriteCloser)
 }
 
 func (s *NezhaHandler) AgentConnected(streamId string, agentIo io.ReadWriteCloser) error {
-	stream, err := s.GetStream(streamId)
-	if err != nil {
-		return err
-	}
+	s.ioStreamMutex.Lock()
+	defer s.ioStreamMutex.Unlock()
 
+	stream, ok := s.ioStreams[streamId]
+	if !ok {
+		return errors.New("stream not found")
+	}
+	if stream.agentIo != nil {
+		return errors.New("agent already connected")
+	}
 	stream.agentIo = agentIo
 	close(stream.agentIoConnectCh)
 
