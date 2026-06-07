@@ -590,14 +590,14 @@ func receiveTasks(tasks pb.NezhaService_RequestTaskClient) error {
 		if err != nil {
 			return err
 		}
-		go func() {
+		go func(t *pb.Task) {
 			defer func() {
 				if err := recover(); err != nil {
-					println("task panic", task, err)
+					println("task panic", t, err)
 				}
 			}()
-			doTask(task)
-		}()
+			doTask(t)
+		}(task)
 	}
 }
 
