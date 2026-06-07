@@ -656,6 +656,11 @@ restart_and_update_docker() {
 update_docker_compose_image() {
     yaml_file_path="${NZ_DASHBOARD_PATH}/docker-compose.yaml"
 
+    # 镜像使用 :dev 标签时不改 compose，仅 pull 拉取最新 dev
+    if grep -qE ':dev([[:space:]]|$|#)' "$yaml_file_path"; then
+        return 0
+    fi
+
     if grep -q "ghcr.io/railzen/nezha-zero-dashboard" "$yaml_file_path"; then
     	sed -i "s|ghcr.io/railzen/nezha-zero-dashboard[^ ]*|ghcr.io/railzen/nezha-zero-dashboard:latest|" "$yaml_file_path"
     elif grep -q "railzen/nezha-zero-dashboard" "$yaml_file_path"; then
