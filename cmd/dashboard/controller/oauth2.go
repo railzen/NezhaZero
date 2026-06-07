@@ -438,9 +438,14 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 	// 验证登录跳转时的 State
 	stateKey, err := c.Cookie(singleton.Conf.Site.CookieName + "-sk")
 	if err == nil {
-		state, ok := singleton.Cache.Get(fmt.Sprintf("%s%s", model.CacheKeyOauth2State, stateKey))
+		cacheKey := fmt.Sprintf("%s%s", model.CacheKeyOauth2State, stateKey)
+		state, ok := singleton.Cache.Get(cacheKey)
 		if !ok || state.(string) != c.Query("state") {
 			err = errors.New("非法的登录方式")
+		} else {
+			singleton.Cache.Delete(cacheKey)
+			c.SetSameSite(http.SameSiteLaxMode)
+			c.SetCookie(singleton.Conf.Site.CookieName+"-sk", "", -1, "/", "", c.Request.TLS != nil, true)
 		}
 	}
 	oauth2Config := oa.getCommonOauth2Config(c)

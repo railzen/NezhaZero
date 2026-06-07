@@ -101,9 +101,12 @@ func (r *AlertRule) Check(points [][]interface{}) (int, bool) {
 			}
 		} else {
 			// 常规报警
+			num := int(r.Rules[i].Duration)
+			if num <= 0 {
+				continue
+			}
 			total := 0.0
 			fail := 0.0
-			num := int(r.Rules[i].Duration)
 			if num > maxNum {
 				maxNum = num
 			}
