@@ -47,10 +47,10 @@ var loginChallengeConsumeMu sync.Mutex
 const (
 	loginChallengeCachePrefix = "login_challenge_"
 	loginChallengeTTL         = 5 * time.Minute
-	authinfoRate1sKey         = "authinfo_r1s"
-	authinfoRate1mKey         = "authinfo_r1m"
-	authinfoRate1sLimit       = 9
-	authinfoRate1mLimit       = 120
+	authRateLimit1sKey        = "authinfo_r1s"
+	authRateLimit1mKey        = "authinfo_r1m"
+	authRateLimit1sMax        = 9
+	authRateLimit1mMax        = 120
 )
 
 func init() {
@@ -78,7 +78,7 @@ func (oa *oauth2controller) serve() {
 
 // newChallenge 为前端提供一个新的一次性登录挑战（供登录失败后无刷新重试使用）
 func (oa *oauth2controller) newChallenge(c *gin.Context) {
-	if !allowAuthinfoRequest() {
+	if !allowAuthRateLimitedCheck() {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "too many requests"})
 		return
 	}
@@ -103,7 +103,7 @@ func (oa *oauth2controller) newChallenge(c *gin.Context) {
 }
 
 func (oa *oauth2controller) passwordLogin(c *gin.Context) {
-	if !allowAuthinfoRequest() {
+	if !allowAuthRateLimitedCheck() {
 		showLoginRuleFailed(c)
 		return
 	}
@@ -290,25 +290,25 @@ func consumeLoginChallenge(challengeID, challenge string) bool {
 	return true
 }
 
-// allowAuthinfoRequest 全站限制 /authinfo 申请频率：1 秒内最多 3 次，1 分钟内最多 60 次。
-func allowAuthinfoRequest() bool {
-	if count, ok := singleton.Cache.Get(authinfoRate1sKey); ok {
-		if c, ok := count.(int); ok && c >= authinfoRate1sLimit {
+// allowAuthRateLimitedCheck 全站限制认证相关公开接口共用计数：1 秒 9 次、1 分钟 120 次。
+func allowAuthRateLimitedCheck() bool {
+	if count, ok := singleton.Cache.Get(authRateLimit1sKey); ok {
+		if c, ok := count.(int); ok && c >= authRateLimit1sMax {
 			return false
 		}
 	}
-	if count, ok := singleton.Cache.Get(authinfoRate1mKey); ok {
-		if c, ok := count.(int); ok && c >= authinfoRate1mLimit {
+	if count, ok := singleton.Cache.Get(authRateLimit1mKey); ok {
+		if c, ok := count.(int); ok && c >= authRateLimit1mMax {
 			return false
 		}
 	}
 
-	incrementAuthinfoRate(authinfoRate1sKey, time.Second)
-	incrementAuthinfoRate(authinfoRate1mKey, time.Minute)
+	incrementAuthRateLimit(authRateLimit1sKey, time.Second)
+	incrementAuthRateLimit(authRateLimit1mKey, time.Minute)
 	return true
 }
 
-func incrementAuthinfoRate(key string, window time.Duration) {
+func incrementAuthRateLimit(key string, window time.Duration) {
 	count, _ := singleton.Cache.Get(key)
 	if c, ok := count.(int); ok {
 		singleton.Cache.Set(key, c+1, window)

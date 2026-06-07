@@ -71,6 +71,16 @@ func (p *commonPage) v1Dashboard(c *gin.Context) {
 }
 
 func (p *commonPage) issueViewPassword(c *gin.Context) {
+	if !allowAuthRateLimitedCheck() {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusTooManyRequests,
+			Title: singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "AnErrorEccurred"}),
+			Msg:   "非法请求，请稍后再试",
+		}, true)
+		c.Abort()
+		return
+	}
+
 	var vpf viewPasswordForm
 	err := c.ShouldBind(&vpf)
 	var hash []byte
