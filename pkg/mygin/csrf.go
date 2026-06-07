@@ -1,13 +1,17 @@
 package mygin
 
 import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/railzen/nezha-zero/model"
-	"github.com/railzen/nezha-zero/pkg/utils"
 )
 
 const (
@@ -15,10 +19,52 @@ const (
 	CSRFHeaderName = "X-CSRF-Token"
 )
 
+var (
+	csrfSigningKey     []byte
+	csrfSigningKeyOnce sync.Once
+)
+
+func csrfSigningSecret() []byte {
+	csrfSigningKeyOnce.Do(func() {
+		csrfSigningKey = make([]byte, 32)
+		if _, err := rand.Read(csrfSigningKey); err != nil {
+			panic("csrf signing key generation failed: " + err.Error())
+		}
+	})
+	return csrfSigningKey
+}
+
+func issueCSRFToken() string {
+	var b [32]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return ""
+	}
+	nonce := hex.EncodeToString(b[:])
+	return nonce + "." + csrfSign(nonce)
+}
+
+func csrfSign(nonce string) string {
+	mac := hmac.New(sha256.New, csrfSigningSecret())
+	mac.Write([]byte(nonce))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func validateCSRFToken(value string) bool {
+	if value == "" {
+		return false
+	}
+	idx := strings.LastIndex(value, ".")
+	if idx <= 0 || idx == len(value)-1 {
+		return false
+	}
+	nonce, sig := value[:idx], value[idx+1:]
+	return hmac.Equal([]byte(sig), []byte(csrfSign(nonce)))
+}
+
 // SetCSRFCookie 在响应中设置 CSRF cookie（非 HttpOnly，JS 需读取）
 func SetCSRFCookie(c *gin.Context) {
-	token, err := utils.GenerateRandomString(32)
-	if err != nil {
+	token := issueCSRFToken()
+	if token == "" {
 		return
 	}
 	c.SetSameSite(http.SameSiteStrictMode)
@@ -35,7 +81,7 @@ var csrfSkipPaths = map[string]bool{
 }
 
 // CSRFMiddleware CSRF 防护中间件（Double-Submit Cookie 模式）
-// 对基于 Cookie 的 POST/PUT/DELETE/PATCH 请求校验 X-CSRF-Token 头与 CSRF Cookie 是否一致
+// 对基于 Cookie 的 POST/PUT/DELETE/PATCH 请求校验 X-CSRF-Token 头与 CSRF Cookie 是否一致且签名有效
 func CSRFMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 安全方法直接放行
@@ -81,7 +127,7 @@ func CSRFMiddleware() gin.HandlerFunc {
 			headerToken = c.PostForm("_csrf")
 		}
 
-		if headerToken == "" || cookieToken != headerToken {
+		if headerToken == "" || cookieToken != headerToken || !validateCSRFToken(cookieToken) {
 			c.AbortWithStatusJSON(http.StatusForbidden, model.Response{
 				Code:    http.StatusForbidden,
 				Message: "CSRF token mismatch",
@@ -97,8 +143,8 @@ func CSRFMiddleware() gin.HandlerFunc {
 // 如果客户端已有有效 CSRF Cookie 则不刷新，否则设置新的
 func EnsureCSRFCookie() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, err := c.Cookie(CSRFCookieName)
-		if err != nil {
+		cookie, err := c.Cookie(CSRFCookieName)
+		if err != nil || cookie == "" || !validateCSRFToken(cookie) {
 			SetCSRFCookie(c)
 		}
 		c.Next()
