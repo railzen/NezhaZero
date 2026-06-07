@@ -84,9 +84,12 @@ var csrfSkipPaths = map[string]bool{
 // 对基于 Cookie 的 POST/PUT/DELETE/PATCH 请求校验 X-CSRF-Token 头与 CSRF Cookie 是否一致且签名有效
 func CSRFMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 安全方法直接放行
+		// 安全方法直接放行；缺失或过期的 nz-csrf 在此自愈，避免仅 nz-jwt 仍有效时 POST 403
 		switch c.Request.Method {
 		case http.MethodGet, http.MethodHead, http.MethodOptions, http.MethodTrace:
+			if cookie, err := c.Cookie(CSRFCookieName); err != nil || cookie == "" || !validateCSRFToken(cookie) {
+				SetCSRFCookie(c)
+			}
 			c.Next()
 			return
 		}
@@ -135,18 +138,6 @@ func CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		c.Next()
-	}
-}
-
-// EnsureCSRFCookie 确保 CSRF Cookie 存在（用于页面级中间件）
-// 如果客户端已有有效 CSRF Cookie 则不刷新，否则设置新的
-func EnsureCSRFCookie() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		cookie, err := c.Cookie(CSRFCookieName)
-		if err != nil || cookie == "" || !validateCSRFToken(cookie) {
-			SetCSRFCookie(c)
-		}
 		c.Next()
 	}
 }

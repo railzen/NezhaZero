@@ -23,7 +23,6 @@ func (mp *memberPage) serve() {
 		Btn:        singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Login"}),
 		Redirect:   "/login",
 	}))
-	mr.Use(mygin.EnsureCSRFCookie())
 	mr.GET("/server", mp.server)
 	mr.GET("/monitor", mp.monitor)
 	mr.GET("/cron", mp.cron)

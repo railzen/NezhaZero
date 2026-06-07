@@ -34,7 +34,6 @@ func (cp *commonPage) serve() {
 	cr := cp.r.Group("")
 	cr.Use(mygin.Authorize(mygin.AuthorizeOption{}))
 	cr.Use(mygin.PreferredTheme)
-	cr.Use(mygin.EnsureCSRFCookie())
 	cr.POST("/view-password", cp.issueViewPassword)
 	cr.GET("/terminal/:id", cp.terminal)
 	cr.Use(mygin.ValidateViewPassword(mygin.ValidateViewPasswordOption{
