@@ -1091,7 +1091,21 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	if disablePasswordLogin {
 		adminPassword = ""
 	} else {
-		if sf.Password != "" && sf.Password != "********" && len(sf.Password) >= 6 && !strings.HasPrefix(sf.Password, "$2") && len(sf.Password) <= 32 {
+		if sf.Password != "" && sf.Password != "********" {
+			if len(sf.Password) < 6 {
+				c.JSON(http.StatusOK, model.Response{
+					Code:    http.StatusBadRequest,
+					Message: "管理员密码长度不能少于 6 位",
+				})
+				return
+			}
+			if len(sf.Password) > 32 {
+				c.JSON(http.StatusOK, model.Response{
+					Code:    http.StatusBadRequest,
+					Message: "管理员密码长度不能超过 32 位",
+				})
+				return
+			}
 			if err := bcrypt.CompareHashAndPassword([]byte(adminPassword), []byte(sf.Password)); err != nil {
 				hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
 				if err != nil {
