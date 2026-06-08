@@ -157,7 +157,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	// 校验用户名是否在管理员列表
 	allowed := false
 	for _, admin := range strings.Split(singleton.Conf.Oauth2.Admin, ",") {
-		if strings.EqualFold(req.Username, admin) {
+		if strings.EqualFold(req.Username, strings.TrimSpace(admin)) {
 			allowed = true
 			break
 		}
@@ -567,7 +567,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 		isAdmin = true
 	} else {
 		for _, admin := range strings.Split(singleton.Conf.Oauth2.Admin, ",") {
-			if admin != "" && strings.EqualFold(user.Login, admin) {
+			if strings.EqualFold(user.Login, strings.TrimSpace(admin)) {
 				isAdmin = true
 				break
 			}

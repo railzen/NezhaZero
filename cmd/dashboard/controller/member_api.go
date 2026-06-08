@@ -1088,7 +1088,9 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	disableOauthLogin := sf.DisableOauthLogin == "on"
 	disablePasswordLogin := sf.DisablePasswordLogin == "on"
 	adminPassword := singleton.Conf.Site.AdminPassword
-	if !disablePasswordLogin {
+	if disablePasswordLogin {
+		adminPassword = ""
+	} else {
 		if sf.Password != "" && sf.Password != "********" && len(sf.Password) >= 6 && !strings.HasPrefix(sf.Password, "$2") && len(sf.Password) <= 32 {
 			if err := bcrypt.CompareHashAndPassword([]byte(adminPassword), []byte(sf.Password)); err != nil {
 				hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
@@ -1124,6 +1126,13 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		c.JSON(http.StatusOK, model.Response{
 			Code:    http.StatusBadRequest,
 			Message: "禁用 OAuth 登录前必须先启用并配置密码登录",
+		})
+		return
+	}
+	if !disableOauthLogin && !hasPasswordAdminList {
+		c.JSON(http.StatusOK, model.Response{
+			Code:    http.StatusBadRequest,
+			Message: "启用 OAuth 登录时必须配置至少一个管理员用户名",
 		})
 		return
 	}
@@ -1170,7 +1179,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		singleton.Conf.IPChangeNotificationTag = "default"
 	}
 
-	if !disablePasswordLogin && singleton.Conf.Site.AdminPassword != adminPassword {
+	if singleton.Conf.Site.AdminPassword != adminPassword {
 		singleton.Conf.Site.AdminPassword = adminPassword
 		singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
 	}
