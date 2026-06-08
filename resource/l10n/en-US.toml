@@ -325,6 +325,9 @@ other = "Execute Results"
 [SiteTitle]
 other = "Site Title"
 
+[AdministratorSettings]
+other = "Administrator & Login"
+
 [AdministratorList]
 other = "Administrator List"
 
@@ -777,6 +780,12 @@ other = "Auto Discover"
 
 [GRPCDiscoverKey]
 other = "Discover Secret"
+
+[DisablePasswordLogin]
+other = "Disable Password Login"
+
+[DisableOauthLogin]
+other = "Disable OAuth Login"
 
 [DisableCompatAPI]
 other = "Disable V1 CompatAPI"

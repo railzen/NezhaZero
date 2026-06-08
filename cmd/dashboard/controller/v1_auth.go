@@ -60,7 +60,7 @@ func (cv *compatV1) login(c *gin.Context) {
 	}
 
 	// ===== 是否启用密码登录 =====
-	if singleton.Conf.Site.AdminPassword == "" || len(singleton.Conf.Site.AdminPassword) < 10 {
+	if !singleton.Conf.PasswordLoginActive() {
 		c.JSON(400, V1Response[any]{Error: "Password login locked"})
 		return
 	}

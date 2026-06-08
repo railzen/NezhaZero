@@ -8,8 +8,10 @@
         <div class="content">
           {{if .PasswordEnabled}}
             {{tr "AdminLogin"}}
-          {{else}}
+          {{else if .OauthEnabled}}
             {{tr "Use"}} {{.LoginType}} {{tr "AccountToLogin"}}
+          {{else}}
+            {{tr "Login"}}
           {{end}}
         </div>
       </h2>
@@ -45,11 +47,14 @@
       </form>
 
 
+      {{if and .PasswordEnabled .OauthEnabled}}
       <div class="ui hidden divider"></div>
       <div class="ui horizontal divider" style="width: 120%; margin: 30px auto; margin-left: -10%; margin-right: -10%;">OR</div>
       <div class="ui hidden divider"></div>
       {{end}}
+      {{end}}
 
+      {{if .OauthEnabled}}
       <a href="/oauth2/login" class="ui fluid large nezha-primary-btn submit button">
           {{if .PasswordEnabled}}
             {{tr "Use"}} {{.LoginType}} {{tr "Login"}}
@@ -59,10 +64,12 @@
       <div class="ui message">
         {{tr "DontHaveAnAccount"}} <a href="{{.RegistrationLink}}" target="_blank" rel="noopener noreferrer">{{tr "SignUp"}}</a>
       </div>
+      {{end}}
     </div>
   </div>
 </div>
 {{template "common/footer" .}}
+{{if .PasswordEnabled}}
 <script>
   // 在表单提交时进行加密并处理响应
   document.getElementById('loginForm').addEventListener('submit', async function(event) {
@@ -340,4 +347,5 @@
     }
   });
 </script>
+{{end}}
 {{end}}

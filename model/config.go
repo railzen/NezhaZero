@@ -65,8 +65,9 @@ type Config struct {
 		DashboardTheme      string
 		CustomCode          string
 		CustomCodeDashboard string
-		ViewPassword        string // 前台查看密码
-		AdminPassword       string // 管理员密码
+		ViewPassword         string // 前台查看密码
+		AdminPassword        string // 管理员密码
+		DisablePasswordLogin bool   // 禁用密码登录
 	}
 	Oauth2 struct {
 		Type            string
@@ -82,8 +83,9 @@ type Config struct {
 		OidcLoginClaim  string // for OIDC Claim
 		OidcGroupClaim  string // for OIDC Group Claim
 		OidcScopes      string // for OIDC Scopes
-		OidcAutoCreate  bool   // for OIDC Auto Create
-		OidcAutoLogin   bool   // for OIDC Auto Login
+		OidcAutoCreate    bool // for OIDC Auto Create
+		OidcAutoLogin     bool // for OIDC Auto Login
+		DisableOauthLogin bool // 禁用 OAuth 登录
 	}
 	HTTPPort        uint
 	GRPCPort        uint
@@ -214,7 +216,58 @@ func (c *Config) Read(path string) error {
 		c.Oauth2.OidcGroupClaim = "groups"
 	}
 
+	// 未设置密码时自动禁用密码登录
+	if c.Site.AdminPassword == "" {
+		c.Site.DisablePasswordLogin = true
+	}
+
+	if err := c.ValidateLoginConfig(); err != nil {
+		return err
+	}
+
 	c.updateIgnoredIPNotificationID()
+	return nil
+}
+
+func (c *Config) hasAdminPassword() bool {
+	return c.Site.AdminPassword != "" && len(c.Site.AdminPassword) >= 10
+}
+
+func (c *Config) hasPasswordAdminList() bool {
+	for _, admin := range strings.Split(c.Oauth2.Admin, ",") {
+		if strings.TrimSpace(admin) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// PasswordLoginActive 密码登录已启用且密码、管理员用户名均已配置。
+func (c *Config) PasswordLoginActive() bool {
+	return !c.Site.DisablePasswordLogin && c.hasAdminPassword() && c.hasPasswordAdminList()
+}
+
+// LoginAvailable 是否至少有一种可用的登录方式。
+func (c *Config) LoginAvailable() bool {
+	return c.PasswordLoginActive() || !c.Oauth2.DisableOauthLogin
+}
+
+// ValidateLoginConfig 校验登录方式配置是否合法。
+func (c *Config) ValidateLoginConfig() error {
+	if !c.LoginAvailable() {
+		return errors.New("至少需要启用一种登录方式")
+	}
+	if c.Oauth2.DisableOauthLogin && !c.PasswordLoginActive() {
+		return errors.New("禁用 OAuth 登录前必须先启用并配置密码登录")
+	}
+	if !c.Site.DisablePasswordLogin {
+		if !c.hasPasswordAdminList() {
+			return errors.New("启用密码登录时必须配置至少一个管理员用户名")
+		}
+		if !c.hasAdminPassword() {
+			return errors.New("启用密码登录时必须设置管理员密码")
+		}
+	}
 	return nil
 }
 
@@ -232,6 +285,9 @@ func (c *Config) updateIgnoredIPNotificationID() {
 
 // Save 保存配置文件
 func (c *Config) Save() error {
+	if err := c.ValidateLoginConfig(); err != nil {
+		return err
+	}
 	c.updateIgnoredIPNotificationID()
 	data, err := yaml.Marshal(c)
 	if err != nil {

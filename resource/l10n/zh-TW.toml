@@ -325,6 +325,9 @@ other = "執行結果"
 [SiteTitle]
 other = "網站標題"
 
+[AdministratorSettings]
+other = "管理員與登入"
+
 [AdministratorList]
 other = "管理員列表"
 
@@ -777,6 +780,12 @@ other = "自動發現"
 
 [GRPCDiscoverKey]
 other = "自動發現密鑰"
+
+[DisablePasswordLogin]
+other = "禁用密碼登入"
+
+[DisableOauthLogin]
+other = "禁用 OAuth 登入"
 
 [DisableCompatAPI]
 other = "禁止V1相容API"

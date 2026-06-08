@@ -104,6 +104,5 @@ func (mp *memberPage) setting(c *gin.Context) {
 		"Title":           singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Settings"}),
 		"Languages":       model.Languages,
 		"DashboardThemes": model.DashboardThemes,
-		"PasswordEnabled": singleton.Conf.Site.AdminPassword != "",
 	}))
 }

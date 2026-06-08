@@ -1039,6 +1039,8 @@ type settingForm struct {
 	DisableSwitchTemplateInFrontend string
 	CompatAPIDisable                string
 	UseTemplateHandleNoRoute        string
+	DisableOauthLogin               string
+	DisablePasswordLogin            string
 }
 
 func (ma *memberAPI) updateSetting(c *gin.Context) {
@@ -1083,12 +1085,73 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		return
 	}
 
+	disableOauthLogin := sf.DisableOauthLogin == "on"
+	disablePasswordLogin := sf.DisablePasswordLogin == "on"
+	adminPassword := singleton.Conf.Site.AdminPassword
+	if !disablePasswordLogin {
+		if sf.Password != "" && sf.Password != "********" && len(sf.Password) >= 6 && !strings.HasPrefix(sf.Password, "$2") && len(sf.Password) <= 32 {
+			if err := bcrypt.CompareHashAndPassword([]byte(adminPassword), []byte(sf.Password)); err != nil {
+				hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
+				if err != nil {
+					panic(err)
+				}
+				adminPassword = string(hash)
+			}
+		}
+		if sf.Password == "" && adminPassword != "" {
+			adminPassword = ""
+		}
+	}
+	passwordLoginEnabled := !disablePasswordLogin
+	oauthLoginActive := !disableOauthLogin
+	hasAdminPassword := adminPassword != "" && len(adminPassword) >= 10
+	hasPasswordAdminList := false
+	for _, admin := range strings.Split(sf.Admin, ",") {
+		if strings.TrimSpace(admin) != "" {
+			hasPasswordAdminList = true
+			break
+		}
+	}
+	passwordLoginActive := passwordLoginEnabled && hasAdminPassword && hasPasswordAdminList
+	if !passwordLoginActive && !oauthLoginActive {
+		c.JSON(http.StatusOK, model.Response{
+			Code:    http.StatusBadRequest,
+			Message: "至少需要启用一种登录方式",
+		})
+		return
+	}
+	if disableOauthLogin && !passwordLoginActive {
+		c.JSON(http.StatusOK, model.Response{
+			Code:    http.StatusBadRequest,
+			Message: "禁用 OAuth 登录前必须先启用并配置密码登录",
+		})
+		return
+	}
+	if passwordLoginEnabled {
+		if !hasPasswordAdminList {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "启用密码登录时必须配置至少一个管理员用户名",
+			})
+			return
+		}
+		if !hasAdminPassword {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "启用密码登录时必须设置管理员密码",
+			})
+			return
+		}
+	}
+
 	singleton.Conf.Language = sf.Language
 	singleton.Conf.EnableIPChangeNotification = sf.EnableIPChangeNotification == "on"
 	singleton.Conf.EnablePlainIPInNotification = sf.EnablePlainIPInNotification == "on"
 	singleton.Conf.DisableSwitchTemplateInFrontend = sf.DisableSwitchTemplateInFrontend == "on"
 	singleton.Conf.UseTemplateHandleNoRoute = sf.UseTemplateHandleNoRoute == "on"
 	singleton.Conf.CompatAPIDisable = sf.CompatAPIDisable == "on"
+	singleton.Conf.Oauth2.DisableOauthLogin = disableOauthLogin
+	singleton.Conf.Site.DisablePasswordLogin = disablePasswordLogin
 	singleton.Conf.Cover = sf.Cover
 	singleton.Conf.GRPCHost = sf.GRPCHost
 	singleton.Conf.GRPCDiscoverKey = sf.GRPCDiscoverKey
@@ -1107,25 +1170,8 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		singleton.Conf.IPChangeNotificationTag = "default"
 	}
 
-	// 满足条件：非空且长度大于6
-	if sf.Password != "" && sf.Password != "********" && len(sf.Password) >= 6 && !strings.HasPrefix(sf.Password, "$2") && len(sf.Password) <= 32 {
-		// 校验密码是否和原来一致
-		passwdHash := singleton.Conf.Site.AdminPassword
-		if err := bcrypt.CompareHashAndPassword([]byte(passwdHash), []byte(sf.Password)); err != nil {
-			hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
-			if err != nil {
-				panic(err)
-			}
-			// 存储哈希
-			singleton.Conf.Site.AdminPassword = string(hash)
-			singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
-		}
-	}
-
-	// 满足条件：空
-	if sf.Password == "" && singleton.Conf.Site.AdminPassword != "" {
-		// 存储空值
-		singleton.Conf.Site.AdminPassword = ""
+	if !disablePasswordLogin && singleton.Conf.Site.AdminPassword != adminPassword {
+		singleton.Conf.Site.AdminPassword = adminPassword
 		singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
 	}
 

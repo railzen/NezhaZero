@@ -34,7 +34,15 @@ func (gp *guestPage) serve() {
 }
 
 func (gp *guestPage) login(c *gin.Context) {
-	if singleton.Conf.Oauth2.OidcAutoLogin {
+	if !singleton.Conf.LoginAvailable() {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusForbidden,
+			Title: "登录失败",
+			Msg:   "当前未启用任何登录方式，请联系管理员",
+		}, true)
+		return
+	}
+	if singleton.Conf.Oauth2.OidcAutoLogin && !singleton.Conf.Oauth2.DisableOauthLogin {
 		c.Redirect(http.StatusFound, "/oauth2/login")
 		return
 	}
@@ -64,6 +72,7 @@ func (gp *guestPage) login(c *gin.Context) {
 		"Title":            singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Login"}),
 		"LoginType":        LoginType,
 		"RegistrationLink": RegistrationLink,
-		"PasswordEnabled":  singleton.Conf.Site.AdminPassword != "", // 密码登录是否可用
+		"PasswordEnabled": singleton.Conf.PasswordLoginActive(),
+		"OauthEnabled":    !singleton.Conf.Oauth2.DisableOauthLogin,
 	}))
 }

@@ -9,20 +9,37 @@
                 <input type="text" name="Title" placeholder="{{tr "NezhaMonitoring"}}" value="{{.Conf.Site.Brand}}">
             </div>
             <div class="field">
-                <label>{{tr "AdministratorList"}}</label>
-                <input type="text" name="Admin" placeholder="1010,2020" value="{{.Conf.Oauth2.Admin}}">
+                <label>{{tr "AdministratorSettings"}}</label>
             </div>
-            <div class="field">
-                <label>{{tr "AdminPassword"}}</label>
-                {{if .PasswordEnabled}}
-                    <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="********" autocomplete="off">
-                {{else}}
-                    <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="" autocomplete="off">
-                {{end}}
-            </div>
-            <div class="field">
-                <label>{{tr "AccessPassword"}}</label>
-                <input type="text" name="ViewPassword" placeholder="" value="{{.Conf.Site.ViewPassword}}" autocomplete="off">
+            <div class="ui segment">
+                <div class="field">
+                    <label>{{tr "AdministratorList"}}</label>
+                    <input type="text" name="Admin" placeholder="1010,2020" value="{{.Conf.Oauth2.Admin}}">
+                </div>
+                <div class="field">
+                    <div class="ui checkbox disable-oauth-login">
+                        <input name="DisableOauthLogin" type="checkbox" tabindex="0" class="hidden">
+                        <label>{{tr "DisableOauthLogin"}}</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui checkbox disable-password-login">
+                        <input name="DisablePasswordLogin" type="checkbox" tabindex="0" class="hidden">
+                        <label>{{tr "DisablePasswordLogin"}}</label>
+                    </div>
+                </div>
+                <div class="field" id="passwordLoginSettings">
+                    <label>{{tr "AdminPassword"}}</label>
+                    {{if .Conf.Site.AdminPassword}}
+                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="********" autocomplete="off">
+                    {{else}}
+                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="" autocomplete="off">
+                    {{end}}
+                </div>
+                <div class="field">
+                    <label>{{tr "AccessPassword"}}</label>
+                    <input type="text" name="ViewPassword" placeholder="" value="{{.Conf.Site.ViewPassword}}" autocomplete="off">
+                </div>
             </div>
             <div class="field" style="display: flex; flex-direction: column;">
                 <label>{{tr "GRPCDiscoverKey"}}</label>
@@ -166,12 +183,29 @@
         return false;
     })
     $('.checkbox').checkbox()
+    function togglePasswordLoginSettings() {
+        const disabled = $('.checkbox.disable-password-login').checkbox('is checked');
+        if (disabled) {
+            $('#passwordLoginSettings').hide();
+        } else {
+            $('#passwordLoginSettings').show();
+        }
+    }
+    $('.checkbox.disable-password-login').checkbox({
+        onChange: togglePasswordLoginSettings
+    });
     $('#settingForm').find("select[name=Cover]").val({{.Conf.Cover }});
     {{ if .Conf.EnableIPChangeNotification}}
     $('.checkbox.ip-change').checkbox('set checked')
     {{ end }}
     {{ if .Conf.EnablePlainIPInNotification}}
     $('.checkbox.plain-ip').checkbox('set checked')
+    {{ end }}
+    {{ if .Conf.Oauth2.DisableOauthLogin }}
+    $('.checkbox.disable-oauth-login').checkbox('set checked')
+    {{ end }}
+    {{ if .Conf.Site.DisablePasswordLogin }}
+    $('.checkbox.disable-password-login').checkbox('set checked')
     {{ end }}
     {{ if .Conf.DisableSwitchTemplateInFrontend }}
     $('.checkbox.disable-switch-template').checkbox('set checked')
@@ -182,6 +216,7 @@
     {{ if .Conf.UseTemplateHandleNoRoute }}
     $('.checkbox.template-handle-no-route').checkbox('set checked')
     {{ end }}
+    togglePasswordLoginSettings();
 </script>
 <script>
     function generateRandomString() {

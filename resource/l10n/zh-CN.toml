@@ -325,6 +325,9 @@ other = "执行结果"
 [SiteTitle]
 other = "网站标题"
 
+[AdministratorSettings]
+other = "管理员与登录"
+
 [AdministratorList]
 other = "管理员列表"
 
@@ -777,6 +780,12 @@ other = "自动发现"
 
 [GRPCDiscoverKey]
 other = "自动发现密钥"
+
+[DisablePasswordLogin]
+other = "禁用密码登录"
+
+[DisableOauthLogin]
+other = "禁用 OAuth 登录"
 
 [DisableCompatAPI]
 other = "禁用V1兼容API"

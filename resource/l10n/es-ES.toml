@@ -325,6 +325,9 @@ other = "Resultados de Ejecución"
 [SiteTitle]
 other = "Título del Sitio"
 
+[AdministratorSettings]
+other = "Administrador e inicio de sesión"
+
 [AdministratorList]
 other = "Lista de Administradores"
 
@@ -696,6 +699,12 @@ other = "Temperatura"
 
 [DisableSwitchTemplateInFrontend]
 other = "Deshabilitar Cambio de Plantilla en Frontend"
+
+[DisablePasswordLogin]
+other = "Deshabilitar inicio de sesión con contraseña"
+
+[DisableOauthLogin]
+other = "Deshabilitar inicio de sesión OAuth"
 
 [ServersOnWorldMap]
 other = "Servidores en el mapa mundial"

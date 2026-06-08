@@ -120,7 +120,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	ruleAllowed := true
-	if singleton.Conf.Site.AdminPassword == "" || len(singleton.Conf.Site.AdminPassword) < 10 {
+	if !singleton.Conf.PasswordLoginActive() {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  400,
 			Title: "登录失败",
@@ -424,6 +424,14 @@ func (oa *oauth2controller) getRedirectURL(c *gin.Context) string {
 }
 
 func (oa *oauth2controller) login(c *gin.Context) {
+	if singleton.Conf.Oauth2.DisableOauthLogin {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusForbidden,
+			Title: "登录失败",
+			Msg:   "不支持的登陆方式",
+		}, true)
+		return
+	}
 	randomString, err := utils.GenerateRandomString(32)
 	if err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
@@ -444,6 +452,14 @@ func (oa *oauth2controller) login(c *gin.Context) {
 }
 
 func (oa *oauth2controller) callback(c *gin.Context) {
+	if singleton.Conf.Oauth2.DisableOauthLogin {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusForbidden,
+			Title: "登录失败",
+			Msg:   "不支持的登陆方式",
+		}, true)
+		return
+	}
 	var err error
 	// 验证登录跳转时的 State
 	stateKey, err := c.Cookie(singleton.Conf.Site.CookieName + "-sk")
