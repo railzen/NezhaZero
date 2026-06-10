@@ -1006,8 +1006,7 @@ func (ma *memberAPI) logout(c *gin.Context) {
 		})
 	*/
 	singleton.DB.Unscoped().Where("id = ? AND token = ?", admin.ID, admin.Token).Delete(&model.User{})
-	// 清除浏览器中的 Cookie
-	c.SetCookie(singleton.Conf.Site.CookieName, "", -1, "", "", false, true)
+	mygin.ClearSessionCookies(c)
 	c.JSON(http.StatusOK, model.Response{
 		Code: http.StatusOK,
 	})
@@ -1174,8 +1173,8 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 
 	if singleton.Conf.Site.AdminPassword != adminPassword {
 		singleton.Conf.Site.AdminPassword = adminPassword
-		c.SetCookie(singleton.Conf.Site.CookieName, "", -1, "", "", false, true)
 		singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
+		mygin.ClearSessionCookies(c)
 	}
 
 	if err := singleton.Conf.Save(); err != nil {

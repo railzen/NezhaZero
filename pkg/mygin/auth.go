@@ -82,3 +82,12 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 		}
 	}
 }
+
+// ClearSessionCookies 清除认证与 CSRF Cookie
+func ClearSessionCookies(c *gin.Context) {
+	secure := c.Request.TLS != nil
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(singleton.Conf.Site.CookieName, "", -1, "/", "", secure, true)
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(CSRFCookieName, "", -1, "/", "", secure, false)
+}
