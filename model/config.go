@@ -194,17 +194,14 @@ func (c *Config) Read(path string) error {
 	}
 
 	if c.Site.AdminPassword != "" {
-		// 已经有密码，判断它是否已经是 bcrypt 哈希
-		// bcrypt 哈希一般长度 >= 60 并且以 $2 开头
-		if !strings.HasPrefix(c.Site.AdminPassword, "$2") || len(c.Site.AdminPassword) < 60 {
-			// 说明是明文密码，需要生成 bcrypt 哈希
+		// 已有密码，判断它是否已经是 bcrypt 哈希
+		if _, err := bcrypt.Cost([]byte(c.Site.AdminPassword)); err != nil {
 			hash, err := bcrypt.GenerateFromPassword([]byte(c.Site.AdminPassword), bcrypt.DefaultCost)
 			if err != nil {
 				panic(err)
 			}
 			c.Site.AdminPassword = string(hash)
 		}
-		// 否则已经是安全哈希，不用改
 	}
 
 	if c.GRPCDiscoverKey == "" {
