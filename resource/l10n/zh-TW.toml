@@ -331,6 +331,9 @@ other = "管理員與登入"
 [AdministratorList]
 other = "管理員列表"
 
+[AdministratorListTip]
+other = "OAuth 與密碼登入共用管理員列表，多個以逗號分隔。"
+
 [Theme]
 other = "前台界面主題"
 

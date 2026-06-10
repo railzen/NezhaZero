@@ -14,7 +14,7 @@
             <div class="ui segment">
                 <div class="field">
                     <label>{{tr "AdministratorList"}}</label>
-                    <input type="text" name="Admin" placeholder="1010,2020" value="{{.Conf.Oauth2.Admin}}">
+                    <input type="text" name="Admin" placeholder="admin1,admin2" value="{{.Conf.Oauth2.Admin}}" autocomplete="off" autocapitalize="none" spellcheck="false" readonly onfocus="this.removeAttribute('readonly');">
                 </div>
                 <div class="field">
                     <div class="ui checkbox disable-oauth-login">
@@ -31,9 +31,9 @@
                 <div class="field" id="passwordLoginSettings">
                     <label>{{tr "AdminPassword"}}</label>
                     {{if .Conf.Site.AdminPassword}}
-                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="********" autocomplete="off">
+                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="********"autocomplete="new-password">
                     {{else}}
-                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="" autocomplete="off">
+                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="" autocomplete="new-password">
                     {{end}}
                 </div>
                 <div class="field">
@@ -146,6 +146,7 @@
         </form>
     </div>
 </div>
+<div id="adminListTip" class="ui popup transition hidden" style="white-space: nowrap;">{{tr "AdministratorListTip"}}</div>
 {{template "common/footer" .}}
 <script>
     $('#settingForm').submit(function () {
@@ -193,6 +194,12 @@
     }
     $('.checkbox.disable-password-login').checkbox({
         onChange: togglePasswordLoginSettings
+    });
+    $('input[name=Admin]').popup({
+        popup: '#adminListTip',
+        on: 'focus',
+        position: 'bottom left',
+        delay: { show: 0, hide: 150 },
     });
     $('#settingForm').find("select[name=Cover]").val({{.Conf.Cover }});
     {{ if .Conf.EnableIPChangeNotification}}

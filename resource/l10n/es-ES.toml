@@ -331,6 +331,9 @@ other = "Administrador e inicio de sesión"
 [AdministratorList]
 other = "Lista de Administradores"
 
+[AdministratorListTip]
+other = "Lista de administradores compartida para OAuth y contraseña; sepárelos con comas."
+
 [Theme]
 other = "Tema de Frontend"
 
