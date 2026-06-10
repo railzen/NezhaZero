@@ -26,7 +26,7 @@ func CommonEnvironment(c *gin.Context, data map[string]interface{}) gin.H {
 	data["MatchedPath"] = c.MustGet("MatchedPath")
 	data["Version"] = singleton.Version
 	data["Conf"] = singleton.Conf
-	data["Themes"] = model.Themes
+	data["Themes"] = model.AvailableThemes(singleton.Conf.CompatAPIDisable, singleton.Conf.Site.Theme)
 	data["CustomCode"] = singleton.Conf.Site.CustomCode
 	data["CustomCodeDashboard"] = singleton.Conf.Site.CustomCodeDashboard
 	// 是否是管理页面

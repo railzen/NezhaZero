@@ -1060,6 +1060,13 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		})
 		return
 	}
+	if sf.CompatAPIDisable == "on" && model.IsV1Theme(sf.Theme) {
+		c.JSON(http.StatusOK, model.Response{
+			Code:    http.StatusBadRequest,
+			Message: "禁用兼容 API 时无法使用 V1 主题",
+		})
+		return
+	}
 
 	if _, yes := model.DashboardThemes[sf.DashboardTheme]; !yes {
 		c.JSON(http.StatusOK, model.Response{

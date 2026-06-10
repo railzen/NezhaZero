@@ -39,6 +39,26 @@ var DashboardThemes = map[string]string{
 	"custom":  "Custom(local)",
 }
 
+// AvailableThemes 返回可选前台主题。禁用 V1 兼容 API 时隐藏名称以 (V1) 结尾的主题，但保留 currentTheme 以便用户从当前 V1 主题切换离开。
+func AvailableThemes(compatAPIDisabled bool, currentTheme string) map[string]string {
+	if !compatAPIDisabled {
+		return Themes
+	}
+	out := make(map[string]string, len(Themes))
+	for k, v := range Themes {
+		if !strings.HasSuffix(v, "(V1)") || k == currentTheme {
+			out[k] = v
+		}
+	}
+	return out
+}
+
+// IsV1Theme 判断主题是否为 V1 主题（显示名称以 (V1) 结尾）。
+func IsV1Theme(themeKey string) bool {
+	name, ok := Themes[themeKey]
+	return ok && strings.HasSuffix(name, "(V1)")
+}
+
 const (
 	ConfigTypeGitHub     = "github"
 	ConfigTypeGitee      = "gitee"
@@ -141,6 +161,11 @@ func (c *Config) Read(path string) error {
 	err = c.k.Unmarshal("", c)
 	if err != nil {
 		return err
+	}
+
+	// 未显式配置时默认禁用 V1 兼容 API
+	if !c.k.Exists("compatapidisable") {
+		c.CompatAPIDisable = true
 	}
 
 	if c.Oauth2.Admin == "" {
