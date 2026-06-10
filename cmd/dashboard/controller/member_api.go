@@ -1087,84 +1087,56 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 
 	disableOauthLogin := sf.DisableOauthLogin == "on"
 	disablePasswordLogin := sf.DisablePasswordLogin == "on"
+
+	// ===== 计算新的管理员密码 =====
+	// 禁用密码登录或密码留空 → 清空；"********" 表示未修改；否则校验并生成新哈希
 	adminPassword := singleton.Conf.Site.AdminPassword
-	if disablePasswordLogin {
+	switch {
+	case disablePasswordLogin || sf.Password == "":
 		adminPassword = ""
-	} else {
-		if sf.Password != "" && sf.Password != "********" {
-			if len(sf.Password) < 6 {
-				c.JSON(http.StatusOK, model.Response{
-					Code:    http.StatusBadRequest,
-					Message: "管理员密码长度不能少于 6 位",
-				})
-				return
-			}
-			if len(sf.Password) > 32 {
-				c.JSON(http.StatusOK, model.Response{
-					Code:    http.StatusBadRequest,
-					Message: "管理员密码长度不能超过 32 位",
-				})
-				return
-			}
-			if err := bcrypt.CompareHashAndPassword([]byte(adminPassword), []byte(sf.Password)); err != nil {
-				hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
-				if err != nil {
-					panic(err)
-				}
-				adminPassword = string(hash)
-			}
+	case sf.Password == "********":
+		// 密码未修改，保持原哈希
+	default:
+		if len(sf.Password) < 6 || len(sf.Password) > 32 {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "管理员密码长度需在 6 到 32 位之间",
+			})
+			return
 		}
-		if sf.Password == "" && adminPassword != "" {
-			adminPassword = ""
+		if bcrypt.CompareHashAndPassword([]byte(adminPassword), []byte(sf.Password)) != nil {
+			hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
+			if err != nil {
+				panic(err)
+			}
+			adminPassword = string(hash)
 		}
 	}
-	passwordLoginEnabled := !disablePasswordLogin
-	oauthLoginActive := !disableOauthLogin
-	hasAdminPassword := adminPassword != "" && len(adminPassword) >= 10
-	hasPasswordAdminList := false
+
+	// ===== 校验登录方式 =====
+	// 管理员用户名列表是密码登录与 OAuth 登录共用的白名单，任何模式下都必填
+	hasAdminList := false
 	for _, admin := range strings.Split(sf.Admin, ",") {
 		if strings.TrimSpace(admin) != "" {
-			hasPasswordAdminList = true
+			hasAdminList = true
 			break
 		}
 	}
-	passwordLoginActive := passwordLoginEnabled && hasAdminPassword && hasPasswordAdminList
-	if !passwordLoginActive && !oauthLoginActive {
+	var loginErr string
+	switch {
+	case !hasAdminList:
+		loginErr = "必须配置至少一个管理员用户名"
+	case disableOauthLogin && disablePasswordLogin:
+		loginErr = "至少需要启用一种登录方式"
+	case !disablePasswordLogin && adminPassword == "":
+		loginErr = "启用密码登录时必须设置管理员密码"
+	}
+	if loginErr != "" {
 		c.JSON(http.StatusOK, model.Response{
 			Code:    http.StatusBadRequest,
-			Message: "至少需要启用一种登录方式",
+			Message: loginErr,
 		})
 		return
-	}
-	if disableOauthLogin && !passwordLoginActive {
-		c.JSON(http.StatusOK, model.Response{
-			Code:    http.StatusBadRequest,
-			Message: "禁用 OAuth 登录前必须先启用并配置密码登录",
-		})
-		return
-	}
-	if !disableOauthLogin && !hasPasswordAdminList {
-		c.JSON(http.StatusOK, model.Response{
-			Code:    http.StatusBadRequest,
-			Message: "启用 OAuth 登录时必须配置至少一个管理员用户名",
-		})
-		return
-	}
-	if passwordLoginEnabled {
-		if !hasPasswordAdminList {
-			c.JSON(http.StatusOK, model.Response{
-				Code:    http.StatusBadRequest,
-				Message: "启用密码登录时必须配置至少一个管理员用户名",
-			})
-			return
-		}
-		if !hasAdminPassword {
-			c.JSON(http.StatusOK, model.Response{
-				Code:    http.StatusBadRequest,
-				Message: "启用密码登录时必须设置管理员密码",
-			})
-			return
-		}
 	}
 
 	singleton.Conf.Language = sf.Language
