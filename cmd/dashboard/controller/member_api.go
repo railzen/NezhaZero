@@ -1174,6 +1174,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 
 	if singleton.Conf.Site.AdminPassword != adminPassword {
 		singleton.Conf.Site.AdminPassword = adminPassword
+		c.SetCookie(singleton.Conf.Site.CookieName, "", -1, "", "", false, true)
 		singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
 	}
 
