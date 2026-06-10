@@ -143,7 +143,11 @@ func (c *Config) Read(path string) error {
 		return err
 	}
 
-	if c.Oauth2.Type == "" || c.Oauth2.Admin == "" || c.Oauth2.ClientID == "" || c.Oauth2.ClientSecret == "" {
+	if c.Oauth2.Admin == "" {
+		return errors.New("missing admin user config")
+	}
+	if !c.Oauth2.DisableOauthLogin &&
+		(c.Oauth2.Type == "" || c.Oauth2.ClientID == "" || c.Oauth2.ClientSecret == "") {
 		return errors.New("missing oauth2 config")
 	}
 
