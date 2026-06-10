@@ -179,11 +179,16 @@ func (c *Config) Read(path string) error {
 	if c.Site.Brand == "" {
 		c.Site.Brand = "Nezha Monitoring"
 	}
-	// 强制设置为 nz-jwt 以保证 v1 兼容性
-	c.Site.CookieName = "nz-jwt"
+
+	if c.Site.CookieName == "" {
+		// 默认设置为 nz-jwt 以保证 v1 兼容性
+		c.Site.CookieName = "nz-jwt"
+	}
+
 	if c.Site.Theme == "" {
 		c.Site.Theme = "default"
 	}
+
 	if c.Site.DashboardTheme == "" {
 		c.Site.DashboardTheme = "default"
 	}
