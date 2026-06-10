@@ -1171,18 +1171,26 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		singleton.Conf.IPChangeNotificationTag = "default"
 	}
 
-	if singleton.Conf.Site.AdminPassword != adminPassword {
+	oldAdminPassword := singleton.Conf.Site.AdminPassword
+	passwordChanged := oldAdminPassword != adminPassword
+	if passwordChanged {
 		singleton.Conf.Site.AdminPassword = adminPassword
-		singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
-		mygin.ClearSessionCookies(c)
 	}
 
 	if err := singleton.Conf.Save(); err != nil {
+		if passwordChanged {
+			singleton.Conf.Site.AdminPassword = oldAdminPassword
+		}
 		c.JSON(http.StatusOK, model.Response{
 			Code:    http.StatusBadRequest,
 			Message: fmt.Sprintf("请求错误：%s", err),
 		})
 		return
+	}
+
+	if passwordChanged {
+		singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
+		mygin.ClearSessionCookies(c)
 	}
 	// 更新系统语言
 	singleton.InitLocalizer()

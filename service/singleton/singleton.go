@@ -56,7 +56,7 @@ func InitConfigFromPath(path string) {
 func InitDBFromPath(path string) {
 	var err error
 	// busy_timeout 让写冲突时自动等待重试
-	dsn := path + "?_pragma=busy_timeout(5000)"
+	dsn := path + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(DELETE)"
 	DB, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		CreateBatchSize: 200,
 	})

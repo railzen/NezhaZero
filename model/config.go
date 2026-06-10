@@ -180,7 +180,7 @@ func (c *Config) Read(path string) error {
 		c.Site.Brand = "Nezha Monitoring"
 	}
 
-	if c.Site.CookieName == "" {
+	if c.Site.CookieName == "" || c.Site.CookieName == "nezha-dashboard"{
 		// 默认设置为 nz-jwt 以保证 v1 兼容性
 		c.Site.CookieName = "nz-jwt"
 	}
