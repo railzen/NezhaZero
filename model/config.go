@@ -88,6 +88,7 @@ type Config struct {
 		ViewPassword         string // 前台查看密码
 		AdminPassword        string // 管理员密码
 		DisablePasswordLogin bool   // 禁用密码登录
+		TwoFactorSecret      string // TOTP 密钥（Base32），非空即表示已启用双重验证
 	}
 	Oauth2 struct {
 		Type            string
@@ -299,7 +300,15 @@ func (c *Config) ValidateLoginConfig() error {
 			return errors.New("启用密码登录时必须设置管理员密码")
 		}
 	}
+	if c.Site.TwoFactorSecret != "" && !c.PasswordLoginActive() {
+		return errors.New("双重验证需要先启用密码登录")
+	}
 	return nil
+}
+
+// TwoFactorActive 是否已启用密码登录双重验证（以密钥是否存在为准）。
+func (c *Config) TwoFactorActive() bool {
+	return c.Site.TwoFactorSecret != ""
 }
 
 // updateIgnoredIPNotificationID 更新用于判断服务器ID是否属于特定服务器的map

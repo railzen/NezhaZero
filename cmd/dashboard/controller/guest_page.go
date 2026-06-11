@@ -74,5 +74,6 @@ func (gp *guestPage) login(c *gin.Context) {
 		"RegistrationLink": RegistrationLink,
 		"PasswordEnabled": singleton.Conf.PasswordLoginActive(),
 		"OauthEnabled":    !singleton.Conf.Oauth2.DisableOauthLogin,
+		"TwoFactorEnabled": singleton.Conf.TwoFactorActive(),
 	}))
 }

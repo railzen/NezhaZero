@@ -43,6 +43,24 @@
             >
           </div>
         </div>
+        {{if .TwoFactorEnabled}}
+        <div class="field">
+          <div class="ui left icon input">
+            <i class="shield alternate icon"></i>
+            <input
+              id="otpInput"
+              type="text"
+              name="otp"
+              placeholder='{{tr "TwoFactorCode"}}'
+              autocomplete="one-time-code"
+              inputmode="numeric"
+              pattern="[0-9]{6}"
+              maxlength="6"
+              required
+            >
+          </div>
+        </div>
+        {{end}}
         <button type="submit" class="ui fluid large nezha-primary-btn button">{{tr "Login"}}</button>
       </form>
 

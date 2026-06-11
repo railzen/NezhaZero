@@ -27,6 +27,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/pkg/mygin"
+	"github.com/railzen/nezha-zero/pkg/totp"
 	"github.com/railzen/nezha-zero/pkg/utils"
 	"github.com/railzen/nezha-zero/service/singleton"
 	"github.com/xanzy/go-gitlab"
@@ -111,6 +112,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	type LoginForm struct {
 		Username string `form:"username" binding:"required,max=64"`
 		Password string `form:"password" binding:"required,min=6"`
+		OTP      string `form:"otp"`
 	}
 
 	var req LoginForm
@@ -221,6 +223,15 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		incrementFailCount(ipFailKey)
 		showLoginFailed(c)
 		return
+	}
+
+	if singleton.Conf.TwoFactorActive() {
+		if !totp.Validate(singleton.Conf.Site.TwoFactorSecret, req.OTP, 1) {
+			incrementFailCount(failKey)
+			incrementFailCount(ipFailKey)
+			showLoginFailed(c)
+			return
+		}
 	}
 
 	// 登录成功，清除失败计数

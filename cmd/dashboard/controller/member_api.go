@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -12,12 +13,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
+	"github.com/skip2/go-qrcode"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/idna"
 	"gorm.io/gorm"
 
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/pkg/mygin"
+	"github.com/railzen/nezha-zero/pkg/totp"
 	"github.com/railzen/nezha-zero/pkg/utils"
 	"github.com/railzen/nezha-zero/proto"
 	"github.com/railzen/nezha-zero/resource"
@@ -53,6 +56,7 @@ func (ma *memberAPI) serve() {
 	mr.POST("/nat", ma.addOrEditNAT)
 	mr.POST("/alert-rule", ma.addOrEditAlertRule)
 	mr.POST("/setting", ma.updateSetting)
+	mr.POST("/totp", ma.totp)
 	mr.DELETE("/:model/:id", ma.delete)
 	mr.POST("/logout", ma.logout)
 	mr.GET("/token", ma.getToken)
@@ -1042,6 +1046,11 @@ type settingForm struct {
 	DisablePasswordLogin            string
 }
 
+const (
+	twoFactorSetupCachePrefix = "totp_setup_"
+	twoFactorSetupTTL         = 10 * time.Minute
+)
+
 func (ma *memberAPI) updateSetting(c *gin.Context) {
 	var sf settingForm
 	if err := c.ShouldBind(&sf); err != nil {
@@ -1149,6 +1158,10 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		return
 	}
 
+	if disablePasswordLogin {
+		singleton.Conf.Site.TwoFactorSecret = ""
+	}
+
 	singleton.Conf.Language = sf.Language
 	singleton.Conf.EnableIPChangeNotification = sf.EnableIPChangeNotification == "on"
 	singleton.Conf.EnablePlainIPInNotification = sf.EnablePlainIPInNotification == "on"
@@ -1203,6 +1216,166 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	c.JSON(http.StatusOK, model.Response{
 		Code: http.StatusOK,
 	})
+}
+
+func (ma *memberAPI) totp(c *gin.Context) {
+	var req struct {
+		Operation string `json:"operation"`
+		SetupID   string `json:"setupId"`
+		Code      string `json:"code"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, model.Response{
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	switch req.Operation {
+	case "bind":
+		if !singleton.Conf.PasswordLoginActive() {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "请先启用密码登录",
+			})
+			return
+		}
+		if singleton.Conf.TwoFactorActive() {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "双重验证已启用",
+			})
+			return
+		}
+		secret, err := totp.GenerateSecret()
+		if err != nil {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusInternalServerError,
+				Message: "生成密钥失败，请稍后重试",
+			})
+			return
+		}
+		setupID, err := utils.GenerateRandomString(24)
+		if err != nil {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusInternalServerError,
+				Message: "生成绑定信息失败，请稍后重试",
+			})
+			return
+		}
+		singleton.Cache.Set(twoFactorSetupCachePrefix+setupID, secret, twoFactorSetupTTL)
+		issuer := singleton.Conf.Site.Brand
+		if issuer == "" {
+			issuer = "Nezha"
+		}
+		otpauth := totp.BuildOTPAuthURL(issuer, "Nezha", secret)
+		png, err := qrcode.Encode(otpauth, qrcode.Medium, 220)
+		if err != nil {
+			singleton.Cache.Delete(twoFactorSetupCachePrefix + setupID)
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusInternalServerError,
+				Message: "生成二维码失败，请稍后重试",
+			})
+			return
+		}
+		c.JSON(http.StatusOK, model.Response{
+			Code: http.StatusOK,
+			Result: gin.H{
+				"setupId": setupID,
+				"qr":      "data:image/png;base64," + base64.StdEncoding.EncodeToString(png),
+			},
+		})
+
+	case "confirm":
+		if !singleton.Conf.PasswordLoginActive() {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "请先启用密码登录",
+			})
+			return
+		}
+		if singleton.Conf.TwoFactorActive() {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "双重验证已启用",
+			})
+			return
+		}
+		if req.SetupID == "" || req.Code == "" {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "请扫描二维码并输入验证码",
+			})
+			return
+		}
+		secretVal, ok := singleton.Cache.Get(twoFactorSetupCachePrefix + req.SetupID)
+		if !ok {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "绑定信息已过期，请重新打开弹窗",
+			})
+			return
+		}
+		secret, ok := secretVal.(string)
+		if !ok || secret == "" {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "绑定信息无效，请重新打开弹窗",
+			})
+			return
+		}
+		if !totp.Validate(secret, req.Code, 1) {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "双重验证码错误，请重试",
+			})
+			return
+		}
+		singleton.Cache.Delete(twoFactorSetupCachePrefix + req.SetupID)
+		singleton.Conf.Site.TwoFactorSecret = secret
+		if err := singleton.Conf.Save(); err != nil {
+			singleton.Conf.Site.TwoFactorSecret = ""
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: fmt.Sprintf("保存失败：%s", err),
+			})
+			return
+		}
+		c.JSON(http.StatusOK, model.Response{
+			Code:    http.StatusOK,
+			Message: "双重验证已启用",
+		})
+
+	case "unbind":
+		if !singleton.Conf.TwoFactorActive() {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "双重验证未启用",
+			})
+			return
+		}
+		oldSecret := singleton.Conf.Site.TwoFactorSecret
+		singleton.Conf.Site.TwoFactorSecret = ""
+		if err := singleton.Conf.Save(); err != nil {
+			singleton.Conf.Site.TwoFactorSecret = oldSecret
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: fmt.Sprintf("保存失败：%s", err),
+			})
+			return
+		}
+		c.JSON(http.StatusOK, model.Response{
+			Code:    http.StatusOK,
+			Message: "双重验证已关闭",
+		})
+
+	default:
+		c.JSON(http.StatusOK, model.Response{
+			Code:    http.StatusBadRequest,
+			Message: "未知操作",
+		})
+	}
 }
 
 func (ma *memberAPI) batchDeleteServer(c *gin.Context) {

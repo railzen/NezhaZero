@@ -30,11 +30,26 @@
                 </div>
                 <div class="field" id="passwordLoginSettings">
                     <label>{{tr "AdminPassword"}}</label>
-                    {{if .Conf.Site.AdminPassword}}
-                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="********"autocomplete="new-password">
-                    {{else}}
-                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="" autocomplete="new-password">
-                    {{end}}
+                    <div style="display: flex; align-items: center;">
+                        {{if .Conf.Site.AdminPassword}}
+                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="********" autocomplete="new-password" style="flex-grow: 1; margin-right: 5px;">
+                        {{else}}
+                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="" autocomplete="new-password" style="flex-grow: 1; margin-right: 5px;">
+                        {{end}}
+                        <div id="twoFactorSettings" style="flex-shrink: 0;">
+                            {{if .Conf.Site.TwoFactorSecret}}
+                            <button type="button" class="ui button" id="twoFactorDisableBtn" title="{{tr "EnableTwoFactor"}}">
+                                <i class="green shield alternate icon"></i>
+                                {{tr "TwoFactorDisableBtn"}}
+                            </button>
+                            {{else}}
+                            <button type="button" class="ui button" id="twoFactorEnableBtn" title="{{tr "EnableTwoFactor"}}">
+                                <i class="shield alternate icon"></i>
+                                {{tr "TwoFactorEnableBtn"}}
+                            </button>
+                            {{end}}
+                        </div>
+                    </div>
                 </div>
                 <div class="field">
                     <label>{{tr "AccessPassword"}}</label>
@@ -147,6 +162,27 @@
     </div>
 </div>
 <div id="adminListTip" class="ui popup transition hidden" style="white-space: nowrap;">{{tr "AdministratorListTip"}}</div>
+<div class="ui small modal" id="twoFactorModal">
+    <div class="header">{{tr "TwoFactorEnableBtn"}}</div>
+    <div class="content">
+        <p>{{tr "TwoFactorSetupHint"}}</p>
+        <div id="twoFactorQRWrap" style="text-align: center; min-height: 220px;">
+            <div class="ui active inline loader" id="twoFactorQRLoading"></div>
+            <img id="twoFactorQR" alt="2FA QR" style="display: none; width: 220px; height: 220px; image-rendering: pixelated;">
+        </div>
+        <div class="ui form" style="margin-top: 1em;">
+            <div class="field">
+                <label>{{tr "TwoFactorCode"}}</label>
+                <input type="text" id="twoFactorModalCode" placeholder="{{tr "TwoFactorCodePlaceholder"}}" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6">
+            </div>
+        </div>
+        <input type="hidden" id="twoFactorSetupID" value="">
+    </div>
+    <div class="actions">
+        <div class="ui cancel button">{{tr "Cancel"}}</div>
+        <div class="ui nezha-primary-btn button" id="twoFactorConfirmBtn">{{tr "TwoFactorConfirmEnable"}}</div>
+    </div>
+</div>
 {{template "common/footer" .}}
 <script>
     $('#settingForm').submit(function () {
@@ -175,7 +211,7 @@
             }).catch(err => {
                 $.suiAlert({
                     title: '',
-                    description: err,
+                    description: (err && err.responseJSON && err.responseJSON.message) || 'Request Failed',
                     type: 'error',
                     time: '3',
                     position: 'top-center',
@@ -194,6 +230,132 @@
     }
     $('.checkbox.disable-password-login').checkbox({
         onChange: togglePasswordLoginSettings
+    });
+
+    const twoFactorModal = $('#twoFactorModal');
+    twoFactorModal.modal({
+        closable: true,
+        onHidden: function () {
+            $('#twoFactorModalCode').val('');
+            $('#twoFactorSetupID').val('');
+            $('#twoFactorQR').hide().attr('src', '');
+            $('#twoFactorQRLoading').show();
+        }
+    });
+
+    function totpRequest(data) {
+        return $.ajax({
+            url: '/api/totp',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+        });
+    }
+
+    function loadTwoFactorQR() {
+        $('#twoFactorQRLoading').show();
+        $('#twoFactorQR').hide();
+        $('#twoFactorSetupID').val('');
+        return totpRequest({ operation: 'bind' }).then((resp) => {
+            if (resp.code !== 200 || !resp.result) {
+                throw new Error(resp.message || '生成二维码失败');
+            }
+            $('#twoFactorSetupID').val(resp.result.setupId);
+            $('#twoFactorQR').attr('src', resp.result.qr).show();
+            $('#twoFactorQRLoading').hide();
+        });
+    }
+
+    $('#twoFactorEnableBtn').on('click', function () {
+        $('#twoFactorModalCode').val('');
+        twoFactorModal.modal('show');
+        loadTwoFactorQR().catch((err) => {
+            twoFactorModal.modal('hide');
+            $.suiAlert({
+                title: '',
+                description: String(err),
+                type: 'error',
+                time: '3',
+                position: 'top-center',
+            });
+        });
+    });
+
+    $('#twoFactorConfirmBtn').on('click', function () {
+        const setupId = $('#twoFactorSetupID').val();
+        const code = $('#twoFactorModalCode').val().trim();
+        if (!setupId || code.length !== 6) {
+            $.suiAlert({
+                title: '',
+                description: '{{tr "TwoFactorCodePlaceholder"}}',
+                type: 'error',
+                time: '3',
+                position: 'top-center',
+            });
+            return;
+        }
+        totpRequest({ operation: 'confirm', setupId: setupId, code: code }).then((resp) => {
+            if (resp.code !== 200) {
+                $.suiAlert({
+                    title: '',
+                    description: resp.message,
+                    type: 'error',
+                    time: '3',
+                    position: 'top-center',
+                });
+                return;
+            }
+            twoFactorModal.modal('hide');
+            $.suiAlert({
+                title: '',
+                description: resp.message || '{{tr "ModifiedSuccessfully"}}',
+                type: 'success',
+                time: '2',
+                position: 'top-center',
+            });
+            setTimeout(() => window.location.reload(), 600);
+        }).catch((err) => {
+            $.suiAlert({
+                title: '',
+                description: String(err),
+                type: 'error',
+                time: '3',
+                position: 'top-center',
+            });
+        });
+    });
+
+    $('#twoFactorDisableBtn').on('click', function () {
+        showConfirm('{{tr "TwoFactorDisableBtn"}}', '{{tr "ConfirmDisableTwoFactor"}}', () => {
+            totpRequest({ operation: 'unbind' }).then((resp) => {
+                if (resp.code !== 200) {
+                    $.suiAlert({
+                        title: '',
+                        description: resp.message,
+                        type: 'error',
+                        time: '3',
+                        position: 'top-center',
+                    });
+                    return;
+                }
+                $.suiAlert({
+                    title: '',
+                    description: resp.message || '{{tr "ModifiedSuccessfully"}}',
+                    type: 'success',
+                    time: '2',
+                    position: 'top-center',
+                });
+                setTimeout(() => window.location.reload(), 600);
+            }).catch((err) => {
+                $.suiAlert({
+                    title: '',
+                    description: String(err),
+                    type: 'error',
+                    time: '3',
+                    position: 'top-center',
+                });
+            });
+        }, '');
     });
     $('input[name=Admin]').popup({
         popup: '#adminListTip',

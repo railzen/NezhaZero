@@ -783,3 +783,36 @@ other = "Username"
 
 [Password]
 other = "Password"
+
+[EnableTwoFactor]
+other = "Autenticación en dos pasos (TOTP) para inicio con contraseña"
+
+[TwoFactorCode]
+other = "Código de verificación"
+
+[TwoFactorCodePlaceholder]
+other = "Código de 6 dígitos"
+
+[TwoFactorSetupHint]
+other = "Escanee el código QR con Google Authenticator, Microsoft Authenticator u otra app similar."
+
+[TwoFactorGenerateSecret]
+other = "Generar código QR"
+
+[TwoFactorEnableBtn]
+other = "Activar autenticación en dos pasos"
+
+[TwoFactorDisableBtn]
+other = "Desactivar autenticación en dos pasos"
+
+[TwoFactorStatusEnabled]
+other = "Activada"
+
+[TwoFactorStatusDisabled]
+other = "Desactivada"
+
+[TwoFactorConfirmEnable]
+other = "Confirmar activación"
+
+[ConfirmDisableTwoFactor]
+other = "¿Desactivar la autenticación en dos pasos y eliminar el secreto vinculado?"

@@ -792,3 +792,36 @@ other = "Disable OAuth Login"
 
 [DisableCompatAPI]
 other = "Disable V1 CompatAPI"
+
+[EnableTwoFactor]
+other = "Password login two-factor authentication (TOTP)"
+
+[TwoFactorCode]
+other = "Authentication code"
+
+[TwoFactorCodePlaceholder]
+other = "6-digit code"
+
+[TwoFactorSetupHint]
+other = "Scan the QR code below with Google Authenticator, Microsoft Authenticator, or similar apps."
+
+[TwoFactorGenerateSecret]
+other = "Generate QR code"
+
+[TwoFactorEnableBtn]
+other = "Enable two-factor authentication"
+
+[TwoFactorDisableBtn]
+other = "Disable two-factor authentication"
+
+[TwoFactorStatusEnabled]
+other = "Enabled"
+
+[TwoFactorStatusDisabled]
+other = "Disabled"
+
+[TwoFactorConfirmEnable]
+other = "Confirm enable"
+
+[ConfirmDisableTwoFactor]
+other = "Disable two-factor authentication and remove the bound secret?"

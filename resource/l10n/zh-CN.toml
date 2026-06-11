@@ -792,3 +792,36 @@ other = "禁用 OAuth 登录"
 
 [DisableCompatAPI]
 other = "禁用V1兼容API"
+
+[EnableTwoFactor]
+other = "密码登录双重验证（TOTP）"
+
+[TwoFactorCode]
+other = "双重验证码"
+
+[TwoFactorCodePlaceholder]
+other = "6 位动态验证码"
+
+[TwoFactorSetupHint]
+other = "使用 Google Authenticator、Microsoft Authenticator 等应用扫描下方二维码。"
+
+[TwoFactorGenerateSecret]
+other = "生成二维码"
+
+[TwoFactorEnableBtn]
+other = "开启双重验证"
+
+[TwoFactorDisableBtn]
+other = "关闭双重验证"
+
+[TwoFactorStatusEnabled]
+other = "已启用"
+
+[TwoFactorStatusDisabled]
+other = "未启用"
+
+[TwoFactorConfirmEnable]
+other = "确认启用"
+
+[ConfirmDisableTwoFactor]
+other = "确认关闭双重验证并清除已绑定的密钥？"
