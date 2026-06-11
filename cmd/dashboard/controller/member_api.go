@@ -1210,7 +1210,15 @@ func (ma *memberAPI) batchDeleteServer(c *gin.Context) {
 		})
 		return
 	}
-	if err := singleton.DB.Unscoped().Delete(&model.Server{}, "id in (?)", servers).Error; err != nil {
+	if err := singleton.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Unscoped().Delete(&model.Server{}, "id in (?)", servers).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Delete(&model.MonitorHistory{}, "server_id in (?)", servers).Error; err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
 		c.JSON(http.StatusOK, model.Response{
 			Code:    http.StatusBadRequest,
 			Message: err.Error(),
@@ -1230,8 +1238,12 @@ func (ma *memberAPI) batchDeleteServer(c *gin.Context) {
 }
 
 func onServerDelete(id uint64) {
-	tag := singleton.ServerList[id].Tag
-	delete(singleton.SecretToID, singleton.ServerList[id].Secret)
+	server := singleton.ServerList[id]
+	if server == nil {
+		return
+	}
+	tag := server.Tag
+	delete(singleton.SecretToID, server.Secret)
 	delete(singleton.ServerList, id)
 	index := -1
 	for i := 0; i < len(singleton.ServerTagToIDList[tag]); i++ {

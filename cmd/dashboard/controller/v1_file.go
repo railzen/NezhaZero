@@ -41,7 +41,7 @@ func (cv *compatV1) createFM(c *gin.Context) {
 	singleton.ServerLock.RLock()
 	server := singleton.ServerList[uint64(serverId)]
 	singleton.ServerLock.RUnlock()
-	if server == nil {
+	if server == nil || server.TaskStream == nil {
 		c.JSON(500, V1Response[any]{
 			Success: false,
 			Error:   "服务器不存在或处于离线状态",

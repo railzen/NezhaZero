@@ -79,7 +79,7 @@ func (u *Rule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, 
 	case "net_out_speed":
 		src = float64(server.State.NetOutSpeed)
 	case "net_all_speed":
-		src = float64(server.State.NetOutSpeed + server.State.NetOutSpeed)
+		src = float64(server.State.NetOutSpeed + server.State.NetInSpeed)
 	case "transfer_in":
 		src = float64(server.State.NetInTransfer)
 	case "transfer_out":

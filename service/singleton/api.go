@@ -310,6 +310,9 @@ func (m *MonitorAPIService) GetMonitorHistories(query map[string]any) *MonitorIn
 		}
 	} else {
 		for _, history := range monitorHistories {
+			if ServiceSentinelShared.monitors[history.MonitorID] == nil || ServerList[history.ServerID] == nil {
+				continue
+			}
 			infos, ok := resultMap[history.MonitorID]
 			if !ok {
 				infos = &MonitorInfo{
