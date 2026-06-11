@@ -1113,7 +1113,11 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		if bcrypt.CompareHashAndPassword([]byte(adminPassword), []byte(sf.Password)) != nil {
 			hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
 			if err != nil {
-				panic(err)
+				c.JSON(http.StatusOK, model.Response{
+					Code:    http.StatusInternalServerError,
+					Message: "密码加密失败，请稍后重试",
+				})
+				return
 			}
 			adminPassword = string(hash)
 		}
