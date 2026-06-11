@@ -66,6 +66,11 @@ func boolToString(b bool) string {
 	return "false"
 }
 
+// ShowCountryFlag 与主界面逻辑一致
+func (s *Server) ShowCountryFlag() bool {
+	return s.State != nil && s.State.Uptime > 0
+}
+
 func (s Server) MarshalForDashboard() template.JS {
 	name, _ := utils.Json.Marshal(s.Name)
 	tag, _ := utils.Json.Marshal(s.Tag)
