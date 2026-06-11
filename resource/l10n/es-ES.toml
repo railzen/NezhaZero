@@ -816,3 +816,6 @@ other = "Confirmar activación"
 
 [ConfirmDisableTwoFactor]
 other = "¿Desactivar la autenticación en dos pasos y eliminar el secreto vinculado?"
+
+[TwoFactorV1LoginHint]
+other = "Con la autenticación en dos pasos activada, el inicio de sesión por contraseña V1 se rechaza. Use la página web."

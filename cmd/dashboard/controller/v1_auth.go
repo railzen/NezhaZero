@@ -33,6 +33,16 @@ func (cv *compatV1) login(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
+	if singleton.Conf.TwoFactorActive() {
+		c.JSON(403, V1Response[any]{Error: "CompatAPI: Password login not allowed"})
+		return
+	}
+	// ===== 是否启用密码登录 =====
+	if !singleton.Conf.PasswordLoginActive() {
+		c.JSON(403, V1Response[any]{Error: "CompatAPI: Password login not allowed"})
+		return
+	}
+
 	if err := c.ShouldBindJSON(&lr); err != nil {
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return
@@ -57,12 +67,6 @@ func (cv *compatV1) login(c *gin.Context) {
 			usernameOK = true
 			break
 		}
-	}
-
-	// ===== 是否启用密码登录 =====
-	if !singleton.Conf.PasswordLoginActive() {
-		c.JSON(400, V1Response[any]{Error: "Password login locked"})
-		return
 	}
 
 	// ===== 全局锁 & 节流 & 退避 =====

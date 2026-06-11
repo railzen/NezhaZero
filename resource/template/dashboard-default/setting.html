@@ -148,7 +148,7 @@
             <div class="field">
                 <div class="ui checkbox compat-api-disable">
                     <input name="CompatAPIDisable" type="checkbox" tabindex="0" class="hidden">
-                    <label>{{tr "DisableCompatAPI"}}</label>
+                    <label>{{tr "DisableCompatAPI"}}{{if and .Conf.Site.TwoFactorSecret (not .Conf.CompatAPIDisable)}} <span style="opacity: 0.75; font-weight: normal;">:{{tr "TwoFactorV1LoginHint"}}</span>{{end}}</label>
                 </div>
             </div>
             <div class="field">

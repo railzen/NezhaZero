@@ -825,3 +825,6 @@ other = "Confirm enable"
 
 [ConfirmDisableTwoFactor]
 other = "Disable two-factor authentication and remove the bound secret?"
+
+[TwoFactorV1LoginHint]
+other = "When password two-factor authentication is enabled, V1 password login is rejected. Use the web login page."

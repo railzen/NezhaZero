@@ -803,7 +803,7 @@ other = "雙重驗證碼"
 other = "6 位動態驗證碼"
 
 [TwoFactorSetupHint]
-other = "使用 Google Authenticator、Microsoft Authenticator 等應用掃描下方二維碼。"
+other = "使用 Google Authenticator、Microsoft Authenticator 等應用掃描下方二維碼"
 
 [TwoFactorGenerateSecret]
 other = "產生二維碼"
@@ -825,3 +825,6 @@ other = "確認啟用"
 
 [ConfirmDisableTwoFactor]
 other = "確認關閉雙重驗證並清除已綁定的密鑰？"
+
+[TwoFactorV1LoginHint]
+other = "已啟用密碼雙重驗證時，V1 密碼登入介面將被拒絕，請使用 Web 登入"

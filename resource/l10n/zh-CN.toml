@@ -803,7 +803,7 @@ other = "双重验证码"
 other = "6 位动态验证码"
 
 [TwoFactorSetupHint]
-other = "使用 Google Authenticator、Microsoft Authenticator 等应用扫描下方二维码。"
+other = "使用 Google Authenticator、Microsoft Authenticator 等应用扫描下方二维码"
 
 [TwoFactorGenerateSecret]
 other = "生成二维码"
@@ -825,3 +825,6 @@ other = "确认启用"
 
 [ConfirmDisableTwoFactor]
 other = "确认关闭双重验证并清除已绑定的密钥？"
+
+[TwoFactorV1LoginHint]
+other = "已启用密码双重验证时，V1 密码登录接口将被拒绝，需使用 Web 登录"
