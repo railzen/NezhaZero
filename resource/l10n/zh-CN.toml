@@ -808,6 +808,33 @@ other = "天"
 [CustomNameservers]
 other = "自定义DDNS使用的公共DNS服务器（逗号分隔）"
 
+[GeoIP]
+other = "GeoIP"
+
+[EnableGeoIP]
+other = "使用外部 GeoIP 国家/地区解析"
+
+[GeoIPDownloadBtn]
+other = "下载 GeoIP 数据库"
+
+[GeoIPUpdateBtn]
+other = "更新 GeoIP 数据库"
+
+[GeoIPDisabledHint]
+other = "已关闭"
+
+[GeoIPLastUpdated]
+other = "上次更新"
+
+[GeoIPNotDownloaded]
+other = "未下载"
+
+[GeoIPUpdateSuccess]
+other = "GeoIP 数据库更新成功"
+
+[GeoIPUpdateFailed]
+other = "GeoIP 数据库更新失败"
+
 [Plan]
 other = "套餐"
 

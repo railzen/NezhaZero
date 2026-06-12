@@ -808,6 +808,33 @@ other = "Days"
 [CustomNameservers]
 other = "Custom Public DNS Nameservers for DDNS (separate with comma)"
 
+[GeoIP]
+other = "GeoIP"
+
+[EnableGeoIP]
+other = "Use external GeoIP country/region lookup"
+
+[GeoIPDownloadBtn]
+other = "Download GeoIP database"
+
+[GeoIPUpdateBtn]
+other = "Update GeoIP database"
+
+[GeoIPDisabledHint]
+other = "Disabled"
+
+[GeoIPLastUpdated]
+other = "Last updated"
+
+[GeoIPNotDownloaded]
+other = "Not downloaded"
+
+[GeoIPUpdateSuccess]
+other = "GeoIP database updated successfully"
+
+[GeoIPUpdateFailed]
+other = "Failed to update GeoIP database"
+
 [Plan]
 other = "Plan"
 

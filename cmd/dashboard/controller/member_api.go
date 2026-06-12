@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/pkg/audit"
+	"github.com/railzen/nezha-zero/pkg/geoip"
 	"github.com/railzen/nezha-zero/pkg/mygin"
 	"github.com/railzen/nezha-zero/pkg/totp"
 	"github.com/railzen/nezha-zero/pkg/utils"
@@ -57,6 +59,7 @@ func (ma *memberAPI) serve() {
 	mr.POST("/nat", ma.addOrEditNAT)
 	mr.POST("/alert-rule", ma.addOrEditAlertRule)
 	mr.POST("/setting", ma.updateSetting)
+	mr.POST("/geoip/update", ma.updateGeoIP)
 	mr.POST("/totp", ma.totp)
 	mr.DELETE("/:model/:id", ma.delete)
 	mr.POST("/logout", ma.logout)
@@ -1050,6 +1053,7 @@ type settingForm struct {
 	GRPCDiscoverKey                 string
 	Cover                           uint8
 	Password                        string
+	EnableGeoIP                     string
 	EnableIPChangeNotification      string
 	EnablePlainIPInNotification     string
 	DisableSwitchTemplateInFrontend string
@@ -1178,6 +1182,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	}
 
 	singleton.Conf.Language = sf.Language
+	singleton.Conf.EnableGeoIP = sf.EnableGeoIP == "on"
 	singleton.Conf.EnableIPChangeNotification = sf.EnableIPChangeNotification == "on"
 	singleton.Conf.EnablePlainIPInNotification = sf.EnablePlainIPInNotification == "on"
 	singleton.Conf.DisableSwitchTemplateInFrontend = sf.DisableSwitchTemplateInFrontend == "on"
@@ -1229,6 +1234,9 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	singleton.InitLocalizer()
 	// 更新DNS服务器
 	singleton.OnNameserverUpdate()
+	if err := geoip.ReloadExternal(singleton.Conf.EnableGeoIP); err != nil {
+		log.Printf("NEZHA>> GeoIP reload failed: %v", err)
+	}
 	c.JSON(http.StatusOK, model.Response{
 		Code: http.StatusOK,
 	})
@@ -1242,6 +1250,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		CustomCodeDashboardChanged:      oldConf.Site.CustomCodeDashboard != sf.CustomCodeDashboard,
 		ViewPasswordChanged:             oldConf.Site.ViewPassword != sf.ViewPassword,
 		CustomNameservers:               sf.CustomNameservers,
+		EnableGeoIP:                     sf.EnableGeoIP == "on",
 		EnableIPChangeNotification:      sf.EnableIPChangeNotification == "on",
 		EnablePlainIPInNotification:     sf.EnablePlainIPInNotification == "on",
 		DisableSwitchTemplateInFrontend: sf.DisableSwitchTemplateInFrontend == "on",
@@ -1263,6 +1272,23 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	if detail := audit.BuildConfigSettingDetail(&oldConf, settingIn); detail != "" {
 		audit.Record(c, audit.TypeConfig, "Settings updated", detail)
 	}
+}
+
+func (ma *memberAPI) updateGeoIP(c *gin.Context) {
+	if err := geoip.Update(); err != nil {
+		c.JSON(http.StatusOK, model.Response{
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
+		})
+		return
+	}
+	if err := geoip.ReloadExternal(singleton.Conf.EnableGeoIP); err != nil {
+		log.Printf("NEZHA>> GeoIP reload failed: %v", err)
+	}
+	audit.Record(c, audit.TypeConfig, "GeoIP database updated", "")
+	c.JSON(http.StatusOK, model.Response{
+		Code: http.StatusOK,
+	})
 }
 
 func (ma *memberAPI) listLogs(c *gin.Context) {

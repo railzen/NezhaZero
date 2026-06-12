@@ -814,6 +814,33 @@ other = "d"
 [CustomNameservers]
 other = "Servidores DNS públicos personalizados para DDNS (separar con coma)"
 
+[GeoIP]
+other = "GeoIP"
+
+[EnableGeoIP]
+other = "Usar búsqueda GeoIP externa por país/región"
+
+[GeoIPDownloadBtn]
+other = "Descargar base de datos GeoIP"
+
+[GeoIPUpdateBtn]
+other = "Actualizar base de datos GeoIP"
+
+[GeoIPDisabledHint]
+other = "Desactivado"
+
+[GeoIPLastUpdated]
+other = "Última actualización"
+
+[GeoIPNotDownloaded]
+other = "No descargada"
+
+[GeoIPUpdateSuccess]
+other = "Base de datos GeoIP actualizada correctamente"
+
+[GeoIPUpdateFailed]
+other = "Error al actualizar la base de datos GeoIP"
+
 [Plan]
 other = "Plan"
 

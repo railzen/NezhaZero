@@ -120,6 +120,9 @@ type Config struct {
 	CompatAPIDisable                bool // 兼容API开关
 	UseTemplateHandleNoRoute        bool // 用模板处理无路由情况
 
+	// GeoIP 根据 IP 解析国家/地区码
+	EnableGeoIP bool
+
 	// IP变更提醒
 	EnableIPChangeNotification bool
 	IPChangeNotificationTag    string

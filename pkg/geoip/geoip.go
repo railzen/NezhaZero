@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"sync"
 
 	maxminddb "github.com/oschwald/maxminddb-golang"
 )
@@ -14,8 +15,8 @@ import (
 var geoDBFS embed.FS
 
 var (
-	dbData []byte
-	err    error
+	embeddedMu sync.RWMutex
+	dbData     []byte
 )
 
 type IPInfo struct {
@@ -25,15 +26,42 @@ type IPInfo struct {
 	ContinentName string `maxminddb:"continent_name"`
 }
 
-func init() {
-	dbData, err = geoDBFS.ReadFile("geoip.db")
+func embeddedData() ([]byte, error) {
+	embeddedMu.RLock()
+	data := dbData
+	embeddedMu.RUnlock()
+	if len(data) > 0 {
+		return data, nil
+	}
+
+	embeddedMu.Lock()
+	defer embeddedMu.Unlock()
+	if len(dbData) > 0 {
+		return dbData, nil
+	}
+
+	data, err := geoDBFS.ReadFile("geoip.db")
 	if err != nil {
 		log.Printf("NEZHA>> Failed to open geoip database: %v", err)
+		return nil, err
 	}
+	dbData = data
+	return dbData, nil
+}
+
+func unloadEmbedded() {
+	embeddedMu.Lock()
+	dbData = nil
+	embeddedMu.Unlock()
 }
 
 func Lookup(ip net.IP, record *IPInfo) (string, error) {
-	db, err := maxminddb.FromBytes(dbData)
+	data, err := embeddedData()
+	if err != nil {
+		return "", err
+	}
+
+	db, err := maxminddb.FromBytes(data)
 	if err != nil {
 		return "", err
 	}

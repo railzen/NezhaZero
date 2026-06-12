@@ -99,6 +99,29 @@
                 <input type="text" name="CustomNameservers" placeholder="" value="{{.Conf.DNSServers}}">
             </div>
             <div class="field">
+                <label>{{tr "GeoIP"}}</label>
+            </div>
+            <div class="ui segment">
+                <div class="field">
+                    <div class="ui checkbox enable-geoip">
+                        <input name="EnableGeoIP" type="checkbox" tabindex="0" class="hidden">
+                        <label>{{tr "EnableGeoIP"}}</label>
+                    </div>
+                </div>
+                <div class="field nb-geoip-actions" style="display: flex; align-items: center; margin-bottom: 0;">
+                    <span class="nb-geoip-status{{if not .GeoIPDownloaded}}{{if .Conf.EnableGeoIP}} nb-geoip-status-pending{{else}} nb-geoip-status-off{{end}}{{end}}" style="display: inline-flex; align-items: center; flex-grow: 1; margin-right: 5px; min-width: 0;">
+                        {{if .GeoIPDownloaded}}
+                        <i class="globe icon"></i>
+                        <span class="nb-geoip-status-text">{{tr "GeoIPLastUpdated"}} {{.GeoIPUpdatedAt}}</span>
+                        {{else}}
+                        <i class="globe icon{{if .Conf.EnableGeoIP}} nb-geoip-icon-warn{{end}}"></i>
+                        <span class="nb-geoip-status-text">{{if .Conf.EnableGeoIP}}{{tr "GeoIPNotDownloaded"}}{{else}}{{tr "GeoIPDisabledHint"}}{{end}}</span>
+                        {{end}}
+                    </span>
+                    <button type="button" class="ui button" id="geoipUpdateBtn" style="flex-shrink: 0;">{{if .GeoIPDownloaded}}{{tr "GeoIPUpdateBtn"}}{{else}}{{tr "GeoIPDownloadBtn"}}{{end}}</button>
+                </div>
+            </div>
+            <div class="field">
                 <label>{{tr "CustomCodes"}}</label>
                 <textarea name="CustomCode">{{.Conf.Site.CustomCode}}</textarea>
             </div>
@@ -184,6 +207,53 @@
     </div>
 </div>
 {{template "common/footer" .}}
+<style>
+    .nb-geoip-status {
+        gap: 0.45em;
+        color: #000;
+        font-size: 1rem;
+        line-height: 1;
+        min-height: 36px;
+    }
+
+    .nb-geoip-status > .icon {
+        margin: 0 !important;
+        flex: 0 0 auto;
+        line-height: 1;
+        height: 1em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nb-geoip-status-text {
+        line-height: 1.21428571em;
+    }
+
+    .nb-geoip-status-pending > .icon.nb-geoip-icon-warn {
+        color: #d64545 !important;
+    }
+
+    .nb-geoip-status-off > .icon {
+        color: rgba(0, 0, 0, 0.45) !important;
+    }
+
+    html[nz-theme='dark'] .nb-geoip-status {
+        color: rgba(255, 255, 255, 0.87);
+    }
+
+    html[nz-theme='dark'] .nb-geoip-status > .icon:not(.nb-geoip-icon-warn) {
+        color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    html[nz-theme='dark'] .nb-geoip-status-pending > .icon.nb-geoip-icon-warn {
+        color: #ff7070 !important;
+    }
+
+    html[nz-theme='dark'] .nb-geoip-status-off > .icon {
+        color: rgba(255, 255, 255, 0.45) !important;
+    }
+</style>
 <script>
     $('#settingForm').submit(function () {
         $.post('/api/setting', $('#settingForm').serialize())
@@ -363,7 +433,49 @@
         position: 'bottom left',
         delay: { show: 0, hide: 150 },
     });
+    $('#geoipUpdateBtn').on('click', function () {
+        const $btn = $(this);
+        $btn.addClass('loading disabled');
+        $.ajax({
+            url: '/api/geoip/update',
+            type: 'POST',
+            success: function (resp) {
+                $btn.removeClass('loading disabled');
+                if (resp.code !== 200) {
+                    $.suiAlert({
+                        title: '',
+                        description: resp.message || '{{tr "GeoIPUpdateFailed"}}',
+                        type: 'error',
+                        time: '5',
+                        position: 'top-center',
+                    });
+                    return;
+                }
+                $.suiAlert({
+                    title: '',
+                    description: '{{tr "GeoIPUpdateSuccess"}}',
+                    type: 'success',
+                    time: '3',
+                    position: 'top-center',
+                });
+                setTimeout(function () { location.reload(); }, 800);
+            },
+            error: function (xhr) {
+                $btn.removeClass('loading disabled');
+                $.suiAlert({
+                    title: '',
+                    description: xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : '{{tr "GeoIPUpdateFailed"}}',
+                    type: 'error',
+                    time: '5',
+                    position: 'top-center',
+                });
+            },
+        });
+    });
     $('#settingForm').find("select[name=Cover]").val({{.Conf.Cover }});
+    {{ if .Conf.EnableGeoIP}}
+    $('.checkbox.enable-geoip').checkbox('set checked')
+    {{ end }}
     {{ if .Conf.EnableIPChangeNotification}}
     $('.checkbox.ip-change').checkbox('set checked')
     {{ end }}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 	_ "time/tzdata"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/railzen/nezha-zero/cmd/dashboard/rpc"
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/pkg/audit"
+	"github.com/railzen/nezha-zero/pkg/geoip"
 	"github.com/railzen/nezha-zero/proto"
 	"github.com/railzen/nezha-zero/service/singleton"
 	flag "github.com/spf13/pflag"
@@ -61,6 +63,10 @@ func main() {
 	singleton.InitConfigFromPath(dashboardCliParam.ConfigFile)
 	singleton.InitTimezoneAndCache()
 	singleton.InitDBFromPath(dashboardCliParam.DatebaseLocation)
+	geoip.InitExternal(filepath.Dir(dashboardCliParam.DatebaseLocation))
+	if err := geoip.ReloadExternal(singleton.Conf.EnableGeoIP); err != nil {
+		log.Printf("NEZHA>> GeoIP reload failed: %v", err)
+	}
 	singleton.InitLocalizer()
 	initSystem()
 	audit.StartWatchdog()

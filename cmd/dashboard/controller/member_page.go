@@ -3,11 +3,13 @@ package controller
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/pkg/audit"
+	"github.com/railzen/nezha-zero/pkg/geoip"
 	"github.com/railzen/nezha-zero/pkg/mygin"
 	"github.com/railzen/nezha-zero/service/singleton"
 )
@@ -103,10 +105,20 @@ func (mp *memberPage) nat(c *gin.Context) {
 }
 
 func (mp *memberPage) setting(c *gin.Context) {
+	geoIPUpdatedAt := ""
+	if geoip.Downloaded() {
+		loc, err := time.LoadLocation(singleton.Conf.Location)
+		if err != nil {
+			loc = time.Local
+		}
+		geoIPUpdatedAt = geoip.UpdatedAt().In(loc).Format("2006-01-02 15:04:05")
+	}
 	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/setting", mygin.CommonEnvironment(c, gin.H{
 		"Title":           singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Settings"}),
 		"Languages":       model.Languages,
 		"DashboardThemes": model.DashboardThemes,
+		"GeoIPDownloaded": geoip.Downloaded(),
+		"GeoIPUpdatedAt":  geoIPUpdatedAt,
 	}))
 }
 

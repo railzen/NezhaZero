@@ -66,6 +66,7 @@ type SettingChangeInput struct {
 	CustomCodeDashboardChanged      bool
 	ViewPasswordChanged             bool
 	CustomNameservers               string
+	EnableGeoIP                     bool
 	EnableIPChangeNotification      bool
 	EnablePlainIPInNotification     bool
 	DisableSwitchTemplateInFrontend bool
@@ -135,6 +136,7 @@ func BuildConfigSettingDetail(before *model.Config, in SettingChangeInput) strin
 	appendStrChange(&changes, "ignored IPs for notification", before.IgnoredIPNotification, in.IgnoredIPNotification)
 	appendStrChange(&changes, "IP change notification tag", before.IPChangeNotificationTag, in.IPChangeNotificationTag)
 	appendUint8Change(&changes, "notification cover mode", before.Cover, in.Cover)
+	appendBoolChange(&changes, "GeoIP lookup", before.EnableGeoIP, in.EnableGeoIP)
 	appendBoolChange(&changes, "IP change notification", before.EnableIPChangeNotification, in.EnableIPChangeNotification)
 	appendBoolChange(&changes, "plain IP in notification", before.EnablePlainIPInNotification, in.EnablePlainIPInNotification)
 	appendBoolChange(&changes, "disable frontend theme switch", before.DisableSwitchTemplateInFrontend, in.DisableSwitchTemplateInFrontend)
