@@ -1217,9 +1217,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	}
 
 	if err := singleton.Conf.Save(); err != nil {
-		if passwordChanged {
-			singleton.Conf.Site.AdminPassword = oldAdminPassword
-		}
+		*singleton.Conf = oldConf
 		c.JSON(http.StatusOK, model.Response{
 			Code:    http.StatusBadRequest,
 			Message: fmt.Sprintf("请求错误：%s", err),
