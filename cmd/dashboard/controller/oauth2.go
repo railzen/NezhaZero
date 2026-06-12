@@ -49,8 +49,8 @@ var loginChallengeConsumeMu sync.Mutex
 const (
 	loginChallengeCachePrefix = "login_challenge_"
 	loginChallengeTTL         = 5 * time.Minute
-	authRateLimit1sKey        = "authinfo_r1s"
-	authRateLimit1mKey        = "authinfo_r1m"
+	authRateLimit1sKey        = "authrate_r1s"
+	authRateLimit1mKey        = "authrate_r1m"
 	authRateLimit1sMax        = 9
 	authRateLimit1mMax        = 120
 )
