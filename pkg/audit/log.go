@@ -43,6 +43,16 @@ type serverWatchState struct {
 	highMemLogged  bool
 }
 
+// serverWatchSnapshot 在锁内拷贝的只读快照，避免 Watchdog 持锁期间写审计库。
+type serverWatchSnapshot struct {
+	id         uint64
+	name       string
+	lastActive time.Time
+	cpu        float64
+	memUsed    uint64
+	memTotal   uint64
+}
+
 type TypeOption struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
@@ -218,22 +228,51 @@ func writeAliveToDB() {
 		Updates(map[string]interface{}{"last_alive": time.Now(), "running": true}).Error
 }
 
-func isServerOnline(server *model.Server) bool {
-	if server == nil || server.LastActive.IsZero() {
+func isServerOnline(lastActive time.Time) bool {
+	if lastActive.IsZero() {
 		return false
 	}
-	return time.Since(server.LastActive) < serverOfflineThreshold
+	return time.Since(lastActive) < serverOfflineThreshold
 }
 
-func checkServerStates(states map[uint64]*serverWatchState) {
+func snapshotMemoryPercent(snap serverWatchSnapshot) float64 {
+	if snap.memTotal == 0 {
+		return 0
+	}
+	return float64(snap.memUsed) / float64(snap.memTotal) * 100
+}
+
+func snapshotServersForWatch() []serverWatchSnapshot {
 	singleton.ServerLock.RLock()
 	defer singleton.ServerLock.RUnlock()
 
+	snaps := make([]serverWatchSnapshot, 0, len(singleton.ServerList))
 	for id, server := range singleton.ServerList {
 		if server == nil {
 			continue
 		}
-		online := isServerOnline(server)
+		snap := serverWatchSnapshot{
+			id:         id,
+			name:       server.Name,
+			lastActive: server.LastActive,
+		}
+		if server.State != nil {
+			snap.cpu = server.State.CPU
+			snap.memUsed = server.State.MemUsed
+		}
+		if server.Host != nil {
+			snap.memTotal = server.Host.MemTotal
+		}
+		snaps = append(snaps, snap)
+	}
+	return snaps
+}
+
+func checkServerStates(states map[uint64]*serverWatchState) {
+	snaps := snapshotServersForWatch()
+	for _, snap := range snaps {
+		id := snap.id
+		online := isServerOnline(snap.lastActive)
 		st, ok := states[id]
 		if !ok {
 			states[id] = &serverWatchState{wasOnline: online}
@@ -242,10 +281,10 @@ func checkServerStates(states map[uint64]*serverWatchState) {
 		if online && !st.wasOnline {
 			if st.offlineLogged {
 				recordServerWatchRecovery(id, "Server offline recovered",
-					fmt.Sprintf("server: %s (ID %d)", server.Name, id))
+					fmt.Sprintf("server: %s (ID %d)", snap.name, id))
 			} else {
 				Record(nil, TypeEvent, "Server online",
-					fmt.Sprintf("server: %s (ID %d)", server.Name, id))
+					fmt.Sprintf("server: %s (ID %d)", snap.name, id))
 			}
 			st.offlineLogged = false
 			st.highLoadSince = time.Time{}
@@ -254,10 +293,10 @@ func checkServerStates(states map[uint64]*serverWatchState) {
 			st.highMemLogged = false
 		}
 		if !online && st.wasOnline && !st.offlineLogged {
-			if server.LastActive.IsZero() || time.Since(server.LastActive) >= serverOfflineThreshold {
-				detail := fmt.Sprintf("server: %s (ID %d)", server.Name, id)
-				if !server.LastActive.IsZero() {
-					detail += fmt.Sprintf(", last active at %s", server.LastActive.Format(time.RFC3339))
+			if snap.lastActive.IsZero() || time.Since(snap.lastActive) >= serverOfflineThreshold {
+				detail := fmt.Sprintf("server: %s (ID %d)", snap.name, id)
+				if !snap.lastActive.IsZero() {
+					detail += fmt.Sprintf(", last active at %s", snap.lastActive.Format(time.RFC3339))
 				}
 				recordServerWatchEvent(id, "Server offline", detail, TriggerReasonOffline)
 				st.offlineLogged = true
@@ -269,40 +308,18 @@ func checkServerStates(states map[uint64]*serverWatchState) {
 			st.highMemSince = time.Time{}
 			st.highMemLogged = false
 		} else {
-			checkServerHighLoad(st, server, id)
-			checkServerHighMemory(st, server, id)
+			checkServerHighLoad(st, snap)
+			checkServerHighMemory(st, snap)
 		}
 		st.wasOnline = online
 	}
 }
 
-func isServerHighLoad(server *model.Server) bool {
-	if server == nil || server.State == nil {
-		return false
-	}
-	return server.State.CPU >= highLoadCPUThreshold
-}
-
-func serverMemoryPercent(server *model.Server) float64 {
-	if server == nil || server.State == nil || server.Host == nil || server.Host.MemTotal == 0 {
-		return 0
-	}
-	return float64(server.State.MemUsed) / float64(server.Host.MemTotal) * 100
-}
-
-func isServerHighMemory(server *model.Server) bool {
-	return serverMemoryPercent(server) >= highMemoryThreshold
-}
-
-func checkServerHighLoad(st *serverWatchState, server *model.Server, id uint64) {
-	high := isServerHighLoad(server)
+func checkServerHighLoad(st *serverWatchState, snap serverWatchSnapshot) {
+	high := snap.cpu >= highLoadCPUThreshold
 	if st.highLoadLogged && !high {
-		cpu := 0.0
-		if server.State != nil {
-			cpu = server.State.CPU
-		}
-		recordServerWatchRecovery(id, "Server high load recovered",
-			fmt.Sprintf("server: %s (ID %d), CPU %.1f%%", server.Name, id, cpu))
+		recordServerWatchRecovery(snap.id, "Server high load recovered",
+			fmt.Sprintf("server: %s (ID %d), CPU %.1f%%", snap.name, snap.id, snap.cpu))
 		st.highLoadSince = time.Time{}
 		st.highLoadLogged = false
 		return
@@ -319,18 +336,19 @@ func checkServerHighLoad(st *serverWatchState, server *model.Server, id uint64) 
 	if st.highLoadLogged || time.Since(st.highLoadSince) < highLoadDuration {
 		return
 	}
-	recordServerWatchEvent(id, "Server high load",
+	recordServerWatchEvent(snap.id, "Server high load",
 		fmt.Sprintf("server: %s (ID %d), CPU %.1f%%, sustained for %d minutes",
-			server.Name, id, server.State.CPU, int(highLoadDuration.Minutes())),
+			snap.name, snap.id, snap.cpu, int(highLoadDuration.Minutes())),
 		TriggerReasonHighCPU)
 	st.highLoadLogged = true
 }
 
-func checkServerHighMemory(st *serverWatchState, server *model.Server, id uint64) {
-	high := isServerHighMemory(server)
+func checkServerHighMemory(st *serverWatchState, snap serverWatchSnapshot) {
+	mem := snapshotMemoryPercent(snap)
+	high := mem >= highMemoryThreshold
 	if st.highMemLogged && !high {
-		recordServerWatchRecovery(id, "Server high memory recovered",
-			fmt.Sprintf("server: %s (ID %d), memory %.1f%%", server.Name, id, serverMemoryPercent(server)))
+		recordServerWatchRecovery(snap.id, "Server high memory recovered",
+			fmt.Sprintf("server: %s (ID %d), memory %.1f%%", snap.name, snap.id, mem))
 		st.highMemSince = time.Time{}
 		st.highMemLogged = false
 		return
@@ -347,10 +365,9 @@ func checkServerHighMemory(st *serverWatchState, server *model.Server, id uint64
 	if st.highMemLogged || time.Since(st.highMemSince) < highLoadDuration {
 		return
 	}
-	mem := serverMemoryPercent(server)
-	recordServerWatchEvent(id, "Server high memory",
+	recordServerWatchEvent(snap.id, "Server high memory",
 		fmt.Sprintf("server: %s (ID %d), memory %.1f%%, sustained for %d minutes",
-			server.Name, id, mem, int(highLoadDuration.Minutes())),
+			snap.name, snap.id, mem, int(highLoadDuration.Minutes())),
 		TriggerReasonHighMemory)
 	st.highMemLogged = true
 }

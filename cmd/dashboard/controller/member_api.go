@@ -204,6 +204,7 @@ func (ma *memberAPI) delete(c *gin.Context) {
 	var err error
 	switch c.Param("model") {
 	case "server":
+		serverDetail := serverAuditLabel(id)
 		err := singleton.DB.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Unscoped().Delete(&model.Server{}, "id = ?", id).Error; err != nil {
 				return err
@@ -219,6 +220,7 @@ func (ma *memberAPI) delete(c *gin.Context) {
 			onServerDelete(id)
 			singleton.ServerLock.Unlock()
 			singleton.ReSortServer()
+			audit.Record(c, audit.TypeConfig, "Server deleted", serverDetail)
 		}
 	case "notification":
 		err = singleton.DB.Unscoped().Delete(&model.Notification{}, "id = ?", id).Error
@@ -1496,6 +1498,10 @@ func (ma *memberAPI) batchDeleteServer(c *gin.Context) {
 		})
 		return
 	}
+	serverDetails := make([]string, len(servers))
+	for i, id := range servers {
+		serverDetails[i] = serverAuditLabel(id)
+	}
 	if err := singleton.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Unscoped().Delete(&model.Server{}, "id in (?)", servers).Error; err != nil {
 			return err
@@ -1518,9 +1524,26 @@ func (ma *memberAPI) batchDeleteServer(c *gin.Context) {
 	}
 	singleton.ServerLock.Unlock()
 	singleton.ReSortServer()
+	for _, detail := range serverDetails {
+		audit.Record(c, audit.TypeConfig, "Server deleted", detail)
+	}
 	c.JSON(http.StatusOK, model.Response{
 		Code: http.StatusOK,
 	})
+}
+
+func serverAuditLabel(id uint64) string {
+	singleton.ServerLock.RLock()
+	s := singleton.ServerList[id]
+	singleton.ServerLock.RUnlock()
+	if s != nil {
+		return fmt.Sprintf("server: %s (ID %d)", s.Name, id)
+	}
+	var row model.Server
+	if err := singleton.DB.Select("name").First(&row, id).Error; err == nil && row.Name != "" {
+		return fmt.Sprintf("server: %s (ID %d)", row.Name, id)
+	}
+	return fmt.Sprintf("server ID %d", id)
 }
 
 func onServerDelete(id uint64) {
