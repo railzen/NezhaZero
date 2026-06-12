@@ -205,7 +205,7 @@ func (ma *memberAPI) delete(c *gin.Context) {
 	switch c.Param("model") {
 	case "server":
 		serverDetail := serverAuditLabel(id)
-		err := singleton.DB.Transaction(func(tx *gorm.DB) error {
+		err = singleton.DB.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Unscoped().Delete(&model.Server{}, "id = ?", id).Error; err != nil {
 				return err
 			}
