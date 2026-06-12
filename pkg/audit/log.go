@@ -78,7 +78,9 @@ func BuildSecuritySettingDetail(before *model.Config, in SettingChangeInput) str
 		return ""
 	}
 	var changes []string
-	appendStrChange(&changes, "admin users", before.Oauth2.Admin, in.Admin)
+	if before.Oauth2.Admin != in.Admin {
+		changes = append(changes, "admin user list changed")
+	}
 	appendBoolChange(&changes, "OAuth login disabled", before.Oauth2.DisableOauthLogin, in.DisableOauthLogin)
 	appendBoolChange(&changes, "password login disabled", before.Site.DisablePasswordLogin, in.DisablePasswordLogin)
 	appendBoolChange(&changes, "compat API disabled", before.CompatAPIDisable, in.CompatAPIDisable)
@@ -105,7 +107,9 @@ func BuildConfigSettingDetail(before *model.Config, in SettingChangeInput) strin
 	appendStrChange(&changes, "frontend theme", before.Site.Theme, in.Theme)
 	appendStrChange(&changes, "dashboard theme", before.Site.DashboardTheme, in.DashboardTheme)
 	appendStrChange(&changes, "gRPC host", before.GRPCHost, in.GRPCHost)
-	appendStrChange(&changes, "gRPC discover key", before.GRPCDiscoverKey, in.GRPCDiscoverKey)
+	if before.GRPCDiscoverKey != in.GRPCDiscoverKey {
+		changes = append(changes, "gRPC discover key changed")
+	}
 	appendStrChange(&changes, "DNS servers", before.DNSServers, in.CustomNameservers)
 	appendStrChange(&changes, "ignored IPs for notification", before.IgnoredIPNotification, in.IgnoredIPNotification)
 	appendStrChange(&changes, "IP change notification tag", before.IPChangeNotificationTag, in.IPChangeNotificationTag)

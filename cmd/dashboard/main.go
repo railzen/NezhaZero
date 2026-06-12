@@ -64,9 +64,8 @@ func main() {
 	singleton.InitLocalizer()
 	initSystem()
 	audit.Record(nil, audit.TypeEvent, "Dashboard started", fmt.Sprintf(
-		"version %s, HTTP port %d, gRPC port %d, TLS %t",
-		singleton.Version, singleton.Conf.HTTPPort, singleton.Conf.GRPCPort, singleton.Conf.TLS,
-	))
+		"version %s, HTTP port %d, GRPC port %d",
+		singleton.Version, singleton.Conf.HTTPPort, singleton.Conf.GRPCPort))
 
 	// 开启 gRPC
 	singleton.CleanMonitorHistory()
