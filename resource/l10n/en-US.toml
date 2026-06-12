@@ -16,6 +16,54 @@ other = "Notifications"
 [Settings]
 other = "Settings"
 
+[Log]
+other = "Logs"
+
+[LogType]
+other = "Type"
+
+[LogTypeAll]
+other = "All"
+
+[LogTypeAuth]
+other = "Authentication"
+
+[LogTypeSecurity]
+other = "Security"
+
+[LogTypeConfig]
+other = "Configuration"
+
+[LogTypeEvent]
+other = "Event"
+
+[LogTime]
+other = "Time"
+
+[LogAction]
+other = "Action"
+
+[LogDetail]
+other = "Detail"
+
+[LogRecordCount]
+other = "Records"
+
+[LogPrevPage]
+other = "Previous"
+
+[LogNextPage]
+other = "Next"
+
+[LogPageInfo]
+other = "Page {{.Page}} / {{.TotalPages}}"
+
+[LogEmpty]
+other = "No logs yet"
+
+[LogLoadFailed]
+other = "Failed to load logs"
+
 [Home]
 other = "Home"
 
@@ -827,4 +875,4 @@ other = "Confirm enable"
 other = "Disable two-factor authentication and remove the bound secret?"
 
 [TwoFactorV1LoginHint]
-other = "When password two-factor authentication is enabled, V1 password login is rejected. Use the web login page."
+other = "For security reasons, two-factor authentication disables V1 API authentication"

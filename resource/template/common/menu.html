@@ -19,6 +19,7 @@
             <a class='item wide-link{{if eq .MatchedPath "/notification"}} active{{end}}' href="/notification"><i class="bell icon"></i> {{tr "Notification"}}</a>
             <a class='item wide-link{{if eq .MatchedPath "/ddns"}} active{{end}}' href="/ddns"><i class="globe icon"></i> {{tr "DDNS"}}</a>
             <a class='item wide-link{{if eq .MatchedPath "/nat"}} active{{end}}' href="/nat"><i class="exchange icon"></i> {{tr "NAT"}}</a>
+            <a class='item wide-link{{if eq .MatchedPath "/log"}} active{{end}}' href="/log"><i class="history icon"></i> {{tr "Log"}}</a>
             <a class='item wide-link{{if eq .MatchedPath "/setting"}} active{{end}}' href="/setting"><i class="settings icon"></i> {{tr "Settings"}}</a>
         {{else}}
             <a class='item wide-link{{if eq .MatchedPath "/"}} active{{end}}' href="/"><i class="home icon"></i> {{tr "Home"}}</a>
@@ -34,6 +35,7 @@
                 <a class='item{{if eq .MatchedPath "/notification"}} active{{end}}' href="/notification"><i class="bell icon"></i> {{tr "Notification"}}</a>
                 <a class='item{{if eq .MatchedPath "/ddns"}} active{{end}}' href="/ddns"><i class="globe icon"></i> {{tr "DDNS"}}</a>
                 <a class='item{{if eq .MatchedPath "/nat"}} active{{end}}' href="/nat"><i class="exchange icon"></i> {{tr "NAT"}}</a>
+                <a class='item{{if eq .MatchedPath "/log"}} active{{end}}' href="/log"><i class="history icon"></i> {{tr "Log"}}</a>
                 <a class='item{{if eq .MatchedPath "/setting"}} active{{end}}' href="/setting"><i class="settings icon"></i> {{tr "Settings"}}</a>
             {{else}}
                 <a class='item{{if eq .MatchedPath "/"}} active{{end}}' href="/"><i class="home icon"></i> {{tr "Home"}}</a>

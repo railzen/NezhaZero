@@ -16,6 +16,54 @@ other = "Notificaciones"
 [Settings]
 other = "Configuraciones"
 
+[Log]
+other = "Registros"
+
+[LogType]
+other = "Tipo"
+
+[LogTypeAll]
+other = "Todos"
+
+[LogTypeAuth]
+other = "Autenticación"
+
+[LogTypeSecurity]
+other = "Seguridad"
+
+[LogTypeConfig]
+other = "Configuración"
+
+[LogTypeEvent]
+other = "Evento"
+
+[LogTime]
+other = "Hora"
+
+[LogAction]
+other = "Acción"
+
+[LogDetail]
+other = "Detalle"
+
+[LogRecordCount]
+other = "Registros"
+
+[LogPrevPage]
+other = "Anterior"
+
+[LogNextPage]
+other = "Siguiente"
+
+[LogPageInfo]
+other = "Página {{.Page}} / {{.TotalPages}}"
+
+[LogEmpty]
+other = "No hay registros"
+
+[LogLoadFailed]
+other = "Error al cargar los registros"
+
 [Home]
 other = "Inicio"
 
@@ -818,4 +866,4 @@ other = "Confirmar activación"
 other = "¿Desactivar la autenticación en dos pasos y eliminar el secreto vinculado?"
 
 [TwoFactorV1LoginHint]
-other = "Con la autenticación en dos pasos activada, el inicio de sesión por contraseña V1 se rechaza. Use la página web."
+other = "Por seguridad, la autenticación en dos pasos desactiva la autenticación de la API V1"

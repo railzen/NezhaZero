@@ -18,6 +18,7 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 	"github.com/railzen/nezha-zero/pkg/mygin"
 	"github.com/railzen/nezha-zero/pkg/utils"
 	"github.com/railzen/nezha-zero/proto"
@@ -244,6 +245,25 @@ var funcMap = template.FuncMap{
 	},
 	"tf": func(t time.Time) string {
 		return t.In(singleton.Loc).Format("01/02/2006 15:04:05")
+	},
+	"tfymd": func(t time.Time) string {
+		return t.In(singleton.Loc).Format("2006/01/02 15:04:05")
+	},
+	"logTypeLabel": func(typ string) string {
+		var messageID string
+		switch typ {
+		case audit.TypeAuth:
+			messageID = "LogTypeAuth"
+		case audit.TypeSecurity:
+			messageID = "LogTypeSecurity"
+		case audit.TypeConfig:
+			messageID = "LogTypeConfig"
+		case audit.TypeEvent:
+			messageID = "LogTypeEvent"
+		default:
+			return typ
+		}
+		return singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: messageID})
 	},
 	"len": func(slice []interface{}) string {
 		return strconv.Itoa(len(slice))

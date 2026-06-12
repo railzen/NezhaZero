@@ -19,6 +19,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 	"github.com/railzen/nezha-zero/pkg/mygin"
 	"github.com/railzen/nezha-zero/pkg/totp"
 	"github.com/railzen/nezha-zero/pkg/utils"
@@ -59,6 +60,7 @@ func (ma *memberAPI) serve() {
 	mr.POST("/totp", ma.totp)
 	mr.DELETE("/:model/:id", ma.delete)
 	mr.POST("/logout", ma.logout)
+	mr.GET("/log", ma.listLogs)
 	mr.GET("/token", ma.getToken)
 	mr.POST("/token", ma.issueNewToken)
 	mr.DELETE("/token/:token", ma.deleteToken)
@@ -141,6 +143,7 @@ func (ma *memberAPI) issueNewToken(c *gin.Context) {
 			"note":  token.Note,
 		},
 	})
+	audit.Record(c, audit.TypeSecurity, "API token issued", fmt.Sprintf("user: %s, note: %q", u.Login, tf.Note))
 }
 
 // deleteToken 删除 token
@@ -162,6 +165,7 @@ func (ma *memberAPI) deleteToken(c *gin.Context) {
 		})
 		return
 	}
+	tokenNote := singleton.ApiTokenList[token].Note
 	// 在数据库中删除该Token
 	singleton.DB.Unscoped().Delete(&model.ApiToken{}, "token = ?", token)
 
@@ -181,6 +185,7 @@ func (ma *memberAPI) deleteToken(c *gin.Context) {
 		Code:    http.StatusOK,
 		Message: "success",
 	})
+	audit.Record(c, audit.TypeSecurity, "API token revoked", fmt.Sprintf("note: %q", tokenNote))
 }
 
 func (ma *memberAPI) delete(c *gin.Context) {
@@ -1014,6 +1019,7 @@ func (ma *memberAPI) logout(c *gin.Context) {
 	c.JSON(http.StatusOK, model.Response{
 		Code: http.StatusOK,
 	})
+	audit.Record(c, audit.TypeAuth, "Logout", fmt.Sprintf("session terminated, user: %s", admin.Login))
 
 	if oidcLogoutUrl := singleton.Conf.Oauth2.OidcLogoutURL; oidcLogoutUrl != "" {
 		// 重定向到 OIDC 退出登录地址。不知道为什么，这里的重定向不生效
@@ -1158,6 +1164,8 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		return
 	}
 
+	oldConf := *singleton.Conf
+
 	if disablePasswordLogin {
 		singleton.Conf.Site.TwoFactorSecret = ""
 	}
@@ -1208,6 +1216,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	if passwordChanged {
 		singleton.DB.Unscoped().Where("1 = 1").Delete(&model.User{})
 		mygin.ClearSessionCookies(c)
+		audit.Record(c, audit.TypeAuth, "Logout", "all sessions revoked due to admin password change")
 	}
 	// 更新系统语言
 	singleton.InitLocalizer()
@@ -1215,6 +1224,71 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	singleton.OnNameserverUpdate()
 	c.JSON(http.StatusOK, model.Response{
 		Code: http.StatusOK,
+	})
+	settingIn := audit.SettingChangeInput{
+		Title:                           sf.Title,
+		Admin:                           sf.Admin,
+		Language:                        sf.Language,
+		Theme:                           sf.Theme,
+		DashboardTheme:                  sf.DashboardTheme,
+		CustomCodeChanged:               oldConf.Site.CustomCode != sf.CustomCode,
+		CustomCodeDashboardChanged:      oldConf.Site.CustomCodeDashboard != sf.CustomCodeDashboard,
+		ViewPasswordChanged:             oldConf.Site.ViewPassword != sf.ViewPassword,
+		CustomNameservers:               sf.CustomNameservers,
+		EnableIPChangeNotification:      sf.EnableIPChangeNotification == "on",
+		EnablePlainIPInNotification:     sf.EnablePlainIPInNotification == "on",
+		DisableSwitchTemplateInFrontend: sf.DisableSwitchTemplateInFrontend == "on",
+		CompatAPIDisable:                sf.CompatAPIDisable == "on",
+		UseTemplateHandleNoRoute:        sf.UseTemplateHandleNoRoute == "on",
+		DisableOauthLogin:               disableOauthLogin,
+		DisablePasswordLogin:            disablePasswordLogin,
+		GRPCHost:                        sf.GRPCHost,
+		GRPCDiscoverKey:                 sf.GRPCDiscoverKey,
+		Cover:                           sf.Cover,
+		IgnoredIPNotification:           sf.IgnoredIPNotification,
+		IPChangeNotificationTag:         singleton.Conf.IPChangeNotificationTag,
+		PasswordChanged:                 passwordChanged,
+		TwoFactorCleared:                disablePasswordLogin && oldConf.Site.TwoFactorSecret != "",
+	}
+	if detail := audit.BuildSecuritySettingDetail(&oldConf, settingIn); detail != "" {
+		audit.Record(c, audit.TypeSecurity, "Security settings updated", detail)
+	}
+	if detail := audit.BuildConfigSettingDetail(&oldConf, settingIn); detail != "" {
+		audit.Record(c, audit.TypeConfig, "Settings updated", detail)
+	}
+}
+
+func (ma *memberAPI) listLogs(c *gin.Context) {
+	audit.PruneExcess()
+	typ := c.Query("type")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 200 {
+		limit = 50
+	}
+
+	q := singleton.DB.Model(&model.AuditLog{})
+	if typ != "" && typ != "all" {
+		q = q.Where("type = ?", typ)
+	}
+	var total int64
+	q.Count(&total)
+
+	var logs []model.AuditLog
+	q.Order("created_at DESC").Offset((page - 1) * limit).Limit(limit).Find(&logs)
+
+	c.JSON(http.StatusOK, model.Response{
+		Code: http.StatusOK,
+		Result: gin.H{
+			"logs":  logs,
+			"total": total,
+			"page":  page,
+			"limit": limit,
+			"types": audit.TypeOptions(),
+		},
 	})
 }
 
@@ -1346,6 +1420,7 @@ func (ma *memberAPI) totp(c *gin.Context) {
 			Code:    http.StatusOK,
 			Message: "双重验证已启用",
 		})
+		audit.Record(c, audit.TypeSecurity, "Two-factor enabled", "TOTP binding confirmed and saved to site config")
 
 	case "unbind":
 		if !singleton.Conf.TwoFactorActive() {
@@ -1369,6 +1444,7 @@ func (ma *memberAPI) totp(c *gin.Context) {
 			Code:    http.StatusOK,
 			Message: "双重验证已关闭",
 		})
+		audit.Record(c, audit.TypeSecurity, "Two-factor disabled", "TOTP secret removed from site config")
 
 	default:
 		c.JSON(http.StatusOK, model.Response{

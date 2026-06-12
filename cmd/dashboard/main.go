@@ -12,6 +12,7 @@ import (
 	"github.com/railzen/nezha-zero/cmd/dashboard/controller"
 	"github.com/railzen/nezha-zero/cmd/dashboard/rpc"
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 	"github.com/railzen/nezha-zero/proto"
 	"github.com/railzen/nezha-zero/service/singleton"
 	flag "github.com/spf13/pflag"
@@ -62,6 +63,10 @@ func main() {
 	singleton.InitDBFromPath(dashboardCliParam.DatebaseLocation)
 	singleton.InitLocalizer()
 	initSystem()
+	audit.Record(nil, audit.TypeEvent, "Dashboard started", fmt.Sprintf(
+		"version %s, HTTP port %d, gRPC port %d, TLS %t",
+		singleton.Version, singleton.Conf.HTTPPort, singleton.Conf.GRPCPort, singleton.Conf.TLS,
+	))
 
 	// 开启 gRPC
 	singleton.CleanMonitorHistory()
@@ -90,6 +95,7 @@ func main() {
 			return srv.ListenAndServe()
 		}, func(c context.Context) error {
 			log.Println("NEZHA>> Graceful::START")
+			audit.Record(nil, audit.TypeEvent, "Dashboard stopped", "graceful shutdown initiated")
 			singleton.RecordTransferHourlyUsage()
 			log.Println("NEZHA>> Graceful::END")
 			srv.Shutdown(c)

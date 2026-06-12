@@ -26,6 +26,7 @@ import (
 	GitHubAPI "github.com/google/go-github/v47/github"
 	"github.com/patrickmn/go-cache"
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 	"github.com/railzen/nezha-zero/pkg/mygin"
 	"github.com/railzen/nezha-zero/pkg/totp"
 	"github.com/railzen/nezha-zero/pkg/utils"
@@ -105,6 +106,7 @@ func (oa *oauth2controller) newChallenge(c *gin.Context) {
 
 func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	if !allowAuthRateLimitedCheck() {
+		audit.Record(c, audit.TypeAuth, "Password login failed", "login blocked by rate limit")
 		showLoginRuleFailed(c)
 		return
 	}
@@ -117,12 +119,14 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 
 	var req LoginForm
 	if err := c.ShouldBind(&req); err != nil {
+		audit.Record(c, audit.TypeAuth, "Password login failed", "invalid request parameters")
 		showLoginFailed(c)
 		return
 	}
 
 	ruleAllowed := true
 	if !singleton.Conf.PasswordLoginActive() {
+		audit.Record(c, audit.TypeAuth, "Password login failed", "password login is disabled")
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  400,
 			Title: "登录失败",
@@ -152,6 +156,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	if !ruleAllowed {
 		incrementFailCount(failKey)
 		incrementFailCount(ipFailKey)
+		audit.Record(c, audit.TypeAuth, "Password login failed", "too many failed attempts, temporarily blocked")
 		showLoginRuleFailed(c)
 		return
 	}
@@ -221,6 +226,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	if !allowed {
 		incrementFailCount(failKey)
 		incrementFailCount(ipFailKey)
+		audit.Record(c, audit.TypeAuth, "Password login failed", "invalid username or password")
 		showLoginFailed(c)
 		return
 	}
@@ -229,6 +235,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		if !totp.Validate(singleton.Conf.Site.TwoFactorSecret, req.OTP, 1) {
 			incrementFailCount(failKey)
 			incrementFailCount(ipFailKey)
+			audit.Record(c, audit.TypeAuth, "Password login failed", "invalid two-factor code")
 			showLoginFailed(c)
 			return
 		}
@@ -271,6 +278,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	c.HTML(200, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/redirect", mygin.CommonEnvironment(c, gin.H{
 		"URL": "/",
 	}))
+	audit.Record(c, audit.TypeAuth, "Password login succeeded", "user: "+req.Username)
 }
 
 // 显示统一登录失败页面
@@ -565,6 +573,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 	}
 
 	if err != nil || user.Login == "" {
+		audit.Record(c, audit.TypeAuth, "OAuth login failed", "failed to complete OAuth authentication")
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusBadRequest,
 			Title: "登录失败",
@@ -585,6 +594,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 		}
 	}
 	if !isAdmin {
+		audit.Record(c, audit.TypeAuth, "OAuth login failed", "user is not an administrator: "+user.Login)
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusBadRequest,
 			Title: "登录失败",
@@ -609,6 +619,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/redirect", mygin.CommonEnvironment(c, gin.H{
 		"URL": "/",
 	}))
+	audit.Record(c, audit.TypeAuth, "OAuth login succeeded", "user: "+user.Login)
 }
 
 func removeDuplicates(elements []string) []string {

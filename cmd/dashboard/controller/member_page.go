@@ -2,10 +2,12 @@ package controller
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 	"github.com/railzen/nezha-zero/pkg/mygin"
 	"github.com/railzen/nezha-zero/service/singleton"
 )
@@ -30,6 +32,7 @@ func (mp *memberPage) serve() {
 	mr.GET("/ddns", mp.ddns)
 	mr.GET("/nat", mp.nat)
 	mr.GET("/setting", mp.setting)
+	mr.GET("/log", mp.log)
 	mr.GET("/api", mp.api)
 }
 
@@ -104,5 +107,57 @@ func (mp *memberPage) setting(c *gin.Context) {
 		"Title":           singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Settings"}),
 		"Languages":       model.Languages,
 		"DashboardThemes": model.DashboardThemes,
+	}))
+}
+
+func (mp *memberPage) log(c *gin.Context) {
+	audit.PruneExcess()
+	filterType := c.Query("type")
+	if filterType == "" {
+		filterType = "all"
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+
+	q := singleton.DB.Model(&model.AuditLog{})
+	if filterType != "all" {
+		q = q.Where("type = ?", filterType)
+	}
+	var total int64
+	q.Count(&total)
+
+	totalPages := int((total + int64(audit.PageSize) - 1) / int64(audit.PageSize))
+	if totalPages < 1 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+
+	var logs []model.AuditLog
+	q.Order("created_at DESC").Offset((page - 1) * audit.PageSize).Limit(audit.PageSize).Find(&logs)
+
+	pageInfo := singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "LogPageInfo",
+		TemplateData: map[string]interface{}{
+			"Page":       page,
+			"TotalPages": totalPages,
+		},
+	})
+
+	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/log", mygin.CommonEnvironment(c, gin.H{
+		"Title":      singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Log"}),
+		"Logs":       logs,
+		"Total":      total,
+		"FilterType": filterType,
+		"Page":       page,
+		"TotalPages": totalPages,
+		"PageInfo":   pageInfo,
+		"HasPrev":    page > 1,
+		"HasNext":    page < totalPages,
+		"PrevPage":   page - 1,
+		"NextPage":   page + 1,
 	}))
 }

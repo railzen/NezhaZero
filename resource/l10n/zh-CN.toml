@@ -16,6 +16,54 @@ other = "告警"
 [Settings]
 other = "设置"
 
+[Log]
+other = "日志"
+
+[LogType]
+other = "类型"
+
+[LogTypeAll]
+other = "全部"
+
+[LogTypeAuth]
+other = "认证"
+
+[LogTypeSecurity]
+other = "安全"
+
+[LogTypeConfig]
+other = "配置"
+
+[LogTypeEvent]
+other = "事件"
+
+[LogTime]
+other = "时间"
+
+[LogAction]
+other = "操作"
+
+[LogDetail]
+other = "详情"
+
+[LogRecordCount]
+other = "记录数"
+
+[LogPrevPage]
+other = "上一页"
+
+[LogNextPage]
+other = "下一页"
+
+[LogPageInfo]
+other = "第 {{.Page}} / {{.TotalPages}} 页"
+
+[LogEmpty]
+other = "暂无日志"
+
+[LogLoadFailed]
+other = "加载日志失败"
+
 [Home]
 other = "首页"
 
@@ -827,4 +875,4 @@ other = "确认启用"
 other = "确认关闭双重验证并清除已绑定的密钥？"
 
 [TwoFactorV1LoginHint]
-other = "已启用密码双重验证时，V1 密码登录接口将被拒绝，需使用 Web 登录"
+other = "出于安全考虑，启用二次验证后将禁用 V1 接口的认证能力"

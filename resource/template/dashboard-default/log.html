@@ -1,0 +1,78 @@
+{{define "dashboard-default/log"}}
+{{template "common/header" .}}
+{{template "common/menu" .}}
+<div class="nb-container">
+    <div class="ui container">
+        <div class="ui grid">
+            <div class="left aligned eight wide column" style="display: flex; align-items: center;">
+                <span>{{tr "LogRecordCount"}}: {{.Total}}</span>
+            </div>
+            <div class="right floated right aligned eight wide column">
+                <div class="ui buttons">
+                    <a class="ui button{{if eq .FilterType "all"}} active{{end}}" href="/log?type=all">{{tr "LogTypeAll"}}</a>
+                    <a class="ui button{{if eq .FilterType "auth"}} active{{end}}" href="/log?type=auth">{{tr "LogTypeAuth"}}</a>
+                    <a class="ui button{{if eq .FilterType "security"}} active{{end}}" href="/log?type=security">{{tr "LogTypeSecurity"}}</a>
+                    <a class="ui button{{if eq .FilterType "config"}} active{{end}}" href="/log?type=config">{{tr "LogTypeConfig"}}</a>
+                    <a class="ui button{{if eq .FilterType "event"}} active{{end}}" href="/log?type=event">{{tr "LogTypeEvent"}}</a>
+                </div>
+            </div>
+        </div>
+        {{if not .Logs}}
+        <div class="ui message">
+            <p>{{tr "LogEmpty"}}</p>
+        </div>
+        {{else}}
+        <table class="ui basic table selectable">
+            <thead>
+                <tr>
+                    <th>{{tr "LogTime"}}</th>
+                    <th>{{tr "LogType"}}</th>
+                    <th>{{tr "LogAction"}}</th>
+                    <th>{{tr "LogDetail"}}</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range $log := .Logs}}
+                <tr>
+                    <td>{{$log.CreatedAt|tfymd}}</td>
+                    <td>{{logTypeLabel $log.Type}}</td>
+                    <td>{{$log.Action}}</td>
+                    <td>{{$log.Detail}}</td>
+                    <td>{{$log.IP}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{if gt .TotalPages 1}}
+        <div class="ui grid" style="margin-top: 1rem;">
+            <div class="center aligned sixteen wide column">
+                <div class="ui pagination menu">
+                    {{if .HasPrev}}
+                    <a class="icon item" href="/log?type={{.FilterType}}&page={{.PrevPage}}">
+                        <i class="left chevron icon"></i> {{tr "LogPrevPage"}}
+                    </a>
+                    {{else}}
+                    <div class="disabled item">
+                        <i class="left chevron icon"></i> {{tr "LogPrevPage"}}
+                    </div>
+                    {{end}}
+                    <div class="active item">{{.PageInfo}}</div>
+                    {{if .HasNext}}
+                    <a class="icon item" href="/log?type={{.FilterType}}&page={{.NextPage}}">
+                        {{tr "LogNextPage"}} <i class="right chevron icon"></i>
+                    </a>
+                    {{else}}
+                    <div class="disabled item">
+                        {{tr "LogNextPage"}} <i class="right chevron icon"></i>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+        {{end}}
+        {{end}}
+    </div>
+</div>
+{{template "common/footer" .}}
+{{end}}

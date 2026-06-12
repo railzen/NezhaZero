@@ -69,7 +69,8 @@ func InitDBFromPath(path string) {
 	err = DB.AutoMigrate(model.Server{}, model.User{},
 		model.Notification{}, model.AlertRule{}, model.Monitor{},
 		model.MonitorHistory{}, model.Cron{}, model.Transfer{},
-		model.ApiToken{}, model.NAT{}, model.DDNSProfile{})
+		model.ApiToken{}, model.NAT{}, model.DDNSProfile{},
+		model.AuditLog{})
 	if err != nil {
 		panic(err)
 	}

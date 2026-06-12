@@ -16,6 +16,54 @@ other = "告警"
 [Settings]
 other = "設置"
 
+[Log]
+other = "日誌"
+
+[LogType]
+other = "類型"
+
+[LogTypeAll]
+other = "全部"
+
+[LogTypeAuth]
+other = "認證"
+
+[LogTypeSecurity]
+other = "安全"
+
+[LogTypeConfig]
+other = "設定"
+
+[LogTypeEvent]
+other = "事件"
+
+[LogTime]
+other = "時間"
+
+[LogAction]
+other = "操作"
+
+[LogDetail]
+other = "詳情"
+
+[LogRecordCount]
+other = "記錄數"
+
+[LogPrevPage]
+other = "上一頁"
+
+[LogNextPage]
+other = "下一頁"
+
+[LogPageInfo]
+other = "第 {{.Page}} / {{.TotalPages}} 頁"
+
+[LogEmpty]
+other = "暫無日誌"
+
+[LogLoadFailed]
+other = "載入日誌失敗"
+
 [Home]
 other = "首頁"
 
@@ -827,4 +875,4 @@ other = "確認啟用"
 other = "確認關閉雙重驗證並清除已綁定的密鑰？"
 
 [TwoFactorV1LoginHint]
-other = "已啟用密碼雙重驗證時，V1 密碼登入介面將被拒絕，請使用 Web 登入"
+other = "出於安全考量，啟用二次驗證後將停用 V1 介面的認證能力"

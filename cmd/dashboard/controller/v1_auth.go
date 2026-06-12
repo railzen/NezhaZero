@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 	"github.com/railzen/nezha-zero/pkg/mygin"
 	"github.com/railzen/nezha-zero/pkg/utils"
 	"github.com/railzen/nezha-zero/service/singleton"
@@ -34,28 +35,33 @@ func (cv *compatV1) login(c *gin.Context) {
 		return
 	}
 	if singleton.Conf.TwoFactorActive() {
+		audit.Record(c, audit.TypeAuth, "V1 password login failed", "two-factor enabled, V1 password login blocked")
 		c.JSON(403, V1Response[any]{Error: "CompatAPI: Password login not allowed"})
 		return
 	}
 	// ===== 是否启用密码登录 =====
 	if !singleton.Conf.PasswordLoginActive() {
+		audit.Record(c, audit.TypeAuth, "V1 password login failed", "password login is disabled")
 		c.JSON(403, V1Response[any]{Error: "CompatAPI: Password login not allowed"})
 		return
 	}
 
 	if err := c.ShouldBindJSON(&lr); err != nil {
+		audit.Record(c, audit.TypeAuth, "V1 password login failed", "invalid request body")
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return
 	}
 
 	// 强制要求用户名和密码
 	if lr.Username == "" || lr.Password == "" {
+		audit.Record(c, audit.TypeAuth, "V1 password login failed", "username or password is empty")
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return
 	}
 
 	// 防止过长的输入导致DoS
 	if len(lr.Username) > 63 || len(lr.Password) > 63 {
+		audit.Record(c, audit.TypeAuth, "V1 password login failed", "username or password exceeds length limit")
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return
 	}
@@ -75,6 +81,7 @@ func (cv *compatV1) login(c *gin.Context) {
 	// 锁定期
 	if now.Before(passwordLoginAttempt.LockedUntil) {
 		passwordLoginLock.Unlock()
+		audit.Record(c, audit.TypeAuth, "V1 password login failed", "password login temporarily locked")
 		c.JSON(http.StatusForbidden, V1Response[any]{Error: "Password login locked"})
 		return
 	}
@@ -82,6 +89,7 @@ func (cv *compatV1) login(c *gin.Context) {
 	// 指数退避（立即拒绝，不 sleep）
 	if now.Before(passwordLoginAttempt.NextAllowedAt) {
 		passwordLoginLock.Unlock()
+		audit.Record(c, audit.TypeAuth, "V1 password login failed", "login blocked by backoff")
 		c.JSON(http.StatusTooManyRequests, V1Response[any]{Error: "Invalid credentials"})
 		return
 	}
@@ -98,6 +106,7 @@ func (cv *compatV1) login(c *gin.Context) {
 		passwordLoginAttempt.WindowCount++
 		if passwordLoginAttempt.WindowCount > 2 {
 			passwordLoginLock.Unlock()
+			audit.Record(c, audit.TypeAuth, "V1 password login failed", "login blocked by rate limit")
 			c.JSON(http.StatusTooManyRequests, V1Response[any]{
 				Error: "Invalid credentials",
 			})
@@ -137,6 +146,7 @@ func (cv *compatV1) login(c *gin.Context) {
 		}
 		passwordLoginLock.Unlock()
 
+		audit.Record(c, audit.TypeAuth, "V1 password login failed", "invalid username or password")
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return
 	}
@@ -183,6 +193,7 @@ func (cv *compatV1) login(c *gin.Context) {
 			Expire: u.TokenExpired.Format(time.RFC3339),
 		},
 	})
+	audit.Record(c, audit.TypeAuth, "V1 password login succeeded", "user: "+lr.Username)
 }
 
 func calcNextAllowedTime(now time.Time, failCount int) time.Time {

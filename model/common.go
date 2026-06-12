@@ -23,3 +23,12 @@ type Response struct {
 	Message string      `json:"message,omitempty"`
 	Result  interface{} `json:"result,omitempty"`
 }
+
+// AuditLog 审计日志
+type AuditLog struct {
+	Common
+	Type   string `json:"type" gorm:"index;size:32;not null"`
+	Action string `json:"action" gorm:"size:128;not null"`
+	Detail string `json:"detail" gorm:"size:1024"`
+	IP     string `json:"ip" gorm:"size:64"`
+}
