@@ -1,19 +1,17 @@
 {{define "dashboard-default/log"}}
 {{template "common/header" .}}
 {{template "common/menu" .}}
-<div class="nb-container">
+<div class="nb-container nb-log-page">
     <div class="ui container">
-        <div class="ui grid">
-            <div class="left aligned eight wide column" style="display: flex; align-items: center;">
-                <span>{{tr "LogRecordCount"}}: {{.Total}}</span>
-            </div>
-            <div class="right floated right aligned eight wide column">
+        <div class="nb-log-toolbar">
+            <span class="nb-log-count">{{tr "LogRecordCount"}}: {{.Total}}</span>
+            <div class="nb-log-filter-buttons">
                 <div class="ui buttons">
                     <a class="ui button{{if eq .FilterType "all"}} active{{end}}" href="/log?type=all">{{tr "LogTypeAll"}}</a>
+                    <a class="ui button{{if eq .FilterType "event"}} active{{end}}" href="/log?type=event">{{tr "LogTypeEvent"}}</a>
+                    <a class="ui button{{if eq .FilterType "config"}} active{{end}}" href="/log?type=config">{{tr "LogTypeConfig"}}</a>
                     <a class="ui button{{if eq .FilterType "auth"}} active{{end}}" href="/log?type=auth">{{tr "LogTypeAuth"}}</a>
                     <a class="ui button{{if eq .FilterType "security"}} active{{end}}" href="/log?type=security">{{tr "LogTypeSecurity"}}</a>
-                    <a class="ui button{{if eq .FilterType "config"}} active{{end}}" href="/log?type=config">{{tr "LogTypeConfig"}}</a>
-                    <a class="ui button{{if eq .FilterType "event"}} active{{end}}" href="/log?type=event">{{tr "LogTypeEvent"}}</a>
                 </div>
             </div>
         </div>
@@ -22,57 +20,279 @@
             <p>{{tr "LogEmpty"}}</p>
         </div>
         {{else}}
-        <table class="ui basic table selectable">
-            <thead>
-                <tr>
-                    <th>{{tr "LogTime"}}</th>
-                    <th>{{tr "LogType"}}</th>
-                    <th>{{tr "LogAction"}}</th>
-                    <th>{{tr "LogDetail"}}</th>
-                    <th>IP</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{range $log := .Logs}}
-                <tr>
-                    <td>{{$log.CreatedAt|tfymd}}</td>
-                    <td>{{logTypeLabel $log.Type}}</td>
-                    <td>{{$log.Action}}</td>
-                    <td>{{$log.Detail}}</td>
-                    <td>{{$log.IP}}</td>
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
-        {{if gt .TotalPages 1}}
-        <div class="ui grid" style="margin-top: 1rem;">
-            <div class="center aligned sixteen wide column">
-                <div class="ui pagination menu">
-                    {{if .HasPrev}}
-                    <a class="icon item" href="/log?type={{.FilterType}}&page={{.PrevPage}}">
-                        <i class="left chevron icon"></i> {{tr "LogPrevPage"}}
-                    </a>
-                    {{else}}
-                    <div class="disabled item">
-                        <i class="left chevron icon"></i> {{tr "LogPrevPage"}}
-                    </div>
+        <div class="nb-log-table-wrap">
+            <table class="ui basic table selectable nb-log-table">
+                <thead>
+                    <tr>
+                        <th>{{tr "LogTime"}}</th>
+                        <th>{{tr "LogType"}}</th>
+                        <th>{{tr "LogAction"}}</th>
+                        <th>{{tr "LogDetail"}}</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range $log := .Logs}}
+                    <tr>
+                        <td data-label="{{tr "LogTime"}}">{{$log.CreatedAt|tfymd}}</td>
+                        <td data-label="{{tr "LogType"}}">{{logTypeLabel $log.Type}}</td>
+                        <td data-label="{{tr "LogAction"}}">{{$log.Action}}</td>
+                        <td data-label="{{tr "LogDetail"}}">{{$log.Detail}}</td>
+                        <td data-label="IP">{{$log.IP}}</td>
+                    </tr>
                     {{end}}
-                    <div class="active item">{{.PageInfo}}</div>
-                    {{if .HasNext}}
-                    <a class="icon item" href="/log?type={{.FilterType}}&page={{.NextPage}}">
-                        {{tr "LogNextPage"}} <i class="right chevron icon"></i>
-                    </a>
-                    {{else}}
-                    <div class="disabled item">
-                        {{tr "LogNextPage"}} <i class="right chevron icon"></i>
-                    </div>
-                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        <div class="nb-log-cards">
+            {{range $log := .Logs}}
+            <div class="ui segment nb-log-card">
+                <div class="nb-log-card-head">
+                    <span class="ui mini label">{{logTypeLabel $log.Type}}</span>
+                    <span class="nb-log-card-time">{{$log.CreatedAt|tfymd}}</span>
                 </div>
+                <div class="nb-log-card-action">{{$log.Action}}</div>
+                <div class="nb-log-card-detail">{{$log.Detail}}</div>
+                {{if $log.IP}}
+                <div class="nb-log-card-ip">IP: {{$log.IP}}</div>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+        {{if gt .TotalPages 1}}
+        <div class="nb-log-pagination">
+            <div class="ui pagination menu">
+                {{if .HasPrev}}
+                <a class="item" href="/log?type={{.FilterType}}&page={{.PrevPage}}">
+                    <i class="left chevron icon"></i><span class="nb-log-page-text">{{tr "LogPrevPage"}}</span>
+                </a>
+                {{else}}
+                <div class="disabled item">
+                    <i class="left chevron icon"></i><span class="nb-log-page-text">{{tr "LogPrevPage"}}</span>
+                </div>
+                {{end}}
+                <div class="active item nb-log-page-info">{{.PageInfo}}</div>
+                {{if .HasNext}}
+                <a class="item" href="/log?type={{.FilterType}}&page={{.NextPage}}">
+                    <span class="nb-log-page-text">{{tr "LogNextPage"}}</span><i class="right chevron icon"></i>
+                </a>
+                {{else}}
+                <div class="disabled item">
+                    <span class="nb-log-page-text">{{tr "LogNextPage"}}</span><i class="right chevron icon"></i>
+                </div>
+                {{end}}
             </div>
         </div>
         {{end}}
         {{end}}
     </div>
 </div>
+<style>
+    .nb-log-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .nb-log-count {
+        flex: 0 0 auto;
+    }
+
+    .nb-log-filter-buttons {
+        flex: 0 0 auto;
+    }
+
+    .nb-log-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .nb-log-cards {
+        display: none;
+    }
+
+    .nb-log-card {
+        margin-bottom: 0.75rem !important;
+        padding: 0.85rem 1rem !important;
+    }
+
+    .nb-log-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .nb-log-card-time {
+        font-size: 0.85rem;
+        opacity: 0.75;
+        white-space: nowrap;
+    }
+
+    .nb-log-card-action {
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+        word-break: break-word;
+    }
+
+    .nb-log-card-detail {
+        font-size: 0.92rem;
+        line-height: 1.45;
+        word-break: break-word;
+    }
+
+    .nb-log-card-ip {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        opacity: 0.8;
+    }
+
+    .nb-log-pagination {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: center;
+    }
+
+    .nb-log-pagination .ui.pagination.menu {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    @media (max-width: 731px) {
+        .nb-log-page {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+
+        .nb-log-page > .ui.container {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            box-sizing: border-box;
+        }
+
+        .nb-log-toolbar {
+            flex-wrap: nowrap;
+            align-items: stretch;
+            gap: 0.35rem;
+            padding: 0.45rem 0;
+        }
+
+        .nb-log-count {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            white-space: nowrap;
+        }
+
+        .nb-log-filter-buttons {
+            flex: 1 1 auto;
+            min-width: 0;
+            display: flex;
+            align-items: stretch;
+        }
+
+        .nb-log-filter-buttons .ui.buttons {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: stretch;
+            justify-content: flex-start;
+            gap: 0;
+            width: 100%;
+        }
+
+        .nb-log-filter-buttons .ui.buttons .button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            padding: 0.65em 0.35em;
+            line-height: 1.35;
+            white-space: nowrap;
+            flex: 1 1 0;
+            min-width: 0;
+            margin: 0;
+            text-align: center;
+        }
+
+        .nb-log-table-wrap {
+            display: none;
+        }
+
+        .nb-log-cards {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .nb-log-card {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .nb-log-card-head {
+            flex-wrap: wrap;
+        }
+
+        .nb-log-card-head .ui.label {
+            flex-shrink: 0;
+            max-width: 100%;
+        }
+
+        .nb-log-card-time {
+            white-space: normal;
+            flex: 1 1 auto;
+            min-width: 0;
+            text-align: right;
+        }
+
+        .nb-log-card-action,
+        .nb-log-card-detail,
+        .nb-log-card-ip {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .nb-log-pagination {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .nb-log-pagination .ui.pagination.menu {
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+        }
+
+        .nb-log-pagination .item {
+            flex: 1 1 auto;
+            justify-content: center;
+            text-align: center;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+            min-width: 0;
+        }
+
+        .nb-log-page-text {
+            display: none;
+        }
+
+        .nb-log-page-info {
+            flex: 2 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+</style>
 {{template "common/footer" .}}
 {{end}}
