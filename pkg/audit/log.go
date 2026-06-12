@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +21,27 @@ const (
 	MaxLogs      = 1000
 	PageSize     = 20
 	maxDetailLen = 1024
+
+	serverOfflineThreshold = 10 * time.Minute
+	highLoadDuration       = 15 * time.Minute
+	highLoadCPUThreshold    = 85.0
+	highMemoryThreshold     = 96.0
+	watchdogInterval        = 30 * time.Second
+	runtimeRowID            = uint64(1)
+
+	TriggerReasonOffline    = "offline"
+	TriggerReasonHighCPU    = "high_cpu"
+	TriggerReasonHighMemory = "high_memory"
 )
+
+type serverWatchState struct {
+	wasOnline      bool
+	offlineLogged  bool
+	highLoadSince  time.Time
+	highLoadLogged bool
+	highMemSince   time.Time
+	highMemLogged  bool
+}
 
 type TypeOption struct {
 	ID    string `json:"id"`
@@ -132,6 +153,219 @@ func joinChanges(changes []string) string {
 		return ""
 	}
 	return strings.Join(changes, "; ")
+}
+
+// StartWatchdog 启动后台巡检：心跳入库、意外关机检测、服务器上下线日志。
+func StartWatchdog() {
+	checkUnexpectedShutdown()
+	go watchdogLoop()
+}
+
+// MarkGracefulShutdown 正常退出时标记已停机，避免下次启动误判为意外关机。
+func MarkGracefulShutdown() {
+	if singleton.DB == nil {
+		return
+	}
+	_ = singleton.DB.Model(&model.DashboardRuntime{}).Where("id = ?", runtimeRowID).
+		Update("running", false).Error
+}
+
+func loadRuntime() model.DashboardRuntime {
+	var rt model.DashboardRuntime
+	if singleton.DB == nil {
+		return rt
+	}
+	if err := singleton.DB.First(&rt, runtimeRowID).Error; err != nil {
+		rt = model.DashboardRuntime{ID: runtimeRowID, Running: false, LastAlive: time.Time{}}
+		_ = singleton.DB.Create(&rt).Error
+	}
+	return rt
+}
+
+func checkUnexpectedShutdown() {
+	if singleton.DB == nil {
+		return
+	}
+	rt := loadRuntime()
+	if rt.Running && !rt.LastAlive.IsZero() {
+		Record(nil, TypeEvent, "Dashboard stopped",
+			fmt.Sprintf("last alive at %s", rt.LastAlive.Format(time.RFC3339)))
+	}
+	now := time.Now()
+	_ = singleton.DB.Save(&model.DashboardRuntime{
+		ID: runtimeRowID, Running: true, LastAlive: now,
+	}).Error
+}
+
+func watchdogLoop() {
+	ticker := time.NewTicker(watchdogInterval)
+	defer ticker.Stop()
+	serverStates := make(map[uint64]*serverWatchState)
+	for {
+		writeAliveToDB()
+		checkServerStates(serverStates)
+		<-ticker.C
+	}
+}
+
+func writeAliveToDB() {
+	if singleton.DB == nil {
+		return
+	}
+	_ = singleton.DB.Model(&model.DashboardRuntime{}).Where("id = ?", runtimeRowID).
+		Updates(map[string]interface{}{"last_alive": time.Now(), "running": true}).Error
+}
+
+func isServerOnline(server *model.Server) bool {
+	if server == nil || server.LastActive.IsZero() {
+		return false
+	}
+	return time.Since(server.LastActive) < serverOfflineThreshold
+}
+
+func checkServerStates(states map[uint64]*serverWatchState) {
+	singleton.ServerLock.RLock()
+	defer singleton.ServerLock.RUnlock()
+
+	for id, server := range singleton.ServerList {
+		if server == nil {
+			continue
+		}
+		online := isServerOnline(server)
+		st, ok := states[id]
+		if !ok {
+			states[id] = &serverWatchState{wasOnline: online}
+			continue
+		}
+		if online && !st.wasOnline {
+			if st.offlineLogged {
+				recordServerWatchRecovery(id, "Server offline recovered",
+					fmt.Sprintf("server: %s (ID %d)", server.Name, id))
+			} else {
+				Record(nil, TypeEvent, "Server online",
+					fmt.Sprintf("server: %s (ID %d)", server.Name, id))
+			}
+			st.offlineLogged = false
+			st.highLoadSince = time.Time{}
+			st.highLoadLogged = false
+			st.highMemSince = time.Time{}
+			st.highMemLogged = false
+		}
+		if !online && st.wasOnline && !st.offlineLogged {
+			if server.LastActive.IsZero() || time.Since(server.LastActive) >= serverOfflineThreshold {
+				detail := fmt.Sprintf("server: %s (ID %d)", server.Name, id)
+				if !server.LastActive.IsZero() {
+					detail += fmt.Sprintf(", last active at %s", server.LastActive.Format(time.RFC3339))
+				}
+				recordServerWatchEvent(id, "Server offline", detail, TriggerReasonOffline)
+				st.offlineLogged = true
+			}
+		}
+		if !online {
+			st.highLoadSince = time.Time{}
+			st.highLoadLogged = false
+			st.highMemSince = time.Time{}
+			st.highMemLogged = false
+		} else {
+			checkServerHighLoad(st, server, id)
+			checkServerHighMemory(st, server, id)
+		}
+		st.wasOnline = online
+	}
+}
+
+func isServerHighLoad(server *model.Server) bool {
+	if server == nil || server.State == nil {
+		return false
+	}
+	return server.State.CPU >= highLoadCPUThreshold
+}
+
+func serverMemoryPercent(server *model.Server) float64 {
+	if server == nil || server.State == nil || server.Host == nil || server.Host.MemTotal == 0 {
+		return 0
+	}
+	return float64(server.State.MemUsed) / float64(server.Host.MemTotal) * 100
+}
+
+func isServerHighMemory(server *model.Server) bool {
+	return serverMemoryPercent(server) >= highMemoryThreshold
+}
+
+func checkServerHighLoad(st *serverWatchState, server *model.Server, id uint64) {
+	high := isServerHighLoad(server)
+	if st.highLoadLogged && !high {
+		cpu := 0.0
+		if server.State != nil {
+			cpu = server.State.CPU
+		}
+		recordServerWatchRecovery(id, "Server high load recovered",
+			fmt.Sprintf("server: %s (ID %d), CPU %.1f%%", server.Name, id, cpu))
+		st.highLoadSince = time.Time{}
+		st.highLoadLogged = false
+		return
+	}
+	if !high {
+		st.highLoadSince = time.Time{}
+		return
+	}
+	now := time.Now()
+	if st.highLoadSince.IsZero() {
+		st.highLoadSince = now
+		return
+	}
+	if st.highLoadLogged || time.Since(st.highLoadSince) < highLoadDuration {
+		return
+	}
+	recordServerWatchEvent(id, "Server high load",
+		fmt.Sprintf("server: %s (ID %d), CPU %.1f%%, sustained for %d minutes",
+			server.Name, id, server.State.CPU, int(highLoadDuration.Minutes())),
+		TriggerReasonHighCPU)
+	st.highLoadLogged = true
+}
+
+func checkServerHighMemory(st *serverWatchState, server *model.Server, id uint64) {
+	high := isServerHighMemory(server)
+	if st.highMemLogged && !high {
+		recordServerWatchRecovery(id, "Server high memory recovered",
+			fmt.Sprintf("server: %s (ID %d), memory %.1f%%", server.Name, id, serverMemoryPercent(server)))
+		st.highMemSince = time.Time{}
+		st.highMemLogged = false
+		return
+	}
+	if !high {
+		st.highMemSince = time.Time{}
+		return
+	}
+	now := time.Now()
+	if st.highMemSince.IsZero() {
+		st.highMemSince = now
+		return
+	}
+	if st.highMemLogged || time.Since(st.highMemSince) < highLoadDuration {
+		return
+	}
+	mem := serverMemoryPercent(server)
+	recordServerWatchEvent(id, "Server high memory",
+		fmt.Sprintf("server: %s (ID %d), memory %.1f%%, sustained for %d minutes",
+			server.Name, id, mem, int(highLoadDuration.Minutes())),
+		TriggerReasonHighMemory)
+	st.highMemLogged = true
+}
+
+func recordServerWatchEvent(serverID uint64, action, detail, reason string) {
+	Record(nil, TypeEvent, action, detail)
+	OnServerWatchTrigger(serverID, reason)
+}
+
+func recordServerWatchRecovery(serverID uint64, action, detail string) {
+	Record(nil, TypeEvent, action, detail)
+}
+
+// OnServerWatchTrigger 服务器离线、持续高 CPU/内存时触发回调，供后续扩展通知/Webhook 等。
+func OnServerWatchTrigger(serverID uint64, reason string) {
+	_ = serverID
+	_ = reason
 }
 
 // Record 写入一条审计日志（忽略写入错误，避免影响主流程）。

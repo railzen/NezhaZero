@@ -63,6 +63,7 @@ func main() {
 	singleton.InitDBFromPath(dashboardCliParam.DatebaseLocation)
 	singleton.InitLocalizer()
 	initSystem()
+	audit.StartWatchdog()
 	audit.Record(nil, audit.TypeEvent, "Dashboard started", fmt.Sprintf(
 		"version %s, HTTP port %d, GRPC port %d",
 		singleton.Version, singleton.Conf.HTTPPort, singleton.Conf.GRPCPort))
@@ -94,6 +95,7 @@ func main() {
 			return srv.ListenAndServe()
 		}, func(c context.Context) error {
 			log.Println("NEZHA>> Graceful::START")
+			audit.MarkGracefulShutdown()
 			audit.Record(nil, audit.TypeEvent, "Dashboard stopped", "graceful shutdown initiated")
 			singleton.RecordTransferHourlyUsage()
 			log.Println("NEZHA>> Graceful::END")

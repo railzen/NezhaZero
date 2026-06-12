@@ -70,7 +70,7 @@ func InitDBFromPath(path string) {
 		model.Notification{}, model.AlertRule{}, model.Monitor{},
 		model.MonitorHistory{}, model.Cron{}, model.Transfer{},
 		model.ApiToken{}, model.NAT{}, model.DDNSProfile{},
-		model.AuditLog{})
+		model.AuditLog{}, model.DashboardRuntime{})
 	if err != nil {
 		panic(err)
 	}

@@ -17,6 +17,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 	"github.com/railzen/nezha-zero/pkg/mygin"
 	"github.com/railzen/nezha-zero/pkg/utils"
 	"github.com/railzen/nezha-zero/pkg/websocketx"
@@ -551,6 +552,9 @@ func (cp *commonPage) createTerminal(c *gin.Context) {
 		}, true)
 		return
 	}
+
+	audit.Record(c, audit.TypeSecurity, "Terminal opened",
+		fmt.Sprintf("server: %s (ID %d)", server.Name, server.ID))
 
 	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/terminal", mygin.CommonEnvironment(c, gin.H{
 		"SessionID":  streamId,
