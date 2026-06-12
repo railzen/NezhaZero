@@ -1227,11 +1227,14 @@ func handleCommandTask(task *pb.Task, result *pb.TaskResult) {
 		return
 	}
 	timeout := time.NewTimer(time.Hour * 1)
+	defer timeout.Stop()
 	stdinR, stdinW, err := os.Pipe()
 	if err != nil {
 		result.Data = err.Error()
 		return
 	}
+	defer stdinR.Close()
+	defer stdinW.Close()
 
 	cmd := processgroup.NewCommand(task.GetData())
 	var b bytes.Buffer
@@ -1243,7 +1246,6 @@ func handleCommandTask(task *pb.Task, result *pb.TaskResult) {
 		return
 	}
 	stdinR.Close()
-	defer stdinW.Close()
 	pg.AddProcess(cmd)
 	go func() {
 		select {
@@ -1252,7 +1254,6 @@ func handleCommandTask(task *pb.Task, result *pb.TaskResult) {
 			close(endCh)
 			pg.Dispose()
 		case <-endCh:
-			timeout.Stop()
 		}
 	}()
 	if err = cmd.Wait(); err != nil {
