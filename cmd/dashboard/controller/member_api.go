@@ -1287,7 +1287,7 @@ func (ma *memberAPI) updateGeoIP(c *gin.Context) {
 	if err := geoip.ReloadExternal(singleton.Conf.EnableGeoIP); err != nil {
 		log.Printf("NEZHA>> GeoIP reload failed: %v", err)
 	}
-	audit.Record(c, audit.TypeConfig, "GeoIP database updated", "")
+	audit.Record(c, audit.TypeConfig, "GeoIP database updated", "GeoIP database updated")
 	c.JSON(http.StatusOK, model.Response{
 		Code: http.StatusOK,
 	})
