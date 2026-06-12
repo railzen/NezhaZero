@@ -20,6 +20,7 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 	pb "github.com/railzen/nezha-zero/proto"
 	"github.com/railzen/nezha-zero/service/singleton"
 )
@@ -128,6 +129,9 @@ func addDiscoverServer() (string, error) {
 	singleton.ServerLock.Unlock()
 
 	singleton.ReSortServer()
+
+	audit.Record(nil, audit.TypeConfig, "Server auto-discovered",
+		fmt.Sprintf("server: %s (ID %d)", s.Name, s.ID))
 
 	// 成功时返回 secret
 	return s.Secret, nil

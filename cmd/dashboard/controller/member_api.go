@@ -439,6 +439,13 @@ func (ma *memberAPI) addOrEditServer(c *gin.Context) {
 		singleton.ServerLock.Unlock()
 	}
 	singleton.ReSortServer()
+	if isEdit {
+		audit.Record(c, audit.TypeConfig, "Server updated",
+			fmt.Sprintf("server: %s (ID %d)", s.Name, s.ID))
+	} else {
+		audit.Record(c, audit.TypeConfig, "Server created",
+			fmt.Sprintf("server: %s (ID %d)", s.Name, s.ID))
+	}
 	c.JSON(http.StatusOK, model.Response{
 		Code: http.StatusOK,
 	})
