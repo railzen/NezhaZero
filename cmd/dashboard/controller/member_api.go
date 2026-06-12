@@ -59,7 +59,7 @@ func (ma *memberAPI) serve() {
 	mr.POST("/nat", ma.addOrEditNAT)
 	mr.POST("/alert-rule", ma.addOrEditAlertRule)
 	mr.POST("/setting", ma.updateSetting)
-	mr.POST("/geoip/update", ma.updateGeoIP)
+	mr.POST("/update-geoip", ma.updateGeoIP)
 	mr.POST("/totp", ma.totp)
 	mr.DELETE("/:model/:id", ma.delete)
 	mr.POST("/logout", ma.logout)

@@ -437,7 +437,7 @@
         const $btn = $(this);
         $btn.addClass('loading disabled');
         $.ajax({
-            url: '/api/geoip/update',
+            url: '/api/update-geoip',
             type: 'POST',
             success: function (resp) {
                 $btn.removeClass('loading disabled');
