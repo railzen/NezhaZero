@@ -30,25 +30,23 @@
                 </div>
                 <div class="field" id="passwordLoginSettings">
                     <label>{{tr "AdminPassword"}}</label>
-                    <div style="display: flex; align-items: center;">
+                    <div class="ui action input">
                         {{if .Conf.Site.AdminPassword}}
-                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="********" autocomplete="new-password" style="flex-grow: 1; margin-right: 5px;">
+                        <input type="password" name="Password" placeholder="{{tr "AdminPasswordPlaceholder"}}" value="********" autocomplete="new-password">
                         {{else}}
-                        <input type="password" name="Password" placeholder="设置密码（不少于六位）" value="" autocomplete="new-password" style="flex-grow: 1; margin-right: 5px;">
+                        <input type="password" name="Password" placeholder="{{tr "AdminPasswordPlaceholder"}}" value="" autocomplete="new-password">
                         {{end}}
-                        <div id="twoFactorSettings" style="flex-shrink: 0;">
-                            {{if .Conf.Site.TwoFactorSecret}}
-                            <button type="button" class="ui button" id="twoFactorDisableBtn" title="{{tr "EnableTwoFactor"}}">
-                                <i class="green shield alternate icon"></i>
-                                {{tr "TwoFactorDisableBtn"}}
-                            </button>
-                            {{else}}
-                            <button type="button" class="ui button" id="twoFactorEnableBtn" title="{{tr "EnableTwoFactor"}}">
-                                <i class="shield alternate icon"></i>
-                                {{tr "TwoFactorEnableBtn"}}
-                            </button>
-                            {{end}}
-                        </div>
+                        {{if .Conf.Site.TwoFactorSecret}}
+                        <button type="button" class="ui button" id="twoFactorDisableBtn" title="{{tr "EnableTwoFactor"}}">
+                            <i class="green shield alternate icon"></i>
+                            {{tr "TwoFactorDisableBtn"}}
+                        </button>
+                        {{else}}
+                        <button type="button" class="ui button" id="twoFactorEnableBtn" title="{{tr "EnableTwoFactor"}}">
+                            <i class="shield alternate icon"></i>
+                            {{tr "TwoFactorEnableBtn"}}
+                        </button>
+                        {{end}}
                     </div>
                 </div>
                 <div class="field">
@@ -56,11 +54,11 @@
                     <input type="text" name="ViewPassword" placeholder="" value="{{.Conf.Site.ViewPassword}}" autocomplete="off">
                 </div>
             </div>
-            <div class="field" style="display: flex; flex-direction: column;">
+            <div class="field">
                 <label>{{tr "GRPCDiscoverKey"}}</label>
-                <div style="display: flex; align-items: center;">
-                    <input type="text" name="GRPCDiscoverKey" placeholder="" value="{{.Conf.GRPCDiscoverKey}}" autocomplete="off" style="flex-grow: 1; margin-right: 5px;">
-                    <button type="button" class="ui icon button ip-copy" onclick="generateRandomString()" style="flex-shrink: 0;">
+                <div class="ui action input">
+                    <input type="text" name="GRPCDiscoverKey" placeholder="" value="{{.Conf.GRPCDiscoverKey}}" autocomplete="off">
+                    <button type="button" class="ui icon button ip-copy" onclick="generateRandomString()">
                         <i class="refresh icon"></i>
                     </button>
                 </div>
@@ -171,7 +169,7 @@
             <div class="field">
                 <div class="ui checkbox compat-api-disable">
                     <input name="CompatAPIDisable" type="checkbox" tabindex="0" class="hidden">
-                    <label>{{tr "DisableCompatAPI"}}{{if and .Conf.Site.TwoFactorSecret (not .Conf.CompatAPIDisable)}} <span style="opacity: 0.75; font-weight: normal;">({{tr "TwoFactorV1LoginHint"}})</span>{{end}}</label>
+                    <label>{{tr "DisableCompatAPI"}}{{if and .Conf.Site.TwoFactorSecret (not .Conf.CompatAPIDisable)}} <small>({{tr "TwoFactorV1LoginHint"}})</small>{{end}}</label>
                 </div>
             </div>
             <div class="field">
@@ -351,7 +349,7 @@
         });
     });
 
-    $('#twoFactorConfirmBtn').on('click', function () {
+    function confirmTwoFactorEnable() {
         const setupId = $('#twoFactorSetupID').val();
         const code = $('#twoFactorModalCode').val().trim();
         if (!setupId || code.length !== 6) {
@@ -393,6 +391,14 @@
                 position: 'top-center',
             });
         });
+    }
+
+    $('#twoFactorConfirmBtn').on('click', confirmTwoFactorEnable);
+    $('#twoFactorModalCode').on('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmTwoFactorEnable();
+        }
     });
 
     $('#twoFactorDisableBtn').on('click', function () {

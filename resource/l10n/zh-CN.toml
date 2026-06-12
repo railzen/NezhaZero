@@ -841,6 +841,9 @@ other = "套餐"
 [AdminPassword]
 other = "管理员密码"
 
+[AdminPasswordPlaceholder]
+other = "设置密码（不少于六位）"
+
 [AdminLogin]
 other = "管理员登陆"
 

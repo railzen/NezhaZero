@@ -841,6 +841,9 @@ other = "Plan"
 [AdminPassword]
 other = "Admin Password"
 
+[AdminPasswordPlaceholder]
+other = "Set password (at least 6 characters)"
+
 [AdminLogin]
 other = "Admin Login"
 

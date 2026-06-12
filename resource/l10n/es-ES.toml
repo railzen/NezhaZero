@@ -847,6 +847,9 @@ other = "Plan"
 [AdminPassword]
 other = "Contraseña de administrador"
 
+[AdminPasswordPlaceholder]
+other = "Establecer contraseña (mínimo 6 caracteres)"
+
 [AdminLogin]
 other = "Admin Login"
 
