@@ -914,7 +914,7 @@ other = "For security reasons, two-factor authentication disables V1 API authent
 other = "Edit Public Note"
 
 [PublicNoteEditorHint]
-other = "Fill in the fields to generate JSON for the public note, used by themes such as status-server to display billing, plan, and flag. Dates are optional; use the iOS-style wheels or type digits (hyphens added automatically). Click × to clear."
+other = "Fill in the fields to generate JSON for the public note, used by front-end themes such as Server-Status to display billing, plan, and country flag information. All fields are optional and dates may be left blank. Select dates with the picker wheels or enter them manually. Use the clear button on the right of the input to remove an entered date."
 
 [PNEBillingTab]
 other = "Billing"
@@ -998,7 +998,7 @@ other = "Month"
 other = "Day"
 
 [PNEDateInputPlaceholder]
-other = "Or type a date; leave empty to omit"
+other = "YYYY-MM-DD, spin the dial to fill"
 
 [PNEClear]
 other = "Clear"

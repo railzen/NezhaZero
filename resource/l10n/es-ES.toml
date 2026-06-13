@@ -905,7 +905,7 @@ other = "Por seguridad, la autenticación en dos pasos desactiva la autenticaci�
 other = "Editar nota pública"
 
 [PublicNoteEditorHint]
-other = "Complete los campos para generar JSON en la nota pública, usado por temas como status-server para mostrar facturación, plan y bandera. Las fechas son opcionales; use las ruedas estilo iOS o escriba dígitos (se añaden guiones automáticamente). Pulse × para borrar."
+other = "Complete los campos para generar JSON en la nota pública, usado por temas de front-end como Server-Status para mostrar facturación, plan e información de país. Todos los campos son opcionales y las fechas pueden dejarse en blanco. Seleccione fechas con los selectores o introdúzcalas manualmente. Use el botón de borrar a la derecha del campo para eliminar una fecha introducida."
 
 [PNEBillingTab]
 other = "Facturación"
@@ -989,7 +989,7 @@ other = "Mes"
 other = "Día"
 
 [PNEDateInputPlaceholder]
-other = "O escriba una fecha; deje vacío para omitir"
+other = "YYYY-MM-DD, gire el dial para completar"
 
 [PNEClear]
 other = "Borrar"

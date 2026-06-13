@@ -914,7 +914,7 @@ other = "出于安全考虑，启用二次验证后将禁用 V1 接口的认证�
 other = "编辑公开备注"
 
 [PublicNoteEditorHint]
-other = "填写后生成 JSON 写入公开备注，供 status-server 等主题展示账单、套餐与国旗。日期可留空；滚轮为 iOS 闹钟式选择，也可手输数字（自动补连字符），输入框右侧 × 可清空。"
+other = "填写后生成 JSON 写入公开备注，供 Server-Status 等前台主题展示账单、套餐及国旗信息。各配置项可按需填写，日期可留空；可通过日期滚轮选取，也可手动填写日期，点击输入框右侧清除按钮可清空已填日期。"
 
 [PNEBillingTab]
 other = "账单"
@@ -998,7 +998,7 @@ other = "月"
 other = "日"
 
 [PNEDateInputPlaceholder]
-other = "或手输日期，留空则不写入"
+other = "YYYY-MM-DD，可点转轮填入"
 
 [PNEClear]
 other = "清空"

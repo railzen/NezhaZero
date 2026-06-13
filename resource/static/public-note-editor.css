@@ -1,13 +1,15 @@
 /* Public note editor — Semantic UI overrides only */
 
 .pne-modal .pne-tab-body.is-disabled {
-  opacity: 0.45;
   pointer-events: none;
 }
 
-.pne-modal .pne-tab-body.is-disabled .ui.toggle.checkbox {
+.pne-modal .pne-tab-body.is-disabled > form > .field:first-child {
   pointer-events: auto;
-  opacity: 1;
+}
+
+.pne-modal .pne-tab-body.is-disabled > form > :not(:first-child) {
+  opacity: 0.45;
 }
 
 .pne-hint {
@@ -145,11 +147,73 @@
 }
 
 .pne-wheel-manual {
+  position: relative;
   margin-top: 0.45rem;
+}
+
+.pne-wheel-manual .ui.input {
+  width: 100%;
 }
 
 .pne-wheel-manual input.pne-date-manual {
   font-size: 1em;
+  padding-right: 2.1rem !important;
+}
+
+.pne-wheel-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.55rem;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+.pne-wheel-clear:hover {
+  color: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.pne-wheel-clear .icon,
+.pne-wheel-clear-icon {
+  margin: 0 !important;
+  width: 0.72rem;
+  height: 0.72rem;
+  line-height: 1;
+  opacity: 1;
+}
+
+.pne-wheel-clear-icon {
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.15;
+  stroke-linecap: round;
+}
+
+.pne-wheel-manual.has-value .pne-wheel-clear {
+  display: inline-flex;
+}
+
+html[nz-theme="dark"] .pne-wheel-clear {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+html[nz-theme="dark"] .pne-wheel-clear:hover {
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .pne-preview-box {

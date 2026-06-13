@@ -11,6 +11,7 @@
     $modal: null,
     initialized: false,
   };
+  var PNE_UNSET_VALUE = "__pne_unset__";
 
   var dateFormatter = {
     date: function (date) {
@@ -57,7 +58,8 @@
       var startDate = trim($m.find('.pne-date-manual[data-target="pne_start_date"]').val());
       var lifetime = $m.find('input[name="pne_lifetime"]').is(":checked");
       var endDate = lifetime ? "0000-00-00" : trim($m.find('.pne-date-manual[data-target="pne_end_date"]').val());
-      var cycle = $m.find('select[name="pne_cycle"]').val();
+      var cycle = trim($m.find('select[name="pne_cycle"]').val());
+      if (cycle === PNE_UNSET_VALUE) cycle = "";
       var amount = trim($m.find('input[name="pne_amount"]').val());
 
       if (startDate) {
@@ -90,7 +92,8 @@
         var val = trim($m.find('input[name="' + pair[1] + '"]').val());
         if (val) plan[pair[0]] = val;
       });
-      var trafficType = $m.find('select[name="pne_traffic_type"]').val();
+      var trafficType = trim($m.find('select[name="pne_traffic_type"]').val());
+      if (trafficType === PNE_UNSET_VALUE) trafficType = "";
       if (trafficType) plan.trafficType = trafficType;
       if ($m.find('input[name="pne_ipv4"]').is(":checked")) plan.IPv4 = "1";
       if ($m.find('input[name="pne_ipv6"]').is(":checked")) plan.IPv6 = "1";
@@ -221,6 +224,20 @@
     });
   }
 
+  function updateDateClearVisibility(target) {
+    if (!state.$modal || !state.$modal.length) return;
+    var $wrap = state.$modal.find('.pne-date-manual[data-target="' + target + '"]').closest(".pne-wheel-manual");
+    var hasValue = !!trim(state.$modal.find('.pne-date-manual[data-target="' + target + '"]').val());
+    $wrap.toggleClass("has-value", hasValue);
+  }
+
+  function updateAllDateClearVisibility() {
+    if (!state.$modal || !state.$modal.length) return;
+    state.$modal.find(".pne-date-manual").each(function () {
+      updateDateClearVisibility($(this).data("target"));
+    });
+  }
+
   function syncInputToWheel($wheel, isoDate) {
     var target = $wheel.data("target");
     if (!isoDate) {
@@ -229,6 +246,7 @@
     }
     state.$modal.find('input[name="' + target + '"]').val(isoDate);
     state.$modal.find('.pne-date-manual[data-target="' + target + '"]').val(isoDate);
+    updateDateClearVisibility(target);
     $wheel.data("pneConfigured", true);
     $wheel.data("pneTouched", false);
     positionWheelToDate($wheel, isoDate);
@@ -247,6 +265,7 @@
     var target = $wheel.data("target");
     state.$modal.find('input[name="' + target + '"]').val("");
     state.$modal.find('.pne-date-manual[data-target="' + target + '"]').val("");
+    updateDateClearVisibility(target);
     $wheel.data("pneTouched", false);
     $wheel.data("pneConfigured", false);
     positionWheelDefault($wheel, defaultWheelDate(target));
@@ -261,6 +280,7 @@
       state.$modal.find('input[name="' + target + '"]').val("");
       state.$modal.find('.pne-date-manual[data-target="' + target + '"]').val("");
     });
+    updateAllDateClearVisibility();
   }
 
   function daysInMonth(y, m) {
@@ -417,6 +437,7 @@
     var target = $wheel.data("target");
     state.$modal.find('input[name="' + target + '"]').val(iso);
     state.$modal.find('.pne-date-manual[data-target="' + target + '"]').val(iso);
+    updateDateClearVisibility(target);
     updatePreview();
     return iso;
   }
@@ -479,12 +500,7 @@
       .find(".pne-date-manual")
       .off("focus.pneManual input.pneManual blur.pneManual")
       .on("focus.pneManual", function () {
-        var $input = $(this);
-        if (trim($input.val())) return;
-        var target = $input.data("target");
-        var $wheel = state.$modal.find('.pne-wheel-date[data-target="' + target + '"]');
-        if ($wheel.hasClass("is-disabled")) return;
-        syncWheelToManualInput($wheel);
+        // 不再在点击日期输入框时自动从滚轮填充日期
       })
       .on("input.pneManual", function () {
         var $input = $(this);
@@ -507,6 +523,7 @@
               } catch (e) {}
             }
           }
+          updateDateClearVisibility($input.data("target"));
         });
       })
       .on("blur.pneManual", function () {
@@ -515,9 +532,12 @@
         var $wheel = state.$modal.find('.pne-wheel-date[data-target="' + target + '"]');
         var raw = trim($input.val());
         if (!raw) {
-          setWheelEmpty($wheel);
+          state.$modal.find('input[name="' + target + '"]').val("");
+          updateDateClearVisibility(target);
+          updatePreview();
           return;
         }
+        updateDateClearVisibility(target);
         $wheel.data("pneConfigured", true);
         var norm = normalizeDateInput(raw);
         if (norm && norm !== "lifetime") {
@@ -558,6 +578,7 @@
       $wheel.data("pneTouched", false);
       positionWheelDefault($wheel, defaultWheelDate(target));
     });
+    updateAllDateClearVisibility();
     bindManualDateHandlers();
   }
 
@@ -615,19 +636,30 @@
       $m.find('.pne-date-manual[data-target="pne_end_date"]').val(endVal);
     }
 
-    $m.find('select[name="pne_cycle"]').dropdown("set selected", billing.cycle || "");
+    var $cycle = $m.find('select[name="pne_cycle"]');
+    if (billing.cycle) {
+      $cycle.dropdown("set selected", billing.cycle);
+    } else {
+      $cycle.dropdown("set selected", PNE_UNSET_VALUE);
+    }
     $m.find('input[name="pne_amount"]').val(billing.amount != null ? billing.amount : "");
     setCheckbox("pne_auto_renewal", String(billing.autoRenewal) === "1");
 
     $m.find('input[name="pne_bandwidth"]').val(plan.bandwidth || "");
     $m.find('input[name="pne_traffic_vol"]').val(plan.trafficVol || "");
-    $m.find('select[name="pne_traffic_type"]').dropdown("set selected", plan.trafficType ? String(plan.trafficType) : "");
+    var $trafficType = $m.find('select[name="pne_traffic_type"]');
+    if (plan.trafficType) {
+      $trafficType.dropdown("set selected", String(plan.trafficType));
+    } else {
+      $trafficType.dropdown("set selected", PNE_UNSET_VALUE);
+    }
     setCheckbox("pne_ipv4", String(plan.IPv4) === "1");
     setCheckbox("pne_ipv6", String(plan.IPv6) === "1");
     $m.find('input[name="pne_network_route"]').val(plan.networkRoute || "");
     $m.find('input[name="pne_extra"]').val(plan.extra || "");
 
     $m.find('input[name="pne_country_code"]').val(formatCountryCodeInput(note.countryCode || ""));
+    updateAllDateClearVisibility();
     updatePreview();
   }
 
@@ -638,7 +670,14 @@
     if (!state.$modal.length) return;
 
     state.$modal.find(".menu .item").tab();
-    state.$modal.find(".ui.dropdown").dropdown();
+    state.$modal.find(".ui.dropdown").each(function () {
+      var $dropdown = $(this);
+      if ($dropdown.attr("name") === "pne_cycle" || $dropdown.attr("name") === "pne_traffic_type") {
+        $dropdown.dropdown({ forceSelection: false });
+      } else {
+        $dropdown.dropdown();
+      }
+    });
     state.$modal.find(".ui.checkbox").checkbox();
     bindCountryCodeHandlers();
 

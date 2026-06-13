@@ -8,9 +8,11 @@
             <div class="pne-wheel-col" data-part="day"><ul></ul></div>
         </div>
     </div>
-    <div class="ui fluid action input pne-wheel-manual">
-        <input type="text" class="pne-date-manual" data-target="{{.}}" placeholder="{{tr "PNEDateInputPlaceholder"}}" maxlength="10">
-        <button type="button" class="ui icon button pne-wheel-clear" data-target="{{.}}" title="{{tr "PNEClear"}}"><i class="close icon"></i></button>
+    <div class="pne-wheel-manual">
+        <div class="ui fluid input">
+            <input type="text" class="pne-date-manual" data-target="{{.}}" placeholder="{{tr "PNEDateInputPlaceholder"}}" maxlength="10">
+        </div>
+        <button type="button" class="pne-wheel-clear" data-target="{{.}}" title="{{tr "PNEClear"}}" aria-label="{{tr "PNEClear"}}"><svg class="pne-wheel-clear-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.25 2.25l7.5 7.5M9.75 2.25l-7.5 7.5"/></svg></button>
     </div>
 </div>
 {{end}}
@@ -63,7 +65,7 @@
                     <div class="field">
                         <label>{{tr "PNEPaymentCycle"}}</label>
                         <select name="pne_cycle" class="ui dropdown">
-                            <option value="">{{tr "PNEUnset"}}</option>
+                            <option value="__pne_unset__">{{tr "PNEUnset"}}</option>
                             <option value="月">{{tr "PNECycleMonthly"}}</option>
                             <option value="季">{{tr "PNECycleQuarterly"}}</option>
                             <option value="半年">{{tr "PNECycleHalfYear"}}</option>
@@ -107,7 +109,7 @@
                     <div class="field">
                         <label>{{tr "PNETrafficBilling"}}</label>
                         <select name="pne_traffic_type" class="ui dropdown">
-                            <option value="">{{tr "PNEUnset"}}</option>
+                            <option value="__pne_unset__">{{tr "PNEUnset"}}</option>
                             <option value="1">{{tr "PNETrafficUploadOnly"}}</option>
                             <option value="2">{{tr "PNETrafficBidirectional"}}</option>
                             <option value="3">{{tr "PNETrafficMaxInOut"}}</option>

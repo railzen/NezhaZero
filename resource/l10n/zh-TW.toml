@@ -914,7 +914,7 @@ other = "出於安全考量，啟用二次驗證後將停用 V1 介面的認證�
 other = "編輯公開備註"
 
 [PublicNoteEditorHint]
-other = "填寫後產生 JSON 寫入公開備註，供 status-server 等主題展示帳單、套餐與國旗。日期可留空；滾輪為 iOS 鬧鐘式選擇，也可手輸數字（自動補連字號），輸入框右側 × 可清空。"
+other = "填寫後產生 JSON 寫入公開備註，供 Server-Status 等前台主題展示帳單、套餐及國旗資訊。各設定項可按需填寫，日期可留空；可透過日期滾輪選取，也可手動填寫日期，點擊輸入框右側清除按鈕可清空已填日期。"
 
 [PNEBillingTab]
 other = "帳單"
@@ -945,9 +945,6 @@ other = "付費週期"
 
 [PNEPrice]
 other = "價格"
-
-[PNEPricePlaceholder]
-other = "例如 5"
 
 [PNEPriceHint]
 other = "填 0 表示免費（FREE），-1 表示按量付費（PAYG）"
@@ -1001,7 +998,7 @@ other = "月"
 other = "日"
 
 [PNEDateInputPlaceholder]
-other = "或手輸日期，留空則不寫入"
+other = "YYYY-MM-DD，可點轉輪填入"
 
 [PNEClear]
 other = "清空"
