@@ -966,87 +966,114 @@ func copyFile(src, dst string) error {
 func restartService() {
 	switch runtime.GOOS {
 	case "windows":
-		// Windows: 使用 sc 或 net 命令
-		cmds := [][]string{
-			{"sc", "stop", "nezha-agent"},
-			{"sc", "start", "nezha-agent"},
-			{"net", "stop", "nezha-agent"},
-			{"net", "start", "nezha-agent"},
+		if restartWindowsService() {
+			fmt.Fprintf(os.Stdout, "Service restarted.\n")
+			os.Exit(0)
 		}
-
-		for _, args := range cmds {
-			cmd := exec.Command(args[0], args[1:]...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Run()
-		}
-
-		// 如果服务方式失败，尝试直接启动进程
-		exe, err := os.Executable()
-		if err == nil {
-			cmd := exec.Command(exe, os.Args[1:]...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Start()
-		}
-
 	case "linux", "freebsd", "netbsd", "openbsd", "dragonfly", "solaris":
-		// Linux/Unix: 尝试多种服务管理器
-		cmds := [][]string{
-			{"systemctl", "restart", "nezha-agent.service"},
-			{"systemctl", "restart", "nezha-agent"},
-			{"service", "nezha-agent", "restart"},
-			{"rc-service", "nezha-agent", "restart"},
-			{"initctl", "restart", "nezha-agent"},
+		if restartUnixService() {
+			fmt.Fprintf(os.Stdout, "Service restarted.\n")
+			os.Exit(0)
 		}
-
-		for _, args := range cmds {
-			cmd := exec.Command(args[0], args[1:]...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err == nil {
-				fmt.Fprintf(os.Stdout, "Service restarted.\n")
-				os.Exit(0)
-			}
-		}
-
-		// 如果服务管理器失败，尝试直接重启自己
-		exe, err := os.Executable()
-		if err == nil {
-			cmd := exec.Command(exe, os.Args[1:]...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Start()
-		}
-
 	case "darwin":
-		// macOS
-		cmds := [][]string{
-			{"launchctl", "unload", "/Library/LaunchDaemons/nezha-agent.plist"},
-			{"launchctl", "load", "/Library/LaunchDaemons/nezha-agent.plist"},
-			{"brew", "services", "restart", "nezha-agent"},
-		}
-
-		for _, args := range cmds {
-			cmd := exec.Command(args[0], args[1:]...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Run()
-		}
-
-	default:
-		// 未知系统，直接启动新进程
-		exe, err := os.Executable()
-		if err == nil {
-			cmd := exec.Command(exe, os.Args[1:]...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Start()
+		if restartDarwinService() {
+			fmt.Fprintf(os.Stdout, "Service restarted.\n")
+			os.Exit(0)
 		}
 	}
 
-	fmt.Fprintf(os.Stdout, "Service restart failed.\n")
-	os.Exit(0)
+	restartSelfProcess()
+}
+
+func restartUnixService() bool {
+	cmds := [][]string{
+		{"systemctl", "restart", "nezha-agent.service"},
+		{"systemctl", "restart", "nezha-agent"},
+		{"service", "nezha-agent", "restart"},
+		{"rc-service", "nezha-agent", "restart"},
+		{"initctl", "restart", "nezha-agent"},
+	}
+	for _, args := range cmds {
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func restartDarwinService() bool {
+	cmds := [][]string{
+		{"launchctl", "unload", "/Library/LaunchDaemons/nezha-agent.plist"},
+		{"launchctl", "load", "/Library/LaunchDaemons/nezha-agent.plist"},
+		{"brew", "services", "restart", "nezha-agent"},
+	}
+	for _, args := range cmds {
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func restartWindowsService() bool {
+	stopCmds := [][]string{
+		{"sc", "stop", "nezha-agent"},
+		{"net", "stop", "nezha-agent"},
+	}
+	for _, args := range stopCmds {
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		_ = cmd.Run()
+	}
+
+	startCmds := [][]string{
+		{"sc", "start", "nezha-agent"},
+		{"net", "start", "nezha-agent"},
+	}
+	for _, args := range startCmds {
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// restartSelfProcess 服务管理器不可用时替换/重启当前进程，避免旧进程残留。
+func restartSelfProcess() {
+	exe, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stdout, "Service restart failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	args := os.Args
+	env := os.Environ()
+
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command(exe, args[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Start(); err != nil {
+			fmt.Fprintf(os.Stdout, "Service restart failed: %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	if err := syscall.Exec(exe, args, env); err != nil {
+		fmt.Fprintf(os.Stdout, "Service restart failed: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func handleUpgradeTask(*pb.Task, *pb.TaskResult) {

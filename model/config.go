@@ -147,6 +147,7 @@ func (c *Config) Read(path string) error {
 	c.filePath = path
 
 	// 先读取环境变量，然后读取配置文件；后者可以覆盖前者，因为哪吒支持在线修改配置
+	haveParaChange := false
 
 	err := c.k.Load(env.Provider("NZ_", ".", func(s string) string {
 		return strings.Replace(strings.ToLower(strings.TrimPrefix(s, "NZ_")), "_", ".", -1)
@@ -205,16 +206,18 @@ func (c *Config) Read(path string) error {
 				panic(err)
 			}
 			c.Site.AdminPassword = string(hash)
+			haveParaChange = true
 		}
 	}
 
-	if c.GRPCDiscoverKey == "" {
+	if !c.k.Exists("grpcdiscoverkey") {
 		// 生成 secret
 		newKey, err := utils.GenerateRandomString(18)
 		if err != nil {
-			c.GRPCDiscoverKey = ""
+			newKey = ""
 		}
 		c.GRPCDiscoverKey = newKey
+		haveParaChange = true
 	}
 
 	if c.Language == "" {
@@ -261,6 +264,11 @@ func (c *Config) Read(path string) error {
 	}
 
 	c.updateIgnoredIPNotificationID()
+
+	if haveParaChange {
+		c.Save()
+	}
+
 	return nil
 }
 
