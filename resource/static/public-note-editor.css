@@ -186,17 +186,13 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
-.pne-wheel-clear .icon,
 .pne-wheel-clear-icon {
+  display: block;
   margin: 0 !important;
   width: 0.72rem;
   height: 0.72rem;
   line-height: 1;
   opacity: 1;
-}
-
-.pne-wheel-clear-icon {
-  display: block;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.15;

@@ -13,15 +13,13 @@
   };
   var PNE_UNSET_VALUE = "__pne_unset__";
 
-  var dateFormatter = {
-    date: function (date) {
-      if (!date) return "";
-      var y = date.getFullYear();
-      var m = ("0" + (date.getMonth() + 1)).slice(-2);
-      var d = ("0" + date.getDate()).slice(-2);
-      return y + "-" + m + "-" + d;
-    },
-  };
+  function formatDate(date) {
+    if (!date) return "";
+    var y = date.getFullYear();
+    var m = ("0" + (date.getMonth() + 1)).slice(-2);
+    var d = ("0" + date.getDate()).slice(-2);
+    return y + "-" + m + "-" + d;
+  }
 
   function trim(v) {
     return (v == null ? "" : String(v)).trim();
@@ -43,7 +41,7 @@
     if (s.indexOf("0000-00-00") === 0) return "lifetime";
     if (s.length >= 10 && s[4] === "-" && s[7] === "-") return s.slice(0, 10);
     var d = new Date(s);
-    if (!isNaN(d.getTime())) return dateFormatter.date(d);
+    if (!isNaN(d.getTime())) return formatDate(d);
     return "";
   }
 
@@ -188,13 +186,8 @@
     );
   }
 
-  function positionWheelToDate($wheel, isoDate) {
+  function positionWheelAt($wheel, y, m, d) {
     initWheelDate($wheel);
-    var parts = isoDate.split("-");
-    if (parts.length < 3) return;
-    var y = +parts[0];
-    var m = +parts[1];
-    var d = +parts[2];
     buildWheelLists($wheel, y, m, d);
     setWheelSuppress($wheel, true);
     scrollColToValue($wheel.find('[data-part=year]'), y);
@@ -207,27 +200,21 @@
     });
   }
 
+  function positionWheelToDate($wheel, isoDate) {
+    var parts = isoDate.split("-");
+    if (parts.length < 3) return;
+    positionWheelAt($wheel, +parts[0], +parts[1], +parts[2]);
+  }
+
   function positionWheelDefault($wheel, date) {
-    initWheelDate($wheel);
-    var y = date.getFullYear();
-    var m = date.getMonth() + 1;
-    var d = date.getDate();
-    buildWheelLists($wheel, y, m, d);
-    setWheelSuppress($wheel, true);
-    scrollColToValue($wheel.find('[data-part=year]'), y);
-    scrollColToValue($wheel.find('[data-part=month]'), m);
-    scrollColToValue($wheel.find('[data-part=day]'), d);
-    setWheelSuppress($wheel, false);
-    $wheel.data("pneTouched", false);
-    $wheel.find(".pne-wheel-col").each(function () {
-      updateColVisibility($(this));
-    });
+    positionWheelAt($wheel, date.getFullYear(), date.getMonth() + 1, date.getDate());
   }
 
   function updateDateClearVisibility(target) {
     if (!state.$modal || !state.$modal.length) return;
-    var $wrap = state.$modal.find('.pne-date-manual[data-target="' + target + '"]').closest(".pne-wheel-manual");
-    var hasValue = !!trim(state.$modal.find('.pne-date-manual[data-target="' + target + '"]').val());
+    var $input = state.$modal.find('.pne-date-manual[data-target="' + target + '"]');
+    var $wrap = $input.closest(".pne-wheel-manual");
+    var hasValue = !!trim($input.val());
     $wrap.toggleClass("has-value", hasValue);
   }
 
@@ -417,12 +404,6 @@
     d = snapCol($wheel.find('[data-part=day]'));
     if (!y || !m || !d) return "";
     return y + "-" + ("0" + m).slice(-2) + "-" + ("0" + d).slice(-2);
-  }
-
-  function syncWheelToManualInput($wheel) {
-    var iso = readWheelIsoDate($wheel);
-    if (!iso) return;
-    syncInputToWheel($wheel, iso);
   }
 
   function commitWheel($wheel) {
@@ -866,17 +847,8 @@
     fillFormFromNote(parseNote(raw));
 
     state.$modal.find(".pne-apply-btn").toggle(!state.saveDirect);
-    state.$modal.find(".pne-save-btn").show();
     state.$modal.modal("show");
   }
 
-  function openFromForm() {
-    open({ formMode: true, saveDirect: false });
-  }
-
-  global.PublicNoteEditor = {
-    open: open,
-    openFromForm: openFromForm,
-    buildJSON: buildJSON,
-  };
+  global.PublicNoteEditor = { open: open };
 })(window);
