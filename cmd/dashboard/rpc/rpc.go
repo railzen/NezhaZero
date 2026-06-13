@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -17,6 +18,34 @@ import (
 	rpcService "github.com/railzen/nezha-zero/service/rpc"
 	"github.com/railzen/nezha-zero/service/singleton"
 )
+
+var (
+	multiplexHTTPServer *http.Server
+	multiplexGRPCServer *grpc.Server
+)
+
+// ShutdownMultiplex 优雅停止端口复用模式下的 HTTP/gRPC 服务。
+func ShutdownMultiplex(ctx context.Context) error {
+	if multiplexHTTPServer == nil {
+		return nil
+	}
+	err := multiplexHTTPServer.Shutdown(ctx)
+	if multiplexGRPCServer != nil {
+		done := make(chan struct{})
+		go func() {
+			multiplexGRPCServer.GracefulStop()
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-ctx.Done():
+			multiplexGRPCServer.Stop()
+		}
+	}
+	multiplexHTTPServer = nil
+	multiplexGRPCServer = nil
+	return err
+}
 
 func ServeRPC(port uint) {
 	server := grpc.NewServer(
@@ -52,6 +81,7 @@ func ServeMultiplex(port uint, httpHandler http.Handler) error {
 	)
 	rpcService.NezhaHandlerSingleton = rpcService.NewNezhaHandler()
 	pb.RegisterNezhaServiceServer(grpcServer, rpcService.NezhaHandlerSingleton)
+	multiplexGRPCServer = grpcServer
 
 	// 创建多路复用处理器
 	multiplexHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +108,7 @@ func ServeMultiplex(port uint, httpHandler http.Handler) error {
 		Addr:              fmt.Sprintf(":%d", port),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
+	multiplexHTTPServer = httpServer
 
 	listen, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {

@@ -89,7 +89,15 @@ func main() {
 	// 端口复用,如果HTTPPort 和 GRPCPort 配置为相同的端口
 	if singleton.Conf.HTTPPort == singleton.Conf.GRPCPort {
 		log.Printf("NEZHA>> MUX HTTP and gRPC %d", singleton.Conf.GRPCPort)
-		if err := rpc.ServeMultiplex(singleton.Conf.GRPCPort, srv.Handler); err != nil {
+		if err := graceful.Graceful(func() error {
+			return rpc.ServeMultiplex(singleton.Conf.GRPCPort, srv.Handler)
+		}, func(c context.Context) error {
+			log.Println("NEZHA>> Graceful::START")
+			audit.Record(nil, audit.TypeEvent, "Dashboard stopped", "Graceful shutdown")
+			singleton.RecordTransferHourlyUsage()
+			log.Println("NEZHA>> Graceful::END")
+			return rpc.ShutdownMultiplex(c)
+		}); err != nil {
 			log.Printf("NEZHA>> ERROR: %v", err)
 		}
 	} else {
@@ -101,7 +109,7 @@ func main() {
 			return srv.ListenAndServe()
 		}, func(c context.Context) error {
 			log.Println("NEZHA>> Graceful::START")
-			audit.Record(nil, audit.TypeEvent, "Dashboard stopped", "graceful shutdown initiated")
+			audit.Record(nil, audit.TypeEvent, "Dashboard stopped", "Graceful shutdown")
 			singleton.RecordTransferHourlyUsage()
 			log.Println("NEZHA>> Graceful::END")
 			srv.Shutdown(c)
