@@ -83,11 +83,26 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 	}
 }
 
+// CookieSecure 判断当前请求是否经 HTTPS 到达（直连 TLS 或反代 X-Forwarded-Proto）。
+// 纯 HTTP 部署返回 false，不影响 Cookie 读写。
+func CookieSecure(c *gin.Context) bool {
+	if c.Request.TLS != nil {
+		return true
+	}
+	proto := c.GetHeader("X-Forwarded-Proto")
+	if proto == "" {
+		return false
+	}
+	if idx := strings.Index(proto, ","); idx >= 0 {
+		proto = proto[:idx]
+	}
+	return strings.EqualFold(strings.TrimSpace(proto), "https")
+}
+
 // ClearSessionCookies 清除认证与 CSRF Cookie
 func ClearSessionCookies(c *gin.Context) {
-	secure := c.Request.TLS != nil
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(singleton.Conf.Site.CookieName, "", -1, "/", "", secure, true)
+	c.SetCookie(singleton.Conf.Site.CookieName, "", -1, "/", "", CookieSecure(c), true)
 	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(CSRFCookieName, "", -1, "/", "", secure, false)
+	c.SetCookie(CSRFCookieName, "", -1, "/", "", CookieSecure(c), false)
 }

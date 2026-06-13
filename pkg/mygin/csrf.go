@@ -68,7 +68,7 @@ func SetCSRFCookie(c *gin.Context) {
 		return
 	}
 	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(CSRFCookieName, token, 0, "/", "", c.Request.TLS != nil, false)
+	c.SetCookie(CSRFCookieName, token, 0, "/", "", CookieSecure(c), false)
 }
 
 // 无需 CSRF 校验的路径（登录接口在用户未认证时调用，尚无 CSRF Cookie）
