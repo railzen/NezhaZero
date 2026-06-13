@@ -1,0 +1,173 @@
+{{define "component/pne-wheel"}}
+<div class="pne-wheel-date" data-target="{{.}}">
+    <div class="pne-wheel-head"><span>{{tr "PNEYear"}}</span><span>{{tr "PNEMonth"}}</span><span>{{tr "PNEDay"}}</span></div>
+    <div class="pne-wheel-frame">
+        <div class="pne-wheel-columns">
+            <div class="pne-wheel-col" data-part="year"><ul></ul></div>
+            <div class="pne-wheel-col" data-part="month"><ul></ul></div>
+            <div class="pne-wheel-col" data-part="day"><ul></ul></div>
+        </div>
+    </div>
+    <div class="ui fluid action input pne-wheel-manual">
+        <input type="text" class="pne-date-manual" data-target="{{.}}" placeholder="{{tr "PNEDateInputPlaceholder"}}" maxlength="10">
+        <button type="button" class="ui icon button pne-wheel-clear" data-target="{{.}}" title="{{tr "PNEClear"}}"><i class="close icon"></i></button>
+    </div>
+</div>
+{{end}}
+
+{{define "component/public-note-editor"}}
+<div class="ui small pne-modal modal transition hidden"
+    data-pne-applied-title="{{tr "PNEAppliedToForm"}}"
+    data-pne-applied-desc="{{tr "PNEAppliedToFormDesc"}}"
+    data-pne-written-title="{{tr "PNEWrittenToForm"}}"
+    data-pne-written-desc="{{tr "PNEWrittenToFormDesc"}}"
+    data-pne-save-failed="{{tr "PNESaveFailed"}}"
+    data-pne-unknown-error="{{tr "PNEUnknownError"}}">
+    <div class="header">{{tr "EditPublicNote"}}</div>
+    <div class="content">
+        <div class="pne-hint">{{tr "PublicNoteEditorHint"}}</div>
+        <div class="ui top attached tabular menu pne-menu">
+            <a class="item active" data-tab="pne-billing"><i class="calendar alternate outline icon"></i> {{tr "PNEBillingTab"}}</a>
+            <a class="item" data-tab="pne-plan"><i class="server icon"></i> {{tr "PNEPlanTab"}}</a>
+            <a class="item" data-tab="pne-country"><i class="flag icon"></i> {{tr "PNECountryTab"}}</a>
+            <a class="item" data-tab="pne-preview"><i class="code icon"></i> {{tr "PNEPreviewTab"}}</a>
+        </div>
+
+        <div class="ui bottom attached segment tab active pne-tab-body" data-tab="pne-billing">
+            <form class="ui form">
+                <div class="field">
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox" name="pne_billing_enabled" checked tabindex="0">
+                        <label>{{tr "PNEEnableBilling"}}</label>
+                    </div>
+                </div>
+                <div class="two fields">
+                    <div class="field pne-date-row">
+                        <label>{{tr "PNEStartDate"}}</label>
+                        {{template "component/pne-wheel" "pne_start_date"}}
+                        <input type="hidden" name="pne_start_date">
+                    </div>
+                    <div class="field pne-date-row">
+                        <label>{{tr "PNEEndDate"}}</label>
+                        {{template "component/pne-wheel" "pne_end_date"}}
+                        <input type="hidden" name="pne_end_date">
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui checkbox">
+                        <input type="checkbox" name="pne_lifetime" tabindex="0">
+                        <label>{{tr "PNELifetime"}}</label>
+                    </div>
+                </div>
+                <div class="two fields">
+                    <div class="field">
+                        <label>{{tr "PNEPaymentCycle"}}</label>
+                        <select name="pne_cycle" class="ui dropdown">
+                            <option value="">{{tr "PNEUnset"}}</option>
+                            <option value="月">{{tr "PNECycleMonthly"}}</option>
+                            <option value="季">{{tr "PNECycleQuarterly"}}</option>
+                            <option value="半年">{{tr "PNECycleHalfYear"}}</option>
+                            <option value="年">{{tr "PNECycleYearly"}}</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>{{tr "PNEPrice"}}</label>
+                        <input type="text" name="pne_amount" placeholder="$3.99">
+                        <div class="pne-field-hint">{{tr "PNEPriceHint"}}</div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui checkbox">
+                        <input type="checkbox" name="pne_auto_renewal" tabindex="0">
+                        <label>{{tr "PNEAutoRenewal"}}</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="ui bottom attached segment tab pne-tab-body" data-tab="pne-plan">
+            <form class="ui form">
+                <div class="field">
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox" name="pne_plan_enabled" tabindex="0">
+                        <label>{{tr "PNEEnablePlan"}}</label>
+                    </div>
+                </div>
+                <div class="two fields">
+                    <div class="field">
+                        <label>{{tr "PNEBandwidth"}}</label>
+                        <input type="text" name="pne_bandwidth" placeholder="30Mbps">
+                    </div>
+                    <div class="field">
+                        <label>{{tr "PNETrafficVol"}}</label>
+                        <input type="text" name="pne_traffic_vol" placeholder="1TB/月">
+                    </div>
+                </div>
+                <div class="two fields">
+                    <div class="field">
+                        <label>{{tr "PNETrafficBilling"}}</label>
+                        <select name="pne_traffic_type" class="ui dropdown">
+                            <option value="">{{tr "PNEUnset"}}</option>
+                            <option value="1">{{tr "PNETrafficUploadOnly"}}</option>
+                            <option value="2">{{tr "PNETrafficBidirectional"}}</option>
+                            <option value="3">{{tr "PNETrafficMaxInOut"}}</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>{{tr "PNENetworkRoute"}}</label>
+                        <input type="text" name="pne_network_route" placeholder="CN2,GIA">
+                    </div>
+                </div>
+                <div class="field">
+                    <label>{{tr "PNEExtra"}}</label>
+                    <input type="text" name="pne_extra" placeholder="传家宝,AS9929">
+                </div>
+                <div class="inline fields">
+                    <label>IP</label>
+                    <div class="field">
+                        <div class="ui checkbox">
+                            <input type="checkbox" name="pne_ipv4" tabindex="0">
+                            <label>IPv4</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui checkbox">
+                            <input type="checkbox" name="pne_ipv6" tabindex="0">
+                            <label>IPv6</label>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="ui bottom attached segment tab pne-tab-body" data-tab="pne-country">
+            <form class="ui form">
+                <div class="field">
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox" name="pne_country_enabled" tabindex="0">
+                        <label>{{tr "PNEEnableCountryCode"}}</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>{{tr "PNECountryCode"}}</label>
+                    <input type="text" name="pne_country_code" placeholder="{{tr "PNECountryCodePlaceholder"}}" maxlength="2" autocomplete="off">
+                </div>
+            </form>
+        </div>
+
+        <div class="ui bottom attached segment tab pne-tab-body" data-tab="pne-preview">
+            <form class="ui form">
+                <div class="field">
+                    <label>{{tr "PNEJSONPreview"}}</label>
+                    <textarea name="pne_preview" class="pne-preview-box" readonly rows="10"></textarea>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui negative deny button">{{tr "Cancel"}}</div>
+        <div class="ui button pne-apply-btn"><i class="paste icon"></i> {{tr "PNEApplyToForm"}}</div>
+        <div class="ui positive nezha-primary-btn right labeled icon button pne-save-btn">{{tr "PNESaveAndApply"}}<i class="checkmark icon"></i></div>
+    </div>
+</div>
+{{end}}

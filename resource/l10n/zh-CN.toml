@@ -909,3 +909,138 @@ other = "确认关闭双重验证并清除已绑定的密钥？"
 
 [TwoFactorV1LoginHint]
 other = "出于安全考虑，启用二次验证后将禁用 V1 接口的认证能力"
+
+[EditPublicNote]
+other = "编辑公开备注"
+
+[PublicNoteEditorHint]
+other = "填写后生成 JSON 写入公开备注，供 status-server 等主题展示账单、套餐与国旗。日期可留空；滚轮为 iOS 闹钟式选择，也可手输数字（自动补连字符），输入框右侧 × 可清空。"
+
+[PNEBillingTab]
+other = "账单"
+
+[PNEPlanTab]
+other = "套餐"
+
+[PNECountryTab]
+other = "地区"
+
+[PNEPreviewTab]
+other = "预览"
+
+[PNEEnableBilling]
+other = "启用账单信息"
+
+[PNEStartDate]
+other = "开始日期"
+
+[PNEEndDate]
+other = "到期日期"
+
+[PNELifetime]
+other = "长期有效"
+
+[PNEPaymentCycle]
+other = "付费周期"
+
+[PNEPrice]
+other = "价格"
+
+[PNEPriceHint]
+other = "填 0 表示免费（FREE），-1 表示按量付费（PAYG）"
+
+[PNEAutoRenewal]
+other = "自动续期"
+
+[PNEEnablePlan]
+other = "启用套餐信息"
+
+[PNEBandwidth]
+other = "带宽"
+
+[PNETrafficVol]
+other = "流量"
+
+[PNETrafficBilling]
+other = "流量计费"
+
+[PNENetworkRoute]
+other = "网络路由"
+
+[PNEExtra]
+other = "其他"
+
+[PNEEnableCountryCode]
+other = "启用国家/地区码"
+
+[PNECountryCode]
+other = "国家/地区码"
+
+[PNECountryCodePlaceholder]
+other = "两位字母，如 HK、US"
+
+[PNEJSONPreview]
+other = "JSON 预览"
+
+[PNEApplyToForm]
+other = "应用到表单"
+
+[PNESaveAndApply]
+other = "保存并生效"
+
+[PNEYear]
+other = "年"
+
+[PNEMonth]
+other = "月"
+
+[PNEDay]
+other = "日"
+
+[PNEDateInputPlaceholder]
+other = "或手输日期，留空则不写入"
+
+[PNEClear]
+other = "清空"
+
+[PNEUnset]
+other = "不设置"
+
+[PNECycleMonthly]
+other = "月付"
+
+[PNECycleQuarterly]
+other = "季付"
+
+[PNECycleHalfYear]
+other = "半年付"
+
+[PNECycleYearly]
+other = "年付"
+
+[PNETrafficUploadOnly]
+other = "1 - 仅上行"
+
+[PNETrafficBidirectional]
+other = "2 - 双向"
+
+[PNETrafficMaxInOut]
+other = "3 - Max(In, Out)"
+
+[PNEAppliedToForm]
+other = "已应用到表单"
+
+[PNEAppliedToFormDesc]
+other = "请在服务器编辑框中确认保存。"
+
+[PNEWrittenToForm]
+other = "已写入表单"
+
+[PNEWrittenToFormDesc]
+other = "新建服务器请先保存，再编辑公开备注。"
+
+[PNESaveFailed]
+other = "保存失败"
+
+[PNEUnknownError]
+other = "未知错误"

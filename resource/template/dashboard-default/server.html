@@ -108,9 +108,9 @@ table.ui.basic.table th:nth-child(5) {
                         {{end}}
                     </td>
                     <td>
-                        {{if $server.PublicNote}}
-                            <button class="ui icon green mini button" title="{{$server.PublicNote}}" onclick="addOrEditServer({{$server.MarshalForDashboard}})"><i class="sticky edit icon"></i></button>
-                        {{end}}
+                        <button class="ui icon green mini button" title="{{ $server.PublicNote }}" onclick="PublicNoteEditor.open({server: {{$server.MarshalForDashboard}}, saveDirect: true})">
+                            <i class="sticky edit icon"></i>
+                        </button>
                     </td>
                     <td>
                         <div class="ui mini icon buttons">
@@ -133,7 +133,10 @@ table.ui.basic.table th:nth-child(5) {
     </div>
 </div>
 {{template "component/server" .}}
+{{template "component/public-note-editor" .}}
+<link rel="stylesheet" href="/static/public-note-editor.css?v20260615s">
 {{template "common/footer" .}}
+<script src="/static/public-note-editor.js?v20260615s"></script>
 <script src="/static/cdn/clipboard@2.0.11/dist/clipboard.min.js"></script>
 <script>
     var clipboard = new ClipboardJS('.ui.icon.green.mini.button');

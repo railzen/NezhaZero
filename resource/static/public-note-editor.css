@@ -1,0 +1,242 @@
+/* Public note editor — Semantic UI overrides only */
+
+.pne-modal .pne-tab-body.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.pne-modal .pne-tab-body.is-disabled .ui.toggle.checkbox {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.pne-hint {
+  margin: 0 0 1rem;
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.pne-field-hint {
+  margin-top: 0.35rem;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* ---- iOS 风格日期滚轮 ---- */
+.pne-wheel-date {
+  margin-bottom: 0.25rem;
+}
+
+.pne-wheel-date.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.pne-wheel-head {
+  display: flex;
+  margin-bottom: 0.4rem;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.pne-wheel-head span {
+  flex: 1;
+}
+
+.pne-wheel-frame {
+  position: relative;
+  border: 1px solid rgba(34, 36, 38, 0.15);
+  border-radius: 0.28571429rem;
+  background: rgba(0, 0, 0, 0.02);
+  height: 120px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.35) 12%,
+    #000 28%,
+    #000 72%,
+    rgba(0, 0, 0, 0.35) 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.35) 12%,
+    #000 28%,
+    #000 72%,
+    rgba(0, 0, 0, 0.35) 88%,
+    transparent 100%
+  );
+}
+
+.pne-wheel-frame::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 40px;
+  margin-top: -20px;
+  border-top: 1px solid rgba(33, 133, 208, 0.28);
+  border-bottom: 1px solid rgba(33, 133, 208, 0.28);
+  background: rgba(33, 133, 208, 0.06);
+  z-index: 2;
+}
+
+.pne-wheel-columns {
+  display: flex;
+  height: 120px;
+  position: relative;
+  z-index: 1;
+}
+
+.pne-wheel-col {
+  flex: 1;
+  height: 120px;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pne-wheel-col::-webkit-scrollbar {
+  display: none;
+}
+
+.pne-wheel-col + .pne-wheel-col {
+  border-left: 1px solid rgba(34, 36, 38, 0.08);
+}
+
+.pne-wheel-col ul {
+  list-style: none;
+  margin: 0;
+}
+
+.pne-wheel-col li {
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  scroll-snap-align: center;
+  cursor: pointer;
+  user-select: none;
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.95rem;
+  opacity: 0.18;
+  transform: scale(0.9);
+  transition: opacity 0.12s ease, transform 0.12s ease, color 0.12s ease;
+}
+
+.pne-wheel-col li.is-adjacent {
+  opacity: 0.45;
+  transform: scale(0.95);
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.pne-wheel-col li.is-active {
+  opacity: 1;
+  transform: scale(1);
+  color: #0338d6;
+  font-weight: 600;
+}
+
+.pne-wheel-manual {
+  margin-top: 0.45rem;
+}
+
+.pne-wheel-manual input.pne-date-manual {
+  font-size: 1em;
+}
+
+.pne-preview-box {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+  min-height: 160px;
+  resize: vertical;
+}
+
+html[nz-theme="dark"] .pne-hint {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+html[nz-theme="dark"] .pne-field-hint {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+html[nz-theme="dark"] .pne-wheel-frame {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+html[nz-theme="dark"] .pne-wheel-col li {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+html[nz-theme="dark"] .pne-wheel-col li.is-adjacent {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+html[nz-theme="dark"] .pne-wheel-col li.is-active {
+  color: #6b9fff;
+}
+
+html[nz-theme="dark"] .pne-wheel-col + .pne-wheel-col {
+  border-left-color: rgba(255, 255, 255, 0.1);
+}
+
+html[nz-theme="dark"] .pne-wheel-head {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+@media only screen and (max-width: 767px) {
+  .pne-modal.ui.modal {
+    width: calc(100vw - 1rem) !important;
+    max-width: calc(100vw - 1rem) !important;
+  }
+
+  .pne-modal > .content {
+    padding: 1rem !important;
+  }
+
+  .pne-modal .pne-menu {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .pne-modal .pne-menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pne-modal .pne-menu .item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding-left: 0.85em !important;
+    padding-right: 0.85em !important;
+  }
+
+  .pne-modal .ui.form .two.fields {
+    flex-direction: column;
+  }
+
+  .pne-modal .ui.form .two.fields > .field {
+    width: 100% !important;
+  }
+
+  .pne-modal > .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .pne-modal > .actions > .button {
+    margin: 0 !important;
+  }
+}

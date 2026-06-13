@@ -900,3 +900,138 @@ other = "¿Desactivar la autenticación en dos pasos y eliminar el secreto vincu
 
 [TwoFactorV1LoginHint]
 other = "Por seguridad, la autenticación en dos pasos desactiva la autenticación de la API V1"
+
+[EditPublicNote]
+other = "Editar nota pública"
+
+[PublicNoteEditorHint]
+other = "Complete los campos para generar JSON en la nota pública, usado por temas como status-server para mostrar facturación, plan y bandera. Las fechas son opcionales; use las ruedas estilo iOS o escriba dígitos (se añaden guiones automáticamente). Pulse × para borrar."
+
+[PNEBillingTab]
+other = "Facturación"
+
+[PNEPlanTab]
+other = "Plan"
+
+[PNECountryTab]
+other = "Región"
+
+[PNEPreviewTab]
+other = "Vista previa"
+
+[PNEEnableBilling]
+other = "Activar información de facturación"
+
+[PNEStartDate]
+other = "Fecha de inicio"
+
+[PNEEndDate]
+other = "Fecha de vencimiento"
+
+[PNELifetime]
+other = "Válido indefinidamente"
+
+[PNEPaymentCycle]
+other = "Ciclo de pago"
+
+[PNEPrice]
+other = "Precio"
+
+[PNEPriceHint]
+other = "0 = gratis (FREE), -1 = pago por uso (PAYG)"
+
+[PNEAutoRenewal]
+other = "Renovación automática"
+
+[PNEEnablePlan]
+other = "Activar información del plan"
+
+[PNEBandwidth]
+other = "Ancho de banda"
+
+[PNETrafficVol]
+other = "Tráfico"
+
+[PNETrafficBilling]
+other = "Facturación de tráfico"
+
+[PNENetworkRoute]
+other = "Ruta de red"
+
+[PNEExtra]
+other = "Extra"
+
+[PNEEnableCountryCode]
+other = "Activar código de país/región"
+
+[PNECountryCode]
+other = "Código de país/región"
+
+[PNECountryCodePlaceholder]
+other = "Dos letras, p. ej. HK, US"
+
+[PNEJSONPreview]
+other = "Vista previa JSON"
+
+[PNEApplyToForm]
+other = "Aplicar al formulario"
+
+[PNESaveAndApply]
+other = "Guardar y aplicar"
+
+[PNEYear]
+other = "Año"
+
+[PNEMonth]
+other = "Mes"
+
+[PNEDay]
+other = "Día"
+
+[PNEDateInputPlaceholder]
+other = "O escriba una fecha; deje vacío para omitir"
+
+[PNEClear]
+other = "Borrar"
+
+[PNEUnset]
+other = "Sin definir"
+
+[PNECycleMonthly]
+other = "Mensual"
+
+[PNECycleQuarterly]
+other = "Trimestral"
+
+[PNECycleHalfYear]
+other = "Semestral"
+
+[PNECycleYearly]
+other = "Anual"
+
+[PNETrafficUploadOnly]
+other = "1 - Solo subida"
+
+[PNETrafficBidirectional]
+other = "2 - Bidireccional"
+
+[PNETrafficMaxInOut]
+other = "3 - Max(Entrada, Salida)"
+
+[PNEAppliedToForm]
+other = "Aplicado al formulario"
+
+[PNEAppliedToFormDesc]
+other = "Confirme y guarde en el diálogo de edición del servidor."
+
+[PNEWrittenToForm]
+other = "Escrito en el formulario"
+
+[PNEWrittenToFormDesc]
+other = "Guarde primero el servidor nuevo y luego edite la nota pública."
+
+[PNESaveFailed]
+other = "Error al guardar"
+
+[PNEUnknownError]
+other = "Error desconocido"

@@ -909,3 +909,138 @@ other = "Disable two-factor authentication and remove the bound secret?"
 
 [TwoFactorV1LoginHint]
 other = "For security reasons, two-factor authentication disables V1 API authentication"
+
+[EditPublicNote]
+other = "Edit Public Note"
+
+[PublicNoteEditorHint]
+other = "Fill in the fields to generate JSON for the public note, used by themes such as status-server to display billing, plan, and flag. Dates are optional; use the iOS-style wheels or type digits (hyphens added automatically). Click × to clear."
+
+[PNEBillingTab]
+other = "Billing"
+
+[PNEPlanTab]
+other = "Plan"
+
+[PNECountryTab]
+other = "Region"
+
+[PNEPreviewTab]
+other = "Preview"
+
+[PNEEnableBilling]
+other = "Enable billing info"
+
+[PNEStartDate]
+other = "Start date"
+
+[PNEEndDate]
+other = "Expiry date"
+
+[PNELifetime]
+other = "Lifetime"
+
+[PNEPaymentCycle]
+other = "Billing cycle"
+
+[PNEPrice]
+other = "Price"
+
+[PNEPriceHint]
+other = "Use 0 for free (FREE), -1 for pay-as-you-go (PAYG)"
+
+[PNEAutoRenewal]
+other = "Auto renewal"
+
+[PNEEnablePlan]
+other = "Enable plan info"
+
+[PNEBandwidth]
+other = "Bandwidth"
+
+[PNETrafficVol]
+other = "Traffic"
+
+[PNETrafficBilling]
+other = "Traffic billing"
+
+[PNENetworkRoute]
+other = "Network route"
+
+[PNEExtra]
+other = "Extra"
+
+[PNEEnableCountryCode]
+other = "Enable country/region code"
+
+[PNECountryCode]
+other = "Country/region code"
+
+[PNECountryCodePlaceholder]
+other = "Two letters, e.g. HK, US"
+
+[PNEJSONPreview]
+other = "JSON preview"
+
+[PNEApplyToForm]
+other = "Apply to form"
+
+[PNESaveAndApply]
+other = "Save and apply"
+
+[PNEYear]
+other = "Year"
+
+[PNEMonth]
+other = "Month"
+
+[PNEDay]
+other = "Day"
+
+[PNEDateInputPlaceholder]
+other = "Or type a date; leave empty to omit"
+
+[PNEClear]
+other = "Clear"
+
+[PNEUnset]
+other = "Not set"
+
+[PNECycleMonthly]
+other = "Monthly"
+
+[PNECycleQuarterly]
+other = "Quarterly"
+
+[PNECycleHalfYear]
+other = "Semi-annual"
+
+[PNECycleYearly]
+other = "Annual"
+
+[PNETrafficUploadOnly]
+other = "1 - Upload only"
+
+[PNETrafficBidirectional]
+other = "2 - Bidirectional"
+
+[PNETrafficMaxInOut]
+other = "3 - Max(In, Out)"
+
+[PNEAppliedToForm]
+other = "Applied to form"
+
+[PNEAppliedToFormDesc]
+other = "Confirm and save in the server edit dialog."
+
+[PNEWrittenToForm]
+other = "Written to form"
+
+[PNEWrittenToFormDesc]
+other = "Save the new server first, then edit the public note."
+
+[PNESaveFailed]
+other = "Save failed"
+
+[PNEUnknownError]
+other = "Unknown error"
