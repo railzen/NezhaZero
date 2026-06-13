@@ -101,7 +101,6 @@ func main() {
 			return srv.ListenAndServe()
 		}, func(c context.Context) error {
 			log.Println("NEZHA>> Graceful::START")
-			audit.MarkGracefulShutdown()
 			audit.Record(nil, audit.TypeEvent, "Dashboard stopped", "graceful shutdown initiated")
 			singleton.RecordTransferHourlyUsage()
 			log.Println("NEZHA>> Graceful::END")

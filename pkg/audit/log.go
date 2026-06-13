@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
@@ -24,10 +25,9 @@ const (
 
 	serverOfflineThreshold = 10 * time.Minute
 	highLoadDuration       = 15 * time.Minute
-	highLoadCPUThreshold    = 85.0
-	highMemoryThreshold     = 96.0
-	watchdogInterval        = 30 * time.Second
-	runtimeRowID            = uint64(1)
+	highLoadCPUThreshold   = 85.0
+	highMemoryThreshold    = 96.0
+	watchdogInterval       = 30 * time.Second
 
 	TriggerReasonOffline    = "offline"
 	TriggerReasonHighCPU    = "high_cpu"
@@ -170,46 +170,93 @@ func joinChanges(changes []string) string {
 	return strings.Join(changes, "; ")
 }
 
-// StartWatchdog 启动后台巡检：心跳入库、意外关机检测、服务器上下线日志。
+// StartWatchdog 启动后台巡检：意外关机检测、服务器上下线日志。
 func StartWatchdog() {
 	checkUnexpectedShutdown()
 	go watchdogLoop()
-}
-
-// MarkGracefulShutdown 正常退出时标记已停机，避免下次启动误判为意外关机。
-func MarkGracefulShutdown() {
-	if singleton.DB == nil {
-		return
-	}
-	_ = singleton.DB.Model(&model.DashboardRuntime{}).Where("id = ?", runtimeRowID).
-		Update("running", false).Error
-}
-
-func loadRuntime() model.DashboardRuntime {
-	var rt model.DashboardRuntime
-	if singleton.DB == nil {
-		return rt
-	}
-	if err := singleton.DB.First(&rt, runtimeRowID).Error; err != nil {
-		rt = model.DashboardRuntime{ID: runtimeRowID, Running: false, LastAlive: time.Time{}}
-		_ = singleton.DB.Create(&rt).Error
-	}
-	return rt
 }
 
 func checkUnexpectedShutdown() {
 	if singleton.DB == nil {
 		return
 	}
-	rt := loadRuntime()
-	if rt.Running && !rt.LastAlive.IsZero() {
-		Record(nil, TypeEvent, "Dashboard stopped",
-			fmt.Sprintf("last alive at %s", rt.LastAlive.Format(time.RFC3339)))
+	var lastStart model.AuditLog
+	if err := singleton.DB.Where("type = ? AND action = ?", TypeEvent, "Dashboard started").
+		Order("created_at DESC").First(&lastStart).Error; err != nil {
+		return
 	}
-	now := time.Now()
-	_ = singleton.DB.Save(&model.DashboardRuntime{
-		ID: runtimeRowID, Running: true, LastAlive: now,
-	}).Error
+	var gracefulStop model.AuditLog
+	if err := singleton.DB.Where(
+		"type = ? AND action = ? AND created_at > ? AND detail LIKE ?",
+		TypeEvent, "Dashboard stopped", lastStart.CreatedAt, "%graceful%",
+	).Order("created_at DESC").First(&gracefulStop).Error; err == nil {
+		return
+	}
+	lastActivity := dbLastActivityTime()
+	var detail string
+	if !lastActivity.IsZero() {
+		detail = fmt.Sprintf("last active at %s", lastActivity.Format(time.RFC3339))
+	} else {
+		detail = "unexpected shutdown detected"
+	}
+	Record(nil, TypeEvent, "Dashboard stopped", detail)
+}
+
+// dbLastActivityTime 聚合各业务表 updated_at / created_at 的最大值。
+func dbLastActivityTime() time.Time {
+	if singleton.DB == nil {
+		return time.Time{}
+	}
+	var maxTS sql.NullString
+	err := singleton.DB.Raw(`
+SELECT MAX(t) FROM (
+  SELECT MAX(updated_at) AS t FROM servers
+  UNION ALL SELECT MAX(created_at) FROM servers
+  UNION ALL SELECT MAX(updated_at) FROM users
+  UNION ALL SELECT MAX(created_at) FROM users
+  UNION ALL SELECT MAX(updated_at) FROM notifications
+  UNION ALL SELECT MAX(created_at) FROM notifications
+  UNION ALL SELECT MAX(updated_at) FROM alert_rules
+  UNION ALL SELECT MAX(created_at) FROM alert_rules
+  UNION ALL SELECT MAX(updated_at) FROM monitors
+  UNION ALL SELECT MAX(created_at) FROM monitors
+  UNION ALL SELECT MAX(updated_at) FROM monitor_histories
+  UNION ALL SELECT MAX(created_at) FROM monitor_histories
+  UNION ALL SELECT MAX(updated_at) FROM crons
+  UNION ALL SELECT MAX(created_at) FROM crons
+  UNION ALL SELECT MAX(updated_at) FROM transfers
+  UNION ALL SELECT MAX(created_at) FROM transfers
+  UNION ALL SELECT MAX(updated_at) FROM api_tokens
+  UNION ALL SELECT MAX(created_at) FROM api_tokens
+  UNION ALL SELECT MAX(updated_at) FROM nats
+  UNION ALL SELECT MAX(created_at) FROM nats
+  UNION ALL SELECT MAX(updated_at) FROM ddns
+  UNION ALL SELECT MAX(created_at) FROM ddns
+  UNION ALL SELECT MAX(updated_at) FROM audit_logs
+  UNION ALL SELECT MAX(created_at) FROM audit_logs
+)`).Scan(&maxTS).Error
+	if err != nil || !maxTS.Valid {
+		return time.Time{}
+	}
+	return parseSQLiteDateTime(maxTS.String)
+}
+
+func parseSQLiteDateTime(s string) time.Time {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}
+	}
+	for _, layout := range []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02 15:04:05.999999999-07:00",
+		"2006-01-02 15:04:05",
+	} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
 }
 
 func watchdogLoop() {
@@ -217,18 +264,9 @@ func watchdogLoop() {
 	defer ticker.Stop()
 	serverStates := make(map[uint64]*serverWatchState)
 	for {
-		writeAliveToDB()
 		checkServerStates(serverStates)
 		<-ticker.C
 	}
-}
-
-func writeAliveToDB() {
-	if singleton.DB == nil {
-		return
-	}
-	_ = singleton.DB.Model(&model.DashboardRuntime{}).Where("id = ?", runtimeRowID).
-		Updates(map[string]interface{}{"last_alive": time.Now(), "running": true}).Error
 }
 
 func isServerOnline(lastActive time.Time) bool {

@@ -32,10 +32,3 @@ type AuditLog struct {
 	Detail string `json:"detail" gorm:"size:1024"`
 	IP     string `json:"ip" gorm:"size:64"`
 }
-
-// DashboardRuntime 面板运行心跳（固定单行 ID=1）
-type DashboardRuntime struct {
-	ID        uint64    `gorm:"primaryKey"`
-	Running   bool      `gorm:"not null"`
-	LastAlive time.Time
-}
