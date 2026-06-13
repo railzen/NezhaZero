@@ -820,7 +820,7 @@ other = "Servidores DNS públicos personalizados para DDNS (separar con coma)"
 [GeoIP]
 other = "GeoIP"
 
-[EnableGeoIP]
+[UseExternalGeoIP]
 other = "Usar búsqueda GeoIP externa por país/región"
 
 [GeoIPDownloadBtn]

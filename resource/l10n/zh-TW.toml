@@ -811,7 +811,7 @@ other = "自訂DDNS使用的公共DNS伺服器（逗號分隔）"
 [GeoIP]
 other = "GeoIP"
 
-[EnableGeoIP]
+[UseExternalGeoIP]
 other = "使用外部 GeoIP 國家/地區解析"
 
 [GeoIPDownloadBtn]
