@@ -12,8 +12,8 @@ yellow='\033[0;33m'
 plain='\033[0m'
 export PATH="$PATH:/usr/local/bin"
 
-NZ_MAIN_DEFAULT_VERSION="v0.20.23"
-NZ_AGENT_DEFAULT_VERSION="v0.20.23"
+NZ_MAIN_DEFAULT_VERSION="v0.20.24"
+NZ_AGENT_DEFAULT_VERSION="v0.20.24"
 
 os_arch=""
 [ -e /etc/os-release ] && grep -i "PRETTY_NAME" /etc/os-release | grep -qi "alpine" && os_alpine='1'
@@ -131,6 +131,7 @@ pre_check() {
     fi
 
     local _version=${NZ_MAIN_VERSION}
+    NZ_AGENT_DEFAULT_VERSION=${NZ_MAIN_VERSION}
     
     GITHUB_RAW_URL="raw.githubusercontent.com/railzen/nezha-zero/main/script"
     GITHUB_URL="github.com"
