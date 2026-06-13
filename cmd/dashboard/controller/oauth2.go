@@ -271,7 +271,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24, "", "", mygin.CookieSecure(c), true)
+	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24*7, "", "", mygin.CookieSecure(c), true)
 	mygin.SetCSRFCookie(c)
 
 	// 登录成功跳转
@@ -614,7 +614,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 	user.TokenExpired = time.Now().UTC().AddDate(0, 2, 0)
 	singleton.DB.Save(&user)
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24, "", "", mygin.CookieSecure(c), true)
+	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24*7, "", "", mygin.CookieSecure(c), true)
 	mygin.SetCSRFCookie(c)
 	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/redirect", mygin.CommonEnvironment(c, gin.H{
 		"URL": "/",
