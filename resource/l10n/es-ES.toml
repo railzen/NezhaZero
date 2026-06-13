@@ -757,6 +757,9 @@ other = "Deshabilitar inicio de sesión con contraseña"
 [DisableOauthLogin]
 other = "Deshabilitar inicio de sesión OAuth"
 
+[EnableCompatAPI]
+other = "Habilitar API compatible V1"
+
 [ServersOnWorldMap]
 other = "Servidores en el mapa mundial"
 

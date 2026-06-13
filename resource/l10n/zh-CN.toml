@@ -868,8 +868,8 @@ other = "禁用密码登录"
 [DisableOauthLogin]
 other = "禁用 OAuth 登录"
 
-[DisableCompatAPI]
-other = "禁用V1兼容API"
+[EnableCompatAPI]
+other = "启用V1兼容API"
 
 [EnableTwoFactor]
 other = "密码登录双重验证（TOTP）"

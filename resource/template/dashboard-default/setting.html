@@ -167,9 +167,10 @@
                 </div>
             </div>
             <div class="field">
-                <div class="ui checkbox compat-api-disable">
-                    <input name="CompatAPIDisable" type="checkbox" tabindex="0" class="hidden">
-                    <label>{{tr "DisableCompatAPI"}}{{if and .Conf.Site.TwoFactorSecret (not .Conf.CompatAPIDisable)}} <small>({{tr "TwoFactorV1LoginHint"}})</small>{{end}}</label>
+                <input type="hidden" name="CompatAPIDisable" id="compat-api-disable-value" value="{{if .Conf.CompatAPIDisable}}on{{end}}">
+                <div class="ui checkbox enable-compat-api">
+                    <input type="checkbox" id="enable-compat-api-ui" tabindex="0" class="hidden">
+                    <label>{{tr "EnableCompatAPI"}}{{if and .Conf.Site.TwoFactorSecret (not .Conf.CompatAPIDisable)}} <small>({{tr "TwoFactorV1LoginHint"}})</small>{{end}}</label>
                 </div>
             </div>
             <div class="field">
@@ -254,6 +255,7 @@
 </style>
 <script>
     $('#settingForm').submit(function () {
+        syncCompatAPIDisableField();
         $.post('/api/setting', $('#settingForm').serialize())
             .then((resp) => {
                 if (resp.code == 200) {
@@ -288,6 +290,13 @@
         return false;
     })
     $('.checkbox').checkbox()
+    function syncCompatAPIDisableField() {
+        const enabled = $('.checkbox.enable-compat-api').checkbox('is checked');
+        $('#compat-api-disable-value').val(enabled ? '' : 'on');
+    }
+    $('.checkbox.enable-compat-api').checkbox({
+        onChange: syncCompatAPIDisableField
+    });
     function togglePasswordLoginSettings() {
         const disabled = $('.checkbox.disable-password-login').checkbox('is checked');
         if (disabled) {
@@ -497,9 +506,10 @@
     {{ if .Conf.DisableSwitchTemplateInFrontend }}
     $('.checkbox.disable-switch-template').checkbox('set checked')
     {{ end }}
-    {{ if .Conf.CompatAPIDisable }}
-    $('.checkbox.compat-api-disable').checkbox('set checked')
+    {{ if not .Conf.CompatAPIDisable }}
+    $('.checkbox.enable-compat-api').checkbox('set checked')
     {{ end }}
+    syncCompatAPIDisableField();
     {{ if .Conf.UseTemplateHandleNoRoute }}
     $('.checkbox.template-handle-no-route').checkbox('set checked')
     {{ end }}

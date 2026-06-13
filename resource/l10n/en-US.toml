@@ -868,8 +868,8 @@ other = "Disable Password Login"
 [DisableOauthLogin]
 other = "Disable OAuth Login"
 
-[DisableCompatAPI]
-other = "Disable V1 CompatAPI"
+[EnableCompatAPI]
+other = "Enable V1 CompatAPI"
 
 [EnableTwoFactor]
 other = "Password login two-factor authentication (TOTP)"
