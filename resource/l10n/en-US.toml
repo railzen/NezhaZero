@@ -859,6 +859,9 @@ other = "Password"
 [AutoDiscover]
 other = "Auto Discover"
 
+[DiscoverDisabledAlert]
+other = "Auto discover is disabled. Please configure the discover secret in settings first"
+
 [GRPCDiscoverKey]
 other = "Discover Secret"
 

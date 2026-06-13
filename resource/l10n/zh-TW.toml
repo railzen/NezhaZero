@@ -859,6 +859,9 @@ other = "密碼"
 [AutoDiscover]
 other = "自動發現"
 
+[DiscoverDisabledAlert]
+other = "自動發現已關閉，請先在設定頁面配置自動發現密鑰"
+
 [GRPCDiscoverKey]
 other = "自動發現密鑰"
 

@@ -859,6 +859,9 @@ other = "密码"
 [AutoDiscover]
 other = "自动发现"
 
+[DiscoverDisabledAlert]
+other = "自动发现已关闭，请先在设置页面配置自动发现密钥"
+
 [GRPCDiscoverKey]
 other = "自动发现密钥"
 
