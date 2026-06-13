@@ -76,7 +76,7 @@ type SettingChangeInput struct {
 	CustomCodeDashboardChanged      bool
 	ViewPasswordChanged             bool
 	CustomNameservers               string
-	EnableGeoIP                     bool
+	UseExternalGeoIP                bool
 	EnableIPChangeNotification      bool
 	EnablePlainIPInNotification     bool
 	DisableSwitchTemplateInFrontend bool
@@ -111,19 +111,19 @@ func BuildSecuritySettingDetail(before *model.Config, in SettingChangeInput) str
 	}
 	var changes []string
 	if before.Oauth2.Admin != in.Admin {
-		changes = append(changes, "admin user list changed")
+		changes = append(changes, "Admin user list changed")
 	}
 	appendBoolChange(&changes, "OAuth login disabled", before.Oauth2.DisableOauthLogin, in.DisableOauthLogin)
-	appendBoolChange(&changes, "password login disabled", before.Site.DisablePasswordLogin, in.DisablePasswordLogin)
-	appendBoolChange(&changes, "compat API disabled", before.CompatAPIDisable, in.CompatAPIDisable)
+	appendBoolChange(&changes, "Password login disabled", before.Site.DisablePasswordLogin, in.DisablePasswordLogin)
+	appendBoolChange(&changes, "Compat API disabled", before.CompatAPIDisable, in.CompatAPIDisable)
 	if in.ViewPasswordChanged {
-		changes = append(changes, "frontend view password changed")
+		changes = append(changes, "Frontend view password changed")
 	}
 	if in.PasswordChanged {
-		changes = append(changes, "admin password changed")
+		changes = append(changes, "Admin password changed")
 	}
 	if in.TwoFactorCleared {
-		changes = append(changes, "two-factor authentication cleared (password login disabled)")
+		changes = append(changes, "Two-factor authentication cleared (password login disabled)")
 	}
 	return joinChanges(changes)
 }
@@ -134,28 +134,28 @@ func BuildConfigSettingDetail(before *model.Config, in SettingChangeInput) strin
 		return ""
 	}
 	var changes []string
-	appendStrChange(&changes, "site title", before.Site.Brand, in.Title)
-	appendStrChange(&changes, "language", before.Language, in.Language)
-	appendStrChange(&changes, "frontend theme", before.Site.Theme, in.Theme)
-	appendStrChange(&changes, "dashboard theme", before.Site.DashboardTheme, in.DashboardTheme)
+	appendStrChange(&changes, "Site title", before.Site.Brand, in.Title)
+	appendStrChange(&changes, "Language", before.Language, in.Language)
+	appendStrChange(&changes, "Frontend theme", before.Site.Theme, in.Theme)
+	appendStrChange(&changes, "Dashboard theme", before.Site.DashboardTheme, in.DashboardTheme)
 	appendStrChange(&changes, "gRPC host", before.GRPCHost, in.GRPCHost)
 	if before.GRPCDiscoverKey != in.GRPCDiscoverKey {
 		changes = append(changes, "gRPC discover key changed")
 	}
 	appendStrChange(&changes, "DNS servers", before.DNSServers, in.CustomNameservers)
-	appendStrChange(&changes, "ignored IPs for notification", before.IgnoredIPNotification, in.IgnoredIPNotification)
+	appendStrChange(&changes, "Ignored IPs for notification", before.IgnoredIPNotification, in.IgnoredIPNotification)
 	appendStrChange(&changes, "IP change notification tag", before.IPChangeNotificationTag, in.IPChangeNotificationTag)
-	appendUint8Change(&changes, "notification cover mode", before.Cover, in.Cover)
-	appendBoolChange(&changes, "GeoIP lookup", before.EnableGeoIP, in.EnableGeoIP)
+	appendUint8Change(&changes, "Notification cover mode", before.Cover, in.Cover)
+	appendBoolChange(&changes, "External GeoIP lookup", before.UseExternalGeoIP, in.UseExternalGeoIP)
 	appendBoolChange(&changes, "IP change notification", before.EnableIPChangeNotification, in.EnableIPChangeNotification)
-	appendBoolChange(&changes, "plain IP in notification", before.EnablePlainIPInNotification, in.EnablePlainIPInNotification)
-	appendBoolChange(&changes, "disable frontend theme switch", before.DisableSwitchTemplateInFrontend, in.DisableSwitchTemplateInFrontend)
-	appendBoolChange(&changes, "template 404 handler", before.UseTemplateHandleNoRoute, in.UseTemplateHandleNoRoute)
+	appendBoolChange(&changes, "Plain IP in notification", before.EnablePlainIPInNotification, in.EnablePlainIPInNotification)
+	appendBoolChange(&changes, "Disable frontend theme switch", before.DisableSwitchTemplateInFrontend, in.DisableSwitchTemplateInFrontend)
+	appendBoolChange(&changes, "Template 404 handler", before.UseTemplateHandleNoRoute, in.UseTemplateHandleNoRoute)
 	if in.CustomCodeChanged {
-		changes = append(changes, "frontend custom code modified")
+		changes = append(changes, "Frontend custom code modified")
 	}
 	if in.CustomCodeDashboardChanged {
-		changes = append(changes, "dashboard custom code modified")
+		changes = append(changes, "Dashboard custom code modified")
 	}
 	return joinChanges(changes)
 }
@@ -163,6 +163,9 @@ func BuildConfigSettingDetail(before *model.Config, in SettingChangeInput) strin
 func joinChanges(changes []string) string {
 	if len(changes) == 0 {
 		return ""
+	}
+	for i, c := range changes {
+		changes[i] = capitalizeFirst(c)
 	}
 	return strings.Join(changes, "; ")
 }
@@ -398,8 +401,8 @@ func Record(c *gin.Context, typ, action, detail string) {
 	}
 	if err := singleton.DB.Create(&model.AuditLog{
 		Type:   typ,
-		Action: capitalizeFirst(action),
-		Detail: trimDetail(capitalizeFirst(detail)),
+		Action: capitalizeLogText(action),
+		Detail: trimDetail(capitalizeLogText(detail)),
 		IP:     ip,
 	}).Error; err != nil {
 		return
@@ -463,6 +466,19 @@ func capitalizeFirst(s string) string {
 	r := []rune(s)
 	r[0] = unicode.ToUpper(r[0])
 	return string(r)
+}
+
+// capitalizeLogText 保证整条日志及分号分隔的各条详情均以大写字母开头。
+func capitalizeLogText(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return s
+	}
+	parts := strings.Split(s, "; ")
+	for i, p := range parts {
+		parts[i] = capitalizeFirst(p)
+	}
+	return strings.Join(parts, "; ")
 }
 
 func trimDetail(s string) string {

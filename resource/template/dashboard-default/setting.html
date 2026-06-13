@@ -101,19 +101,19 @@
             </div>
             <div class="ui segment">
                 <div class="field">
-                    <div class="ui checkbox enable-geoip">
-                        <input name="EnableGeoIP" type="checkbox" tabindex="0" class="hidden">
-                        <label>{{tr "EnableGeoIP"}}</label>
+                    <div class="ui checkbox use-external-geoip">
+                        <input name="UseExternalGeoIP" type="checkbox" tabindex="0" class="hidden">
+                        <label>{{tr "UseExternalGeoIP"}}</label>
                     </div>
                 </div>
                 <div class="field nb-geoip-actions" style="display: flex; align-items: center; margin-bottom: 0;">
-                    <span class="nb-geoip-status{{if not .GeoIPDownloaded}}{{if .Conf.EnableGeoIP}} nb-geoip-status-pending{{else}} nb-geoip-status-off{{end}}{{end}}" style="display: inline-flex; align-items: center; flex-grow: 1; margin-right: 5px; min-width: 0;">
+                    <span class="nb-geoip-status{{if not .GeoIPDownloaded}}{{if .Conf.UseExternalGeoIP}} nb-geoip-status-pending{{else}} nb-geoip-status-off{{end}}{{end}}" style="display: inline-flex; align-items: center; flex-grow: 1; margin-right: 5px; min-width: 0;">
                         {{if .GeoIPDownloaded}}
                         <i class="globe icon"></i>
                         <span class="nb-geoip-status-text">{{tr "GeoIPLastUpdated"}} {{.GeoIPUpdatedAt}}</span>
                         {{else}}
-                        <i class="globe icon{{if .Conf.EnableGeoIP}} nb-geoip-icon-warn{{end}}"></i>
-                        <span class="nb-geoip-status-text">{{if .Conf.EnableGeoIP}}{{tr "GeoIPNotDownloaded"}}{{else}}{{tr "GeoIPDisabledHint"}}{{end}}</span>
+                        <i class="globe icon{{if .Conf.UseExternalGeoIP}} nb-geoip-icon-warn{{end}}"></i>
+                        <span class="nb-geoip-status-text">{{if .Conf.UseExternalGeoIP}}{{tr "GeoIPNotDownloaded"}}{{else}}{{tr "GeoIPDisabledHint"}}{{end}}</span>
                         {{end}}
                     </span>
                     <button type="button" class="ui button" id="geoipUpdateBtn" style="flex-shrink: 0;">{{if .GeoIPDownloaded}}{{tr "GeoIPUpdateBtn"}}{{else}}{{tr "GeoIPDownloadBtn"}}{{end}}</button>
@@ -479,8 +479,8 @@
         });
     });
     $('#settingForm').find("select[name=Cover]").val({{.Conf.Cover }});
-    {{ if .Conf.EnableGeoIP}}
-    $('.checkbox.enable-geoip').checkbox('set checked')
+    {{ if .Conf.UseExternalGeoIP}}
+    $('.checkbox.use-external-geoip').checkbox('set checked')
     {{ end }}
     {{ if .Conf.EnableIPChangeNotification}}
     $('.checkbox.ip-change').checkbox('set checked')

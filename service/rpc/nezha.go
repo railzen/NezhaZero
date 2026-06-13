@@ -284,7 +284,7 @@ func (s *NezhaHandler) ReportSystemInfo(c context.Context, r *pb.Host) (*pb.Rece
 	if host.CountryCode == "" && host.IP != "" {
 		_, _, geoIP := utils.SplitIPAddr(host.IP)
 		if netIP := net.ParseIP(geoIP); netIP != nil {
-			if location, err := geoip.Resolve(singleton.Conf.EnableGeoIP, netIP); err == nil {
+			if location, err := geoip.Resolve(singleton.Conf.UseExternalGeoIP, netIP); err == nil {
 				host.CountryCode = location
 			}
 		}
@@ -333,7 +333,7 @@ func (s *NezhaHandler) LookupGeoIP(c context.Context, r *pb.GeoIP) (*pb.GeoIP, e
 
 	ip := r.GetIp()
 	netIP := net.ParseIP(ip)
-	location, err := geoip.Resolve(singleton.Conf.EnableGeoIP, netIP)
+	location, err := geoip.Resolve(singleton.Conf.UseExternalGeoIP, netIP)
 	if err != nil {
 		return nil, err
 	}

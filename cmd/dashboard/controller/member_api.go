@@ -1055,7 +1055,7 @@ type settingForm struct {
 	GRPCDiscoverKey                 string
 	Cover                           uint8
 	Password                        string
-	EnableGeoIP                     string
+	UseExternalGeoIP                string
 	EnableIPChangeNotification      string
 	EnablePlainIPInNotification     string
 	DisableSwitchTemplateInFrontend string
@@ -1184,7 +1184,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	}
 
 	singleton.Conf.Language = sf.Language
-	singleton.Conf.EnableGeoIP = sf.EnableGeoIP == "on"
+	singleton.Conf.UseExternalGeoIP = sf.UseExternalGeoIP == "on"
 	singleton.Conf.EnableIPChangeNotification = sf.EnableIPChangeNotification == "on"
 	singleton.Conf.EnablePlainIPInNotification = sf.EnablePlainIPInNotification == "on"
 	singleton.Conf.DisableSwitchTemplateInFrontend = sf.DisableSwitchTemplateInFrontend == "on"
@@ -1234,7 +1234,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	singleton.InitLocalizer()
 	// 更新DNS服务器
 	singleton.OnNameserverUpdate()
-	if err := geoip.ReloadExternal(singleton.Conf.EnableGeoIP); err != nil {
+	if err := geoip.ReloadExternal(singleton.Conf.UseExternalGeoIP); err != nil {
 		log.Printf("NEZHA>> GeoIP reload failed: %v", err)
 	}
 	c.JSON(http.StatusOK, model.Response{
@@ -1250,7 +1250,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		CustomCodeDashboardChanged:      oldConf.Site.CustomCodeDashboard != sf.CustomCodeDashboard,
 		ViewPasswordChanged:             oldConf.Site.ViewPassword != sf.ViewPassword,
 		CustomNameservers:               sf.CustomNameservers,
-		EnableGeoIP:                     sf.EnableGeoIP == "on",
+		UseExternalGeoIP:                sf.UseExternalGeoIP == "on",
 		EnableIPChangeNotification:      sf.EnableIPChangeNotification == "on",
 		EnablePlainIPInNotification:     sf.EnablePlainIPInNotification == "on",
 		DisableSwitchTemplateInFrontend: sf.DisableSwitchTemplateInFrontend == "on",
@@ -1282,7 +1282,7 @@ func (ma *memberAPI) updateGeoIP(c *gin.Context) {
 		})
 		return
 	}
-	if err := geoip.ReloadExternal(singleton.Conf.EnableGeoIP); err != nil {
+	if err := geoip.ReloadExternal(singleton.Conf.UseExternalGeoIP); err != nil {
 		log.Printf("NEZHA>> GeoIP reload failed: %v", err)
 	}
 	audit.Record(c, audit.TypeConfig, "GeoIP database updated", "GeoIP database updated")

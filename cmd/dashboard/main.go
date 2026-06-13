@@ -64,7 +64,7 @@ func main() {
 	singleton.InitTimezoneAndCache()
 	singleton.InitDBFromPath(dashboardCliParam.DatebaseLocation)
 	geoip.InitExternal(filepath.Dir(dashboardCliParam.DatebaseLocation))
-	if err := geoip.ReloadExternal(singleton.Conf.EnableGeoIP); err != nil {
+	if err := geoip.ReloadExternal(singleton.Conf.UseExternalGeoIP); err != nil {
 		log.Printf("NEZHA>> GeoIP reload failed: %v", err)
 	}
 	singleton.InitLocalizer()

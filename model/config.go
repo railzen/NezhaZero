@@ -79,34 +79,34 @@ type Config struct {
 	Debug    bool   // debug模式开关
 	Language string // 系统语言，默认 zh-CN
 	Site     struct {
-		Brand               string // 站点名称
-		CookieName          string // 浏览器 Cookie 名称
-		Theme               string
-		DashboardTheme      string
-		CustomCode          string
-		CustomCodeDashboard string
+		Brand                string // 站点名称
+		CookieName           string // 浏览器 Cookie 名称
+		Theme                string
+		DashboardTheme       string
+		CustomCode           string
+		CustomCodeDashboard  string
 		ViewPassword         string // 前台查看密码
 		AdminPassword        string // 管理员密码
 		DisablePasswordLogin bool   // 禁用密码登录
 		TwoFactorSecret      string // TOTP 密钥（Base32），非空即表示已启用双重验证
 	}
 	Oauth2 struct {
-		Type            string
-		Admin           string // 管理员用户名列表
-		AdminGroups     string // 管理员用户组列表
-		ClientID        string
-		ClientSecret    string
-		Endpoint        string
-		OidcDisplayName string // for OIDC Display Name
-		OidcIssuer      string // for OIDC Issuer
-		OidcLogoutURL   string // for OIDC Logout URL
-		OidcRegisterURL string // for OIDC Register URL
-		OidcLoginClaim  string // for OIDC Claim
-		OidcGroupClaim  string // for OIDC Group Claim
-		OidcScopes      string // for OIDC Scopes
-		OidcAutoCreate    bool // for OIDC Auto Create
-		OidcAutoLogin     bool // for OIDC Auto Login
-		DisableOauthLogin bool // 禁用 OAuth 登录
+		Type              string
+		Admin             string // 管理员用户名列表
+		AdminGroups       string // 管理员用户组列表
+		ClientID          string
+		ClientSecret      string
+		Endpoint          string
+		OidcDisplayName   string // for OIDC Display Name
+		OidcIssuer        string // for OIDC Issuer
+		OidcLogoutURL     string // for OIDC Logout URL
+		OidcRegisterURL   string // for OIDC Register URL
+		OidcLoginClaim    string // for OIDC Claim
+		OidcGroupClaim    string // for OIDC Group Claim
+		OidcScopes        string // for OIDC Scopes
+		OidcAutoCreate    bool   // for OIDC Auto Create
+		OidcAutoLogin     bool   // for OIDC Auto Login
+		DisableOauthLogin bool   // 禁用 OAuth 登录
 	}
 	HTTPPort        uint
 	GRPCPort        uint
@@ -120,8 +120,8 @@ type Config struct {
 	CompatAPIDisable                bool // 兼容API开关
 	UseTemplateHandleNoRoute        bool // 用模板处理无路由情况
 
-	// GeoIP 根据 IP 解析国家/地区码
-	EnableGeoIP bool
+	// UseExternalGeoIP 为 true 时使用 data 目录下的外部 GeoLite2 库解析国家/地区；否则使用内置库。
+	UseExternalGeoIP bool
 
 	// IP变更提醒
 	EnableIPChangeNotification bool
@@ -184,7 +184,7 @@ func (c *Config) Read(path string) error {
 		c.Site.Brand = "Nezha Monitoring"
 	}
 
-	if c.Site.CookieName == "" || c.Site.CookieName == "nezha-dashboard"{
+	if c.Site.CookieName == "" || c.Site.CookieName == "nezha-dashboard" {
 		// 默认设置为 nz-jwt 以保证 v1 兼容性
 		c.Site.CookieName = "nz-jwt"
 	}
