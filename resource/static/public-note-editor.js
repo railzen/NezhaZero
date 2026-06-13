@@ -743,6 +743,11 @@
           initAllWheelDates();
           syncEndDateWheel();
           state.$modal.modal("refresh");
+          // 锁定内容区高度到账单 tab 的高度，切 tab 不再跳动
+          requestAnimationFrame(function () {
+            var $content = state.$modal.find('.content');
+            $content.css('min-height', $content.outerHeight() + 'px');
+          });
         },
         onApprove: function () {
           return false;
