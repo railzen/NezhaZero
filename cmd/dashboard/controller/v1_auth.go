@@ -180,7 +180,7 @@ func (cv *compatV1) login(c *gin.Context) {
 	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(singleton.Conf.Site.CookieName, u.Token, 60*60*24*7, "/", "", mygin.CookieSecure(c), true)
+	c.SetCookie("nz-jwt", u.Token, 60*60*24*7, "/", "", mygin.CookieSecure(c), true)
 	mygin.SetCSRFCookie(c)
 
 	c.Set(model.CtxKeyAuthorizedUser, &u)
@@ -236,7 +236,7 @@ func (cv *compatV1) refreshToken(c *gin.Context) {
 		singleton.DB.Save(&user)
 
 		c.SetSameSite(http.SameSiteLaxMode)
-		c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24*14, "/", "", mygin.CookieSecure(c), true)
+		c.SetCookie("nz-jwt", user.Token, 60*60*24*14, "/", "", mygin.CookieSecure(c), true)
 		mygin.SetCSRFCookie(c)
 		c.JSON(200, V1Response[model.V1LoginResponse]{
 			Success: true,

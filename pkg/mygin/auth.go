@@ -38,8 +38,13 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 		var isLogin bool
 
 		// 用户鉴权
+		boolIsV1Api := strings.HasPrefix(c.Request.URL.Path, "/api/v1")
 		token, _ := c.Cookie(singleton.Conf.Site.CookieName)
 		token = strings.TrimSpace(token)
+		if token == "" && boolIsV1Api {
+			token, _ = c.Cookie("nz-jwt")
+			token = strings.TrimSpace(token)
+		}
 		if token == "" {
 			token = c.GetHeader("Authorization")
 			// 兼容 v1 的鉴权
