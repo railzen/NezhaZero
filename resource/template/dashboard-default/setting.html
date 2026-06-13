@@ -1,6 +1,53 @@
 {{define "dashboard-default/setting"}}
 {{template "common/header" .}}
 {{template "common/menu" .}}
+<style>
+    .nb-geoip-status {
+        gap: 0.45em;
+        color: #000;
+        font-size: 1rem;
+        line-height: 1;
+        min-height: 36px;
+    }
+
+    .nb-geoip-status > .icon {
+        margin: 0 !important;
+        flex: 0 0 auto;
+        line-height: 1;
+        height: 1em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nb-geoip-status-text {
+        line-height: 1.21428571em;
+    }
+
+    .nb-geoip-status-pending > .icon.nb-geoip-icon-warn {
+        color: #c07878 !important;
+    }
+
+    .nb-geoip-status-off > .icon {
+        color: rgba(0, 0, 0, 0.45) !important;
+    }
+
+    html[nz-theme='dark'] .nb-geoip-status {
+        color: rgba(255, 255, 255, 0.87);
+    }
+
+    html[nz-theme='dark'] .nb-geoip-status > .icon:not(.nb-geoip-icon-warn) {
+        color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    html[nz-theme='dark'] .nb-geoip-status-pending > .icon.nb-geoip-icon-warn {
+        color: #d89898 !important;
+    }
+
+    html[nz-theme='dark'] .nb-geoip-status-off > .icon {
+        color: rgba(255, 255, 255, 0.45) !important;
+    }
+</style>
 <div class="nb-container">
     <div class="ui container">
         <form id="settingForm" class="ui large form" onsubmit="return false;" autocomplete="off">
@@ -206,53 +253,6 @@
     </div>
 </div>
 {{template "common/footer" .}}
-<style>
-    .nb-geoip-status {
-        gap: 0.45em;
-        color: #000;
-        font-size: 1rem;
-        line-height: 1;
-        min-height: 36px;
-    }
-
-    .nb-geoip-status > .icon {
-        margin: 0 !important;
-        flex: 0 0 auto;
-        line-height: 1;
-        height: 1em;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .nb-geoip-status-text {
-        line-height: 1.21428571em;
-    }
-
-    .nb-geoip-status-pending > .icon.nb-geoip-icon-warn {
-        color: #d64545 !important;
-    }
-
-    .nb-geoip-status-off > .icon {
-        color: rgba(0, 0, 0, 0.45) !important;
-    }
-
-    html[nz-theme='dark'] .nb-geoip-status {
-        color: rgba(255, 255, 255, 0.87);
-    }
-
-    html[nz-theme='dark'] .nb-geoip-status > .icon:not(.nb-geoip-icon-warn) {
-        color: rgba(255, 255, 255, 0.87) !important;
-    }
-
-    html[nz-theme='dark'] .nb-geoip-status-pending > .icon.nb-geoip-icon-warn {
-        color: #ff7070 !important;
-    }
-
-    html[nz-theme='dark'] .nb-geoip-status-off > .icon {
-        color: rgba(255, 255, 255, 0.45) !important;
-    }
-</style>
 <script>
     $('#settingForm').submit(function () {
         syncCompatAPIDisableField();
