@@ -51,6 +51,7 @@ table.ui.basic.table th:nth-child(5) {
                     <th>{{tr "VersionNumber"}}</th>
                     <th>{{tr "EnableDDNS"}}</th>
                     <th>{{tr "HideForGuest"}}</th>
+                    <th>{{tr "Secret"}}</th>
                     <th>{{tr "OneKeyInstall"}}</th>
                     <th>{{tr "Note"}}</th>
                     <th>{{tr "PublicNote"}}</th>
@@ -85,6 +86,11 @@ table.ui.basic.table th:nth-child(5) {
                     <td>{{$server.Host.Version}}</td>
                     <td>{{if $server.EnableDDNS}}Yes{{else}}No{{end}}</td>
                     <td>{{if $server.HideForGuest}}Yes{{else}}No{{end}}</td>
+                    <td>
+                        <button class="ui icon green mini button" data-clipboard-text="{{$server.Secret}}" data-tooltip="{{tr "ClickToCopy"}}">
+                            <i class="copy icon"></i>
+                        </button>
+                    </td>
                     <td>
                         <button class="ui icon green mini button"
                             data-clipboard-text="{{if $.Conf.GRPCHost}}{{if eq $.Conf.Language "zh-CN"}}curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/naza.sh{{else}}curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/install_en.sh{{end}} -o naza.sh && chmod +x naza.sh && ./naza.sh install_agent {{$.Conf.GRPCHost}} {{if $.Conf.ProxyGRPCPort}}{{$.Conf.ProxyGRPCPort}}{{else}}{{$.Conf.GRPCPort}}{{end}} {{$server.Secret}}{{if $.Conf.TLS}} --tls{{end}}{{else}}{{tr "NoDomainAlert"}}{{end}}"
