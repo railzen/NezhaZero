@@ -140,7 +140,7 @@
     // RSA-OAEP(SHA-256) 加密。HTTP 无 crypto.subtle，使用纯 JS 实现 OAEP + BigInt。
     let encryptedB64;
     try {
-      const loginPayload = challengeData.challengeID + "\n" + challengeData.challenge + "\n" + originalPassword;
+      const loginPayload = challengeData.challengeID + "\n" + originalPassword + "\n" + challengeData.challenge;
       encryptedB64 = rsaEncryptOAEP(loginPayload, challengeData.publicKeyN, challengeData.publicKeyE);
     } catch (e) {
       restoreBtn();

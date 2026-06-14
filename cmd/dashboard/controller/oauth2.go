@@ -171,7 +171,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		}
 	}
 
-	// RSA-OAEP(SHA-256) 解密：前端提交 challengeID + challenge + password 的加密载荷
+	// RSA-OAEP(SHA-256) 解密：前端提交 challengeID + password + challenge 的加密载荷
 	ciphertext, decodeErr := base64.StdEncoding.DecodeString(req.Password)
 	if decodeErr != nil {
 		allowed = false
@@ -187,12 +187,12 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 			allowed = false
 		} else {
 			parts := bytes.SplitN(plaintext, []byte{'\n'}, 3)
-			if len(parts) != 3 || len(parts[2]) < 6 {
+			if len(parts) != 3 || len(parts[1]) < 6 {
 				allowed = false
 			} else {
 				challengeID = string(parts[0])
-				challenge := string(parts[1])
-				passwordBytes = parts[2]
+				passwordBytes = parts[1]
+				challenge := string(parts[2])
 				if !consumeLoginChallenge(challengeID, challenge) {
 					allowed = false
 				}
