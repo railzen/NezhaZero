@@ -437,11 +437,62 @@
       }, 80);
     }
 
-    $wheel.find(".pne-wheel-col")
-      .on("mousedown.pneWheel touchstart.pneWheel", function () {
+    function bindWheelColTouch($col) {
+      var colEl = $col[0];
+      if (!colEl || $col.data("pneTouchBound")) return;
+      $col.data("pneTouchBound", true);
+
+      colEl.addEventListener(
+        "touchstart",
+        function (e) {
+          if (e.touches.length !== 1) return;
+          var touch = e.touches[0];
+          $col.data("pneTouchY", touch.clientY);
+          $col.data("pneTouchScrollTop", colEl.scrollTop);
+          $col.data("pneUserDrag", true);
+        },
+        { passive: true }
+      );
+
+      colEl.addEventListener(
+        "touchmove",
+        function (e) {
+          if (e.touches.length !== 1) return;
+          var touch = e.touches[0];
+          var startY = $col.data("pneTouchY");
+          if (startY == null) return;
+          var $w = $col.closest(".pne-wheel-date");
+          if ($w.data("pneSuppressCommit")) return;
+          e.preventDefault();
+          colEl.scrollTop = $col.data("pneTouchScrollTop") + (startY - touch.clientY);
+          activateWheel($w);
+          updateColVisibility($col);
+        },
+        { passive: false }
+      );
+
+      function endTouchDrag() {
+        $col.data("pneUserDrag", false);
+        $col.data("pneTouchY", null);
+        var $w = $col.closest(".pne-wheel-date");
+        if ($w.data("pneSuppressCommit")) return;
+        snapCol($col);
+        commitWheel($w);
+      }
+
+      colEl.addEventListener("touchend", endTouchDrag, { passive: true });
+      colEl.addEventListener("touchcancel", endTouchDrag, { passive: true });
+    }
+
+    $wheel.find(".pne-wheel-col").each(function () {
+      var $col = $(this);
+      bindWheelColTouch($col);
+
+      $col
+      .on("mousedown.pneWheel", function () {
         $(this).data("pneUserDrag", true);
       })
-      .on("mouseup.pneWheel touchend.pneWheel mouseleave.pneWheel", function () {
+      .on("mouseup.pneWheel mouseleave.pneWheel", function () {
         $(this).data("pneUserDrag", false);
       })
       .on("scroll.pneWheel", function () {
@@ -472,6 +523,7 @@
         scrollColToValue($col, $(this).data("value"));
         commitWheel($w);
       });
+    });
 
     $wheel.data("pneWheelReady", true);
   }

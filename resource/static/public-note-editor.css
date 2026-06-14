@@ -101,9 +101,13 @@
   flex: 1;
   height: 120px;
   overflow-y: auto;
+  overflow-x: hidden;
   scroll-snap-type: y mandatory;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .pne-wheel-col::-webkit-scrollbar {
