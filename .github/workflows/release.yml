@@ -132,6 +132,8 @@ jobs:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     needs: build-dashboard
     name: Release Docker images
+    env:
+      DOCKER_BUILD_RECORD_UPLOAD: false
     permissions:
       contents: read
       packages: write
@@ -258,4 +260,3 @@ jobs:
             assets/*/*.zip
           generateReleaseNotes: true
           prerelease: true
-          
