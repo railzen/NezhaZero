@@ -165,7 +165,7 @@ pre_check() {
 installation_check() {
     if docker compose version >/dev/null 2>&1; then
         DOCKER_COMPOSE_COMMAND="docker compose"
-        if sudo $DOCKER_COMPOSE_COMMAND ls | grep -qw "$NZ_DASHBOARD_PATH/docker-compose.yaml" >/dev/null 2>&1; then
+        if sudo test -f "$NZ_DASHBOARD_PATH/docker-compose.yaml" && [ -n "$(sudo $DOCKER_COMPOSE_COMMAND -f "$NZ_DASHBOARD_PATH/docker-compose.yaml" ps -aq 2>/dev/null)" ]; then
             NEZHA_IMAGES=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep -w "nezha-zero-dashboard")
             if [ -n "$NEZHA_IMAGES" ]; then
                 echo "Docker image with nezha-dashboard repository exists:"
