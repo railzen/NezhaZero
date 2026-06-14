@@ -14,11 +14,15 @@ td {
   max-width: 1680px !important;
 }
 
+body {
+  display: flex;
+  flex-direction: column;
+}
+
 .nb-container {
   padding-top: 75px;
-  min-height: 100vh;
-  padding-bottom: 65px;
-  margin-bottom: -47px;
+  padding-bottom: 1.5em;
+  flex: 1;
 }
 
 #app .ui.fluid.accordion {

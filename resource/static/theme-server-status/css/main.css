@@ -1,6 +1,13 @@
 body {
     padding-top:70px !important;
-    padding-bottom: 30px !important;
+    display: flex;
+    flex-direction: column;
+}
+
+#app {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .container-fluid{
@@ -14,7 +21,7 @@ body {
 }
 
 .nezha {
-    min-height: calc(100vh - 100px);
+    flex: 1;
 }
 
 /* 导航部分 开始*/
@@ -515,10 +522,6 @@ footer p {
     body {
         font-size: 10px !important;
         padding-top:60px !important;
-    }
-    .nezha {
-        min-height: calc(100vh - 90px);
-        min-height: calc(var(--vh, 1vh) * 100 - 90px);
     }
     #chartbox {
         min-height: calc(100vh - 170px);
