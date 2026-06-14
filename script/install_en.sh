@@ -180,7 +180,7 @@ installation_check() {
     elif command -v docker-compose >/dev/null 2>&1; then
         DOCKER_COMPOSE_COMMAND="docker-compose"
         if sudo $DOCKER_COMPOSE_COMMAND -f "$NZ_DASHBOARD_PATH/docker-compose.yaml" config >/dev/null 2>&1; then
-            NEZHA_IMAGES=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep -w "nezha-dashboard")
+            NEZHA_IMAGES=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep -w "nezha-zero-dashboard")
             if [ -n "$NEZHA_IMAGES" ]; then
                 echo "Docker image with nezha-dashboard repository exists:"
                 echo "$NEZHA_IMAGES"
@@ -765,7 +765,7 @@ stop_dashboard() {
 }
 
 stop_dashboard_docker() {
-    sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml down
+    sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml stop
 }
 
 stop_dashboard_standalone() {
@@ -773,6 +773,30 @@ stop_dashboard_standalone() {
         sudo systemctl stop nezha-dashboard
     else
         sudo rc-service nezha-dashboard stop
+    fi
+}
+
+restart_dashboard() {
+    echo "> Restart Dashboard"
+
+    if [ "$IS_DOCKER_NEZHA" = 1 ]; then
+        stop_dashboard_docker
+        if start_dashboard_docker; then
+            success "Nezha Monitoring Restart Successful"
+        else
+            err "Failed to restart, please check the log message later"
+        fi
+    elif [ "$IS_DOCKER_NEZHA" = 0 ]; then
+        stop_dashboard_standalone
+        if start_dashboard_standalone; then
+            success "Nezha Monitoring Restart Successful"
+        else
+            err "Failed to restart, please check the log message later"
+        fi
+    fi
+
+    if [ $# = 0 ]; then
+        before_show_menu
     fi
 }
 
@@ -996,7 +1020,8 @@ show_usage() {
     echo "./naza.sh modify_dashboard_config    - Modify Dashboard Configuration"
     echo "./naza.sh start_dashboard            - Start Dashboard"
     echo "./naza.sh stop_dashboard             - Stop Dashboard"
-    echo "./naza.sh restart_and_update         - Restart and Update the Dashboard"
+    echo "./naza.sh restart_dashboard          - Restart Dashboard"
+    echo "./naza.sh restart_and_update         - Update Dashboard"
     echo "./naza.sh show_dashboard_log         - View Dashboard Log"
     echo "./naza.sh uninstall_dashboard        - Uninstall Dashboard"
     echo "--------------------------------------------------------"
@@ -1016,9 +1041,9 @@ show_menu() {
     --- https://github.com/railzen/nezha-zero ---
     ${green}1.${plain}  Install Dashboard
     ${green}2.${plain}  Modify Dashbaord Configuration
-    ${green}3.${plain}  Start Dashboard
+    ${green}3.${plain}  Restart Dashboard
     ${green}4.${plain}  Stop Dashboard
-    ${green}5.${plain}  Restart Dashboard
+    ${green}5.${plain}  Update Dashboard
     ${green}6.${plain}  View Dashboard Log
     ${green}7.${plain}  Uninstall Dashboard
     ————————————————-
@@ -1044,7 +1069,7 @@ show_menu() {
             modify_dashboard_config
             ;;
         3)
-            start_dashboard
+            restart_dashboard
             ;;
         4)
             stop_dashboard
@@ -1103,6 +1128,9 @@ if [ $# -gt 0 ]; then
             ;;
         "stop_dashboard")
             stop_dashboard 0
+            ;;
+        "restart_dashboard")
+            restart_dashboard 0
             ;;
         "restart_and_update")
             restart_and_update 0

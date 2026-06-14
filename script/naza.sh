@@ -765,7 +765,7 @@ stop_dashboard() {
 }
 
 stop_dashboard_docker() {
-    sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml down
+    sudo $DOCKER_COMPOSE_COMMAND -f ${NZ_DASHBOARD_PATH}/docker-compose.yaml stop
 }
 
 stop_dashboard_standalone() {
@@ -773,6 +773,30 @@ stop_dashboard_standalone() {
         sudo systemctl stop nezha-dashboard
     else
         sudo rc-service nezha-dashboard stop
+    fi
+}
+
+restart_dashboard() {
+    echo "> 重启面板"
+
+    if [ "$IS_DOCKER_NEZHA" = 1 ]; then
+        stop_dashboard_docker
+        if start_dashboard_docker; then
+            success "哪吒监控 重启成功"
+        else
+            err "重启失败，请稍后查看日志信息"
+        fi
+    elif [ "$IS_DOCKER_NEZHA" = 0 ]; then
+        stop_dashboard_standalone
+        if start_dashboard_standalone; then
+            success "哪吒监控 重启成功"
+        else
+            err "重启失败，请稍后查看日志信息"
+        fi
+    fi
+
+    if [ $# = 0 ]; then
+        before_show_menu
     fi
 }
 
@@ -996,7 +1020,8 @@ show_usage() {
     echo "./naza.sh modify_dashboard_config    - 修改面板配置"
     echo "./naza.sh start_dashboard            - 启动面板"
     echo "./naza.sh stop_dashboard             - 停止面板"
-    echo "./naza.sh restart_and_update         - 重启并更新面板"
+    echo "./naza.sh restart_dashboard          - 重启面板"
+    echo "./naza.sh restart_and_update         - 更新面板"
     echo "./naza.sh show_dashboard_log         - 查看面板日志"
     echo "./naza.sh uninstall_dashboard        - 卸载管理面板"
     echo "--------------------------------------------------------"
@@ -1016,9 +1041,9 @@ show_menu() {
     --- https://github.com/railzen/nezha-zero ---
     ${green}1.${plain}  安装面板端
     ${green}2.${plain}  修改面板配置
-    ${green}3.${plain}  启动面板
+    ${green}3.${plain}  重启面板
     ${green}4.${plain}  停止面板
-    ${green}5.${plain}  更新并重启面板
+    ${green}5.${plain}  更新面板
     ${green}6.${plain}  查看面板日志
     ${green}7.${plain}  卸载管理面板
     ————————————————-
@@ -1044,7 +1069,7 @@ show_menu() {
             modify_dashboard_config
             ;;
         3)
-            start_dashboard
+            restart_dashboard
             ;;
         4)
             stop_dashboard
@@ -1103,6 +1128,9 @@ if [ $# -gt 0 ]; then
             ;;
         "stop_dashboard")
             stop_dashboard 0
+            ;;
+        "restart_dashboard")
+            restart_dashboard 0
             ;;
         "restart_and_update")
             restart_and_update 0
