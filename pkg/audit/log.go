@@ -198,7 +198,7 @@ func checkUnexpectedShutdown() {
 	lastActivity := dbLastActivityTime()
 	var detail string
 	if !lastActivity.IsZero() {
-		detail = fmt.Sprintf("last active at %s", lastActivity.Format(time.RFC3339))
+		detail = fmt.Sprintf("last active at %s", formatLogTime(lastActivity))
 	} else {
 		detail = "unexpected shutdown detected"
 	}
@@ -242,6 +242,14 @@ SELECT MAX(t) FROM (
 		return time.Time{}
 	}
 	return parseSQLiteDateTime(maxTS.String)
+}
+
+func formatLogTime(t time.Time) string {
+	loc := singleton.Loc
+	if loc == nil {
+		loc = time.FixedZone("UTC+8", 8*60*60)
+	}
+	return t.In(loc).Format(time.RFC3339)
 }
 
 func parseSQLiteDateTime(s string) time.Time {
@@ -342,7 +350,7 @@ func checkServerStates(states map[uint64]*serverWatchState) {
 			if snap.lastActive.IsZero() || time.Since(snap.lastActive) >= serverOfflineThreshold {
 				detail := fmt.Sprintf("server: %s (ID %d)", snap.name, id)
 				if !snap.lastActive.IsZero() {
-					detail += fmt.Sprintf(", last active at %s", snap.lastActive.Format(time.RFC3339))
+					detail += fmt.Sprintf(", last active at %s", formatLogTime(snap.lastActive))
 				}
 				recordServerWatchEvent(id, "Server offline", detail, TriggerReasonOffline)
 				st.offlineLogged = true
