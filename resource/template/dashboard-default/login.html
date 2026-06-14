@@ -123,6 +123,20 @@
       return;
     }
 
+    if (challengeData.twoFactorEnabled) {
+      const otpInput = document.getElementById('otpInput');
+      if (!otpInput) {
+        restoreBtn();
+        showError('已开启二次验证，请刷新页面后重新登录');
+        return;
+      }
+      if (!otpInput.value.trim()) {
+        restoreBtn();
+        showError('请输入二次验证码');
+        return;
+      }
+    }
+
     // RSA-OAEP(SHA-256) 加密。HTTP 无 crypto.subtle，使用纯 JS 实现 OAEP + BigInt。
     let encryptedB64;
     try {

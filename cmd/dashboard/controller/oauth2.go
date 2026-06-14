@@ -97,10 +97,11 @@ func (oa *oauth2controller) newChallenge(c *gin.Context) {
 	}
 	singleton.Cache.Set(loginChallengeCachePrefix+loginChallengeID, loginChallenge, loginChallengeTTL)
 	c.JSON(http.StatusOK, gin.H{
-		"challengeID": loginChallengeID,
-		"challenge":   loginChallenge,
-		"publicKeyN":  RSAPublicKeyNHex,
-		"publicKeyE":  RSAPublicKeyE,
+		"challengeID":      loginChallengeID,
+		"challenge":        loginChallenge,
+		"publicKeyN":       RSAPublicKeyNHex,
+		"publicKeyE":       RSAPublicKeyE,
+		"twoFactorEnabled": singleton.Conf.TwoFactorActive(),
 	})
 }
 

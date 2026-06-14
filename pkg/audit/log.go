@@ -34,6 +34,8 @@ const (
 	TriggerReasonHighMemory = "high_memory"
 )
 
+var watchdogStartedAt time.Time
+
 type serverWatchState struct {
 	wasOnline      bool
 	offlineLogged  bool
@@ -172,6 +174,7 @@ func joinChanges(changes []string) string {
 
 // StartWatchdog 启动后台巡检：意外关机检测、服务器上下线日志。
 func StartWatchdog() {
+	watchdogStartedAt = time.Now()
 	checkUnexpectedShutdown()
 	go watchdogLoop()
 }
@@ -320,12 +323,14 @@ func checkServerStates(states map[uint64]*serverWatchState) {
 			continue
 		}
 		if online && !st.wasOnline {
-			if st.offlineLogged {
-				recordServerWatchRecovery(id, "Server offline recovered",
-					fmt.Sprintf("server: %s (ID %d)", snap.name, id))
-			} else {
-				Record(nil, TypeEvent, "Server online",
-					fmt.Sprintf("server: %s (ID %d)", snap.name, id))
+			if watchdogStartedAt.IsZero() || time.Since(watchdogStartedAt) >= 3*time.Minute {
+				if st.offlineLogged {
+					recordServerWatchRecovery(id, "Server offline recovered",
+						fmt.Sprintf("server: %s (ID %d)", snap.name, id))
+				} else {
+					Record(nil, TypeEvent, "Server online",
+						fmt.Sprintf("server: %s (ID %d)", snap.name, id))
+				}
 			}
 			st.offlineLogged = false
 			st.highLoadSince = time.Time{}
