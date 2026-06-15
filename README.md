@@ -13,17 +13,31 @@
 
 ## 概要/Abstract
 
-#### 本项目基于哪吒V0版本进行二次修改，主要更新了：
+#### 本项目基于哪吒V0版本进行二次开发，主要更新了：
 
 - 最新的GEOIP库和管理界面安装Agent的链接
+
 - 修复了部分失效的CDN引用，管理后台的所有静态文件本地化
-- 支持密码登陆功能、支持二次认证
+
+- 支持密码登陆功能、支持二次认证2FA
+
 - 增加IPV4复制按钮
+
 - 手动指定国家码和国旗
+
 - 公开备注可视化编辑
+
 - 使用外部GEO IP库查询国家信息
+
 - 有限的移动端优化和一些样式优化
+
 - 增加设备自动发现功能，类似哪吒V1和Komari的自动发现功能，仅支持Linux
+
+#### 考虑到官方已经停止维护，会尽量保持前向兼容性：
+
+  - Dashboard升级会保证历史版本Agent可用，不强制升级Agent
+  - Dashboard历史版本可以无损升级
+  - 除非有重大缺陷，否则不会连续推送新版本
 
 Agent使用本项目中的Agent二进制，默认非手动操作不会升级。面板将尽可能稳定版本，后续将只进行缺陷修复。一键安装脚本如下：
 
@@ -43,19 +57,19 @@ curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh migrate_t
 
 合并了哪吒V1版本的部分读取功能API。目前支持了：
 
-- 支持了账号密码登录（默认关闭，用户名是oauth的用户名，密码在后台设置配置）
+- 支持了账号密码登录（默认关闭，用户名和OAUTH共用列表，密码在设置界面配置）
 - 前台界面的所有 API （包括 WebSocket）
 - 后台界面的部分只读 API
 - 支持服务器、告警、通知的信息获取
 - 兼容 [Nezha-Mobile](https://github.com/hiDandelion/Nezha-Mobile) 的大部分只读功能
 - 支持开启和关闭V1版本API
 - 关于鉴权
-  - 基于配置文件实现鉴权，密码可以设置界面进行修改
+  - 密码登陆默认关闭，可在设置界面打开密码登录选项并设置密码
   - 支持V1版本 `/api/v1/login` 接口实现登录
     - 账号：设置界面的管理员列表
     - 密码：设置界面的管理员密码
-  - 支持三种提供 API Key 的方式
-    - Cookie: `nz-jwt` （v1 版本默认使用）
+  - 支持三种提供 API Key 认证的方式
+    - Cookie: `nz-jwt` （v1 版本 API 使用）
     - Header: `Authorization: Bearer <API Key>` （v1 版本 API 使用）
     - Header: `Authorization: <API Key>` （v0 版本 API 使用）
 
@@ -63,9 +77,9 @@ curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh migrate_t
 
 #### **Dashboard**
 
-| Dashboard                                                   | Login Panel                                        |
-| ----------------------------------------------------------- | -------------------------------------------------- |
-| <img src="agent/web/LookGlass_0_20_21.jpg" width="2800px"/> | <img src="agent/web/image_3.png" width="2200px" /> |
+| Dashboard                                                   | Login Panel                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------ |
+| <img src="agent/web/LookGlass_0_20_21.jpg" width="2800px"/> | <img src="https://cdn.nodeimage.com/i/2z2oUCGnwRz5wtJn17Y2KaJLHm2CwN96.webp" width="2200px" /> |
 
 | <div align="center"><b>ServerStatus <a href="https://github.com/unclezs">@unclezs</a></b></div>        | DayNight [@JackieSung](https://github.com/JackieSung4ev)                                           | hotaru                                                                     |
 | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -76,17 +90,6 @@ curl -L https://ba.sh/naza -o naza.sh && chmod +x naza.sh && ./naza.sh migrate_t
 You can change the dashboard language in the settings page (`/setting`) after the dashboard is installed.
 
 ## 备注和公开备注/Public Note
-
-半透明模式的开关默认隐藏，打开半透明模式需要在自定义代码中添加:
-
-```html
-<script>
-    // server-status 默认开启分组
-    localStorage.setItem("showGroup", true);
-    // server-status 默认打开半透明模式
-    localStorage.setItem("semiTransparent", true); 
-</script>
-```
 
 新增到期时间展示和国家自定义，写在公开备注（Public Note）中。完整版配置在这里[账单信息备注](https://github.com/nezhahq/nezha/pull/425#issuecomment-2389107872)
 
@@ -102,7 +105,11 @@ You can change the dashboard language in the settings page (`/setting`) after th
   "countryCode": "HK"
 }
 ```
+增加公开备注可视化编辑功能，在此修改有关数据后可以直接写入公开备注：
+![2z2oUCGnwRz5wtJn17Y2KaJLHm2CwN96.webp](https://cdn.nodeimage.com/i/JHvmLoBM4vCqP7nx8bKEC1dYCEmSzqmO.webp)
 
+## 关于安全/Security
+面板的安全问题是最高优先级的需求，目前已经在项目中做了很多加固。如果您在在使用过程中发现了任何安全问题或者有什么关于安全的看法，非常欢迎您能及时地告知我。
 
 ## 致谢/Acknowledgements
 
