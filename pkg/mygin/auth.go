@@ -59,16 +59,19 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 			if isLogin {
 				c.Set(model.CtxKeyAuthorizedUser, &u)
 			} else if opt.AllowAPI {
-				// 回退到 API 鉴权
-				var u model.User
+				// API Token 鉴权：Token 在 ApiTokenList 中即视为已登录
 				singleton.ApiLock.RLock()
-				if _, ok := singleton.ApiTokenList[token]; ok {
-					err := singleton.DB.First(&u).Where("id = ?", singleton.ApiTokenList[token].UserID).Error
-					isLogin = err == nil
-				}
+				apiToken, ok := singleton.ApiTokenList[token]
 				singleton.ApiLock.RUnlock()
-				if isLogin {
-					c.Set(model.CtxKeyAuthorizedUser, &u)
+				if ok {
+					isLogin = true
+					apiUser := model.User{
+						Common:     model.Common{ID: apiToken.UserID},
+						Login:      "Admin",
+						Name:       "Admin",
+						SuperAdmin: false,
+					}
+					c.Set(model.CtxKeyAuthorizedUser, &apiUser)
 					c.Set("isAPI", true)
 				}
 			}
