@@ -63,6 +63,21 @@ func (s *NezhaHandler) ReportTask(c context.Context, r *pb.TaskResult) (*pb.Rece
 			// 保存当前服务器状态信息
 			curServer := model.Server{}
 			copier.Copy(&curServer, singleton.ServerList[clientID])
+
+			// 记录定时命令执行的审计日志
+			serverName := singleton.ServerList[clientID].Name
+			resultStatus := "success"
+			if !r.GetSuccessful() {
+				resultStatus = "failed"
+			}
+			command := cr.Command
+			if len(command) > 200 {
+				command = command[:200] + "..."
+			}
+			audit.Record(nil, audit.TypeEvent, "Scheduled task executed",
+				fmt.Sprintf("task: %s, command: %s, server: %s (ID %d), result: %s",
+					cr.Name, command, serverName, clientID, resultStatus))
+
 			if cr.PushSuccessful && r.GetSuccessful() {
 				singleton.SendNotification(cr.NotificationTag, fmt.Sprintf("[%s] %s, %s\n%s", singleton.Localizer.MustLocalize(
 					&i18n.LocalizeConfig{
