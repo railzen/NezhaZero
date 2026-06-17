@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/hashicorp/go-uuid"
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/mygin"
 	"github.com/railzen/nezha-zero/pkg/utils"
 	"github.com/railzen/nezha-zero/pkg/websocketx"
 	"github.com/railzen/nezha-zero/proto"
@@ -15,6 +16,9 @@ import (
 )
 
 func (cv *compatV1) createTerminal(c *gin.Context) {
+	if mygin.BlockIfNotSuperAdmin(c, false) {
+		return
+	}
 	var createTerminalReq model.V1TerminalForm
 	if err := c.ShouldBind(&createTerminalReq); err != nil {
 		c.JSON(500, V1Response[any]{
@@ -72,6 +76,9 @@ func (cv *compatV1) createTerminal(c *gin.Context) {
 }
 
 func (cv *compatV1) terminalStream(c *gin.Context) {
+	if mygin.BlockIfNotSuperAdmin(c, false) {
+		return
+	}
 	streamId := c.Param("id")
 	if _, err := rpc.NezhaHandlerSingleton.GetStream(streamId); err != nil {
 		c.JSON(404, V1Response[any]{

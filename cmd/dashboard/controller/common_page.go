@@ -421,7 +421,6 @@ func (cp *commonPage) ws(c *gin.Context) {
 }
 
 func (cp *commonPage) terminal(c *gin.Context) {
-	streamId := c.Param("id")
 	if _, authorized := c.Get(model.CtxKeyAuthorizedUser); !authorized {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
@@ -432,6 +431,10 @@ func (cp *commonPage) terminal(c *gin.Context) {
 		}, true)
 		return
 	}
+	if mygin.BlockIfNotSuperAdmin(c, true) {
+		return
+	}
+	streamId := c.Param("id")
 	if _, err := rpc.NezhaHandlerSingleton.GetStream(streamId); err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
@@ -492,6 +495,9 @@ func (cp *commonPage) createTerminal(c *gin.Context) {
 			Link:  "/login",
 			Btn:   "去登录",
 		}, true)
+		return
+	}
+	if mygin.BlockIfNotSuperAdmin(c, true) {
 		return
 	}
 	var createTerminalReq createTerminalRequest
@@ -564,7 +570,6 @@ func (cp *commonPage) createTerminal(c *gin.Context) {
 }
 
 func (cp *commonPage) fm(c *gin.Context) {
-	streamId := c.Param("id")
 	if _, authorized := c.Get(model.CtxKeyAuthorizedUser); !authorized {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
@@ -575,6 +580,10 @@ func (cp *commonPage) fm(c *gin.Context) {
 		}, true)
 		return
 	}
+	if mygin.BlockIfNotSuperAdmin(c, true) {
+		return
+	}
+	streamId := c.Param("id")
 	if _, err := rpc.NezhaHandlerSingleton.GetStream(streamId); err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
@@ -621,7 +630,6 @@ func (cp *commonPage) fm(c *gin.Context) {
 }
 
 func (cp *commonPage) createFM(c *gin.Context) {
-	IdString := c.PostForm("id")
 	if _, authorized := c.Get(model.CtxKeyAuthorizedUser); !authorized {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
@@ -632,7 +640,10 @@ func (cp *commonPage) createFM(c *gin.Context) {
 		}, true)
 		return
 	}
-
+	if mygin.BlockIfNotSuperAdmin(c, true) {
+		return
+	}
+	IdString := c.PostForm("id")
 	streamId, err := uuid.GenerateUUID()
 	if err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{

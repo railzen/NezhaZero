@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/hashicorp/go-uuid"
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/mygin"
 	"github.com/railzen/nezha-zero/pkg/utils"
 	"github.com/railzen/nezha-zero/pkg/websocketx"
 	"github.com/railzen/nezha-zero/proto"
@@ -16,6 +17,9 @@ import (
 )
 
 func (cv *compatV1) createFM(c *gin.Context) {
+	if mygin.BlockIfNotSuperAdmin(c, false) {
+		return
+	}
 	IdString := c.Query("id")
 
 	streamId, err := uuid.GenerateUUID()
@@ -73,6 +77,9 @@ func (cv *compatV1) createFM(c *gin.Context) {
 }
 
 func (cv *compatV1) fmStream(c *gin.Context) {
+	if mygin.BlockIfNotSuperAdmin(c, false) {
+		return
+	}
 	streamId := c.Param("id")
 	if _, err := rpc.NezhaHandlerSingleton.GetStream(streamId); err != nil {
 		c.JSON(404, V1Response[any]{
