@@ -166,13 +166,13 @@ func (cv *compatV1) login(c *gin.Context) {
 	u.Name = "Admin"
 	u.SuperAdmin = false
 
-	token, err := utils.GenerateRandomString(32)
+	sessionToken, err := utils.NewSessionToken()
 	if err != nil {
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return
 	}
 
-	u.Token = token
+	u.Token = sessionToken.Hash
 	u.TokenExpired = now.AddDate(0, 0, 7)
 	if err := u.SavePasswordSession(singleton.DB); err != nil {
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
@@ -180,7 +180,7 @@ func (cv *compatV1) login(c *gin.Context) {
 	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("nz-jwt", u.Token, 60*60*24*7, "/", "", mygin.CookieSecure(c), true)
+	c.SetCookie("nz-jwt", sessionToken.Plain, 60*60*24*7, "/", "", mygin.CookieSecure(c), true)
 	mygin.SetCSRFCookie(c)
 
 	c.Set(model.CtxKeyAuthorizedUser, &u)
@@ -189,7 +189,7 @@ func (cv *compatV1) login(c *gin.Context) {
 	c.JSON(200, V1Response[model.V1LoginResponse]{
 		Success: true,
 		Data: model.V1LoginResponse{
-			Token:  u.Token,
+			Token:  sessionToken.Plain,
 			Expire: u.TokenExpired.Format(time.RFC3339),
 		},
 	})
@@ -222,8 +222,7 @@ func (cv *compatV1) refreshToken(c *gin.Context) {
 	}
 	if u, ok := c.Get(model.CtxKeyAuthorizedUser); ok {
 		user := u.(*model.User)
-		var err error
-		user.Token, err = utils.GenerateRandomString(32)
+		sessionToken, err := utils.NewSessionToken()
 		if err != nil {
 			mygin.ShowErrorPage(c, mygin.ErrInfo{
 				Code:  http.StatusBadRequest,
@@ -232,17 +231,18 @@ func (cv *compatV1) refreshToken(c *gin.Context) {
 			}, true)
 			return
 		}
+		user.Token = sessionToken.Hash
 		user.TokenExpired = time.Now().AddDate(0, 0, 14)
 		singleton.DB.Save(&user)
 
 		c.SetSameSite(http.SameSiteLaxMode)
-		c.SetCookie("nz-jwt", user.Token, 60*60*24*14, "/", "", mygin.CookieSecure(c), true)
+		c.SetCookie("nz-jwt", sessionToken.Plain, 60*60*24*14, "/", "", mygin.CookieSecure(c), true)
 		mygin.SetCSRFCookie(c)
 		c.JSON(200, V1Response[model.V1LoginResponse]{
 			Success: true,
 			Data: model.V1LoginResponse{
 				Expire: user.TokenExpired.Format(time.RFC3339),
-				Token:  user.Token,
+				Token:  sessionToken.Plain,
 			},
 		})
 	} else {

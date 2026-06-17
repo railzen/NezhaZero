@@ -52,8 +52,9 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 		}
 		if token != "" {
 			var u model.User
-			// 优先检索用户 Token
-			if err := singleton.DB.Where("token = ?", token).First(&u).Error; err == nil {
+			// 优先检索用户 Session Token（库内为哈希）
+			if user, err := model.FindUserBySessionToken(singleton.DB, token); err == nil {
+				u = *user
 				isLogin = u.TokenExpired.After(time.Now().UTC())
 			}
 			if isLogin {

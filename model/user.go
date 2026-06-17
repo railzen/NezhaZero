@@ -7,6 +7,8 @@ import (
 	"github.com/google/go-github/v47/github"
 	"github.com/xanzy/go-gitlab"
 	"gorm.io/gorm"
+
+	"github.com/railzen/nezha-zero/pkg/utils"
 )
 
 const MaxPasswordSessions = 100
@@ -21,7 +23,7 @@ type User struct {
 	Hireable  bool   `json:"hireable,omitempty"`
 	Bio       string `json:"bio,omitempty"` // 个人简介
 
-	Token        string    `json:"-"`                       // 认证 Token
+	Token        string    `json:"-"`                       // 会话 Token 的 SHA-256 摘要（hex）
 	TokenExpired time.Time `json:"token_expired,omitempty"` // Token 过期时间
 	SuperAdmin   bool      `json:"super_admin,omitempty"`   // 超级管理员
 }
@@ -44,6 +46,16 @@ func (u *User) SavePasswordSession(db *gorm.DB) error {
 		excess := len(ids) - MaxPasswordSessions
 		return tx.Unscoped().Where("id IN ?", ids[:excess]).Delete(&User{}).Error
 	})
+}
+
+// FindUserBySessionToken 按明文会话 Token 查找用户（库内仅存哈希）。
+func FindUserBySessionToken(db *gorm.DB, plainToken string) (*User, error) {
+	var u User
+	err := db.Where("token = ?", utils.HashSessionToken(plainToken)).First(&u).Error
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
 }
 
 func NewUserFromGitea(gu *gitea.User) User {

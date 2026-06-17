@@ -254,14 +254,14 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	// 生成 token 并设置过期时间
-	token, err := utils.GenerateRandomString(32)
+	sessionToken, err := utils.NewSessionToken()
 	if err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code: 400, Title: "登录失败", Msg: "系统错误",
 		}, true)
 		return
 	}
-	user.Token = token
+	user.Token = sessionToken.Hash
 	user.TokenExpired = time.Now().UTC().AddDate(0, 0, 7)
 
 	if err := user.SavePasswordSession(singleton.DB); err != nil {
@@ -272,7 +272,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24*7, "", "", mygin.CookieSecure(c), true)
+	c.SetCookie(singleton.Conf.Site.CookieName, sessionToken.Plain, 60*60*24*7, "", "", mygin.CookieSecure(c), true)
 	mygin.SetCSRFCookie(c)
 
 	// 登录成功跳转
@@ -603,7 +603,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 		}, true)
 		return
 	}
-	user.Token, err = utils.GenerateRandomString(32)
+	sessionToken, err := utils.NewSessionToken()
 	if err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusBadRequest,
@@ -612,10 +612,11 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 		}, true)
 		return
 	}
+	user.Token = sessionToken.Hash
 	user.TokenExpired = time.Now().UTC().AddDate(0, 2, 0)
 	singleton.DB.Save(&user)
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(singleton.Conf.Site.CookieName, user.Token, 60*60*24*7, "", "", mygin.CookieSecure(c), true)
+	c.SetCookie(singleton.Conf.Site.CookieName, sessionToken.Plain, 60*60*24*7, "", "", mygin.CookieSecure(c), true)
 	mygin.SetCSRFCookie(c)
 	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/redirect", mygin.CommonEnvironment(c, gin.H{
 		"URL": "/",

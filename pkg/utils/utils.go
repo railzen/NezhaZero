@@ -2,6 +2,8 @@ package utils
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"math/big"
 	"os"
 	"regexp"
@@ -79,6 +81,32 @@ func GenerateRandomString(n int) (string, error) {
 		ret[i] = letters[num.Int64()]
 	}
 	return string(ret), nil
+}
+
+const sessionTokenLength = 32
+
+// SessionToken 会话 Token：Plain 发给客户端，Hash 写入 users.token。
+type SessionToken struct {
+	Plain string
+	Hash  string
+}
+
+// NewSessionToken 生成会话 Token（明文 + SHA-256 十六进制摘要）。
+func NewSessionToken() (SessionToken, error) {
+	plain, err := GenerateRandomString(sessionTokenLength)
+	if err != nil {
+		return SessionToken{}, err
+	}
+	return SessionToken{
+		Plain: plain,
+		Hash:  HashSessionToken(plain),
+	}, nil
+}
+
+// HashSessionToken 将会话 Token 明文转为 SHA-256 十六进制摘要，用于入库与校验。
+func HashSessionToken(plain string) string {
+	sum := sha256.Sum256([]byte(plain))
+	return hex.EncodeToString(sum[:])
 }
 
 func Uint64SubInt64(a uint64, b int64) uint64 {
