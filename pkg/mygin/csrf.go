@@ -93,9 +93,8 @@ func CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Bearer Token 认证（API 调用）天然免疫 CSRF，直接放行
-		authHeader := c.GetHeader("Authorization")
-		if strings.HasPrefix(authHeader, "Bearer ") {
+		// Authorization 头由客户端显式设置（Bearer / v0 裸 API Key 等），免疫 CSRF
+		if strings.TrimSpace(c.GetHeader("Authorization")) != "" {
 			c.Next()
 			return
 		}
