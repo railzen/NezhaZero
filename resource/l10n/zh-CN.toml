@@ -842,7 +842,10 @@ other = "套餐"
 other = "管理员密码"
 
 [AdminPasswordPlaceholder]
-other = "设置密码（不少于六位）"
+other = "设置密码（不少于8位，大写、小写、数字、特殊字符至少含三种）"
+
+[AdminPasswordPolicyError]
+other = "管理员密码需不少于8位，且大写字母、小写字母、数字、特殊字符至少包含三种"
 
 [AdminLogin]
 other = "管理员登陆"

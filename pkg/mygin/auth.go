@@ -92,6 +92,43 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 	}
 }
 
+// BlockIfNotSuperAdmin 拒绝未登录或非超级管理员，返回 true 表示已拒绝并已写入响应。
+func BlockIfNotSuperAdmin(c *gin.Context, isPage bool) bool {
+	u, ok := c.Get(model.CtxKeyAuthorizedUser)
+	if !ok {
+		ShowErrorPage(c, ErrInfo{
+			Code:  http.StatusForbidden,
+			Title: "登陆失败",
+			Msg:   "非法请求，请稍后再试",
+			Link:  "/",
+			Btn:   "返回首页",
+		}, isPage)
+		return true
+	}
+	user, ok := u.(*model.User)
+	if !ok || !user.SuperAdmin {
+		ShowErrorPage(c, ErrInfo{
+			Code:  http.StatusForbidden,
+			Title: "登陆失败",
+			Msg:   "非法请求，请稍后再试",
+			Link:  "/",
+			Btn:   "返回首页",
+		}, isPage)
+		return true
+	}
+	return false
+}
+
+// RequireSuperAdmin 中间件：仅允许超级管理员访问。
+func RequireSuperAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if BlockIfNotSuperAdmin(c, false) {
+			return
+		}
+		c.Next()
+	}
+}
+
 // CookieSecure 判断当前请求是否经 HTTPS 到达（直连 TLS 或反代 X-Forwarded-Proto）。
 // 纯 HTTP 部署返回 false，不影响 Cookie 读写。
 func CookieSecure(c *gin.Context) bool {

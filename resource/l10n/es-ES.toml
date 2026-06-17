@@ -851,7 +851,10 @@ other = "Plan"
 other = "Contraseña de administrador"
 
 [AdminPasswordPlaceholder]
-other = "Establecer contraseña (mínimo 6 caracteres)"
+other = "Establecer contraseña (mín. 8 caracteres; al menos 3 de mayúsculas, minúsculas, dígitos y especiales)"
+
+[AdminPasswordPolicyError]
+other = "La contraseña debe tener al menos 8 caracteres e incluir al menos 3 de: mayúsculas, minúsculas, dígitos y caracteres especiales"
 
 [AdminLogin]
 other = "Admin Login"

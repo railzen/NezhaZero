@@ -603,6 +603,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 		}, true)
 		return
 	}
+	user.SuperAdmin = true
 	sessionToken, err := utils.NewSessionToken()
 	if err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{

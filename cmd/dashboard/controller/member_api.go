@@ -48,25 +48,28 @@ func (ma *memberAPI) serve() {
 	mr.GET("/search-tasks", ma.searchTask)
 	mr.GET("/search-ddns", ma.searchDDNS)
 	mr.POST("/server", ma.addOrEditServer)
-	mr.POST("/monitor", ma.addOrEditMonitor)
-	mr.POST("/cron", ma.addOrEditCron)
-	mr.POST("/cron/:id/manual", ma.manualTrigger)
-	mr.POST("/force-update", ma.forceUpdate)
 	mr.POST("/batch-update-server-group", ma.batchUpdateServerGroup)
 	mr.POST("/batch-delete-server", ma.batchDeleteServer)
-	mr.POST("/notification", ma.addOrEditNotification)
-	mr.POST("/ddns", ma.addOrEditDDNS)
-	mr.POST("/nat", ma.addOrEditNAT)
-	mr.POST("/alert-rule", ma.addOrEditAlertRule)
-	mr.POST("/setting", ma.updateSetting)
 	mr.POST("/update-geoip", ma.updateGeoIP)
-	mr.POST("/totp", ma.totp)
-	mr.DELETE("/:model/:id", ma.delete)
-	mr.POST("/logout", ma.logout)
 	mr.GET("/log", ma.listLogs)
 	mr.GET("/token", ma.getToken)
-	mr.POST("/token", ma.issueNewToken)
-	mr.DELETE("/token/:token", ma.deleteToken)
+	mr.POST("/logout", ma.logout)
+
+	wr := mr.Group("")
+	wr.Use(mygin.RequireSuperAdmin())
+	wr.POST("/monitor", ma.addOrEditMonitor)
+	wr.POST("/cron", ma.addOrEditCron)
+	wr.POST("/cron/:id/manual", ma.manualTrigger)
+	wr.POST("/force-update", ma.forceUpdate)
+	wr.POST("/nat", ma.addOrEditNAT)
+	wr.POST("/alert-rule", ma.addOrEditAlertRule)
+	wr.POST("/notification", ma.addOrEditNotification)
+	wr.POST("/ddns", ma.addOrEditDDNS)
+	wr.POST("/setting", ma.updateSetting)
+	wr.POST("/totp", ma.totp)
+	wr.POST("/token", ma.issueNewToken)
+	wr.DELETE("/token/:token", ma.deleteToken)
+	wr.DELETE("/:model/:id", ma.delete)
 
 	// API
 	v1 := ma.r.Group("v1")
@@ -1131,10 +1134,10 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 	case sf.Password == "********":
 		// 密码未修改，保持原哈希
 	default:
-		if len(sf.Password) < 6 || len(sf.Password) > 32 {
+		if err := utils.ValidateAdminPassword(sf.Password); err != nil {
 			c.JSON(http.StatusOK, model.Response{
 				Code:    http.StatusBadRequest,
-				Message: "管理员密码长度需在 6 到 32 位之间",
+				Message: err.Error(),
 			})
 			return
 		}

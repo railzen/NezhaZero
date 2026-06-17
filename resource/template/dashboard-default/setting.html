@@ -47,6 +47,30 @@
     html[nz-theme='dark'] .nb-geoip-status-off > .icon {
         color: rgba(255, 255, 255, 0.45) !important;
     }
+
+    #passwordLoginSettings .admin-password-prompt {
+        display: none;
+        margin-top: 0.45rem;
+        color: #9f3a3a;
+        font-size: 0.92857143rem;
+        line-height: 1.4;
+    }
+
+    #passwordLoginSettings .ui.action.input.admin-password-invalid > input {
+        background: #fff6f6 !important;
+        border-color: #e0b4b4 !important;
+        color: #9f3a3a !important;
+    }
+
+    html[nz-theme='dark'] #passwordLoginSettings .admin-password-prompt {
+        color: #ffb4b4;
+    }
+
+    html[nz-theme='dark'] #passwordLoginSettings .ui.action.input.admin-password-invalid > input {
+        background: #3a2a2a !important;
+        border-color: #9f6060 !important;
+        color: #ffb4b4 !important;
+    }
 </style>
 <div class="nb-container">
     <div class="ui container">
@@ -77,11 +101,11 @@
                 </div>
                 <div class="field" id="passwordLoginSettings">
                     <label>{{tr "AdminPassword"}}</label>
-                    <div class="ui action input">
+                    <div class="ui action input" id="adminPasswordInputWrap">
                         {{if .Conf.Site.AdminPassword}}
-                        <input type="password" name="Password" placeholder="{{tr "AdminPasswordPlaceholder"}}" value="********" autocomplete="new-password">
+                        <input type="password" name="Password" id="adminPasswordInput" placeholder="{{tr "AdminPasswordPlaceholder"}}" value="********" autocomplete="off" autocapitalize="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly');" data-lpignore="true" data-1p-ignore data-bwignore>
                         {{else}}
-                        <input type="password" name="Password" placeholder="{{tr "AdminPasswordPlaceholder"}}" value="" autocomplete="new-password">
+                        <input type="password" name="Password" id="adminPasswordInput" placeholder="{{tr "AdminPasswordPlaceholder"}}" value="" autocomplete="off" autocapitalize="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly');" data-lpignore="true" data-1p-ignore data-bwignore>
                         {{end}}
                         {{if .Conf.Site.TwoFactorSecret}}
                         <button type="button" class="ui button" id="twoFactorDisableBtn" title="{{tr "EnableTwoFactor"}}">
@@ -95,6 +119,7 @@
                         </button>
                         {{end}}
                     </div>
+                    <div class="admin-password-prompt" id="adminPasswordPrompt" role="alert"></div>
                 </div>
                 <div class="field">
                     <label>{{tr "AccessPassword"}}</label>
@@ -254,8 +279,50 @@
 </div>
 {{template "common/footer" .}}
 <script>
+    function adminPasswordCharTypes(pwd) {
+        let types = 0;
+        if (/[a-z]/.test(pwd)) types++;
+        if (/[A-Z]/.test(pwd)) types++;
+        if (/[0-9]/.test(pwd)) types++;
+        if (/[^a-zA-Z0-9]/.test(pwd)) types++;
+        return types;
+    }
+
+    function validateAdminPassword(pwd) {
+        if (!pwd || pwd === '********') {
+            return { ok: true };
+        }
+        if (pwd.length < 8 || pwd.length > 32 || adminPasswordCharTypes(pwd) < 3) {
+            return { ok: false, message: '{{tr "AdminPasswordPolicyError"}}' };
+        }
+        return { ok: true };
+    }
+
+    function renderAdminPasswordValidation(pwd) {
+        const $inputWrap = $('#adminPasswordInputWrap');
+        const $prompt = $('#adminPasswordPrompt');
+        const check = validateAdminPassword(pwd);
+        if (check.ok) {
+            $prompt.hide().text('');
+            $inputWrap.removeClass('admin-password-invalid');
+            return true;
+        }
+        $prompt.text(check.message).show();
+        $inputWrap.addClass('admin-password-invalid');
+        return false;
+    }
+
+    $('#adminPasswordInput').on('input blur', function () {
+        renderAdminPasswordValidation($(this).val());
+    });
+
     $('#settingForm').submit(function () {
         syncCompatAPIDisableField();
+        const password = $('#adminPasswordInput').val();
+        if (!renderAdminPasswordValidation(password)) {
+            $('#adminPasswordInput').focus();
+            return false;
+        }
         $.post('/api/setting', $('#settingForm').serialize())
             .then((resp) => {
                 if (resp.code == 200) {
@@ -301,8 +368,11 @@
         const disabled = $('.checkbox.disable-password-login').checkbox('is checked');
         if (disabled) {
             $('#passwordLoginSettings').hide();
+            $('#adminPasswordPrompt').hide().text('');
+            $('#adminPasswordInputWrap').removeClass('admin-password-invalid');
         } else {
             $('#passwordLoginSettings').show();
+            renderAdminPasswordValidation($('#adminPasswordInput').val());
         }
     }
     $('.checkbox.disable-password-login').checkbox({

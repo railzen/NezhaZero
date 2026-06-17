@@ -4,13 +4,18 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"os"
 	"regexp"
 	"strings"
+	"unicode"
 
 	jsoniter "github.com/json-iterator/go"
 )
+
+// ErrAdminPasswordPolicy 管理员密码不符合复杂度要求。
+var ErrAdminPasswordPolicy = errors.New("管理员密码需不少于8位，且大写字母、小写字母、数字、特殊字符至少包含三种")
 
 var (
 	Json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -107,6 +112,46 @@ func NewSessionToken() (SessionToken, error) {
 func HashSessionToken(plain string) string {
 	sum := sha256.Sum256([]byte(plain))
 	return hex.EncodeToString(sum[:])
+}
+
+// ValidateAdminPassword 校验管理员明文密码：长度不少于 8 位，且四类字符至少包含三种。
+func ValidateAdminPassword(password string) error {
+	if len(password) < 8 {
+		return ErrAdminPasswordPolicy
+	}
+	if len(password) > 32 {
+		return errors.New("管理员密码长度不能超过32位")
+	}
+	var hasLower, hasUpper, hasDigit, hasSpecial bool
+	for _, r := range password {
+		switch {
+		case r >= 'a' && r <= 'z':
+			hasLower = true
+		case r >= 'A' && r <= 'Z':
+			hasUpper = true
+		case r >= '0' && r <= '9':
+			hasDigit = true
+		case !unicode.IsLetter(r) && !unicode.IsDigit(r):
+			hasSpecial = true
+		}
+	}
+	types := 0
+	if hasLower {
+		types++
+	}
+	if hasUpper {
+		types++
+	}
+	if hasDigit {
+		types++
+	}
+	if hasSpecial {
+		types++
+	}
+	if types < 3 {
+		return ErrAdminPasswordPolicy
+	}
+	return nil
 }
 
 func Uint64SubInt64(a uint64, b int64) uint64 {

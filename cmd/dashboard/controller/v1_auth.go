@@ -231,6 +231,7 @@ func (cv *compatV1) refreshToken(c *gin.Context) {
 			}, true)
 			return
 		}
+		user.SuperAdmin = false
 		user.Token = sessionToken.Hash
 		user.TokenExpired = time.Now().AddDate(0, 0, 14)
 		singleton.DB.Save(&user)

@@ -842,7 +842,10 @@ other = "Plan"
 other = "Admin Password"
 
 [AdminPasswordPlaceholder]
-other = "Set password (at least 6 characters)"
+other = "Set password (min 8 chars; at least 3 of uppercase, lowercase, digits, special chars)"
+
+[AdminPasswordPolicyError]
+other = "Admin password must be at least 8 characters and include at least 3 of: uppercase, lowercase, digits, and special characters"
 
 [AdminLogin]
 other = "Admin Login"
