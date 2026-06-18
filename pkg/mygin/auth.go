@@ -58,7 +58,16 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 				isLogin = u.TokenExpired.After(time.Now().UTC())
 			}
 			if isLogin {
-				c.Set(model.CtxKeyAuthorizedUser, &u)
+				// V1 兼容登录与 API Token 同权：V1 兼容接口签发的会话固定 SuperAdmin=false，
+				// 在 AllowAPI=false 的接口（/api 管理接口与后台页面）上不计为登录，使其可达性与
+				// API Token 一致（二者都只能使用 AllowAPI=true 的 /api/v1 接口，且都被超管校验拦下）。
+				// 正常密码/OAuth2 登录为 SuperAdmin=true，不受此限。
+				// TODO: 后续若引入 OIDC 非超管成员，需改用 LoginSource 字段精确区分，避免误伤。
+				if !u.SuperAdmin && !opt.AllowAPI {
+					isLogin = false
+				} else {
+					c.Set(model.CtxKeyAuthorizedUser, &u)
+				}
 			} else if opt.AllowAPI {
 				// API Token 鉴权：Token 在 ApiTokenList 中即视为已登录
 				singleton.ApiLock.RLock()

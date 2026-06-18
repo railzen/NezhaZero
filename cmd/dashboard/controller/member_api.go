@@ -51,10 +51,9 @@ func (ma *memberAPI) serve() {
 	mr.POST("/batch-update-server-group", ma.batchUpdateServerGroup)
 	mr.POST("/batch-delete-server", ma.batchDeleteServer)
 	mr.POST("/update-geoip", ma.updateGeoIP)
-	mr.GET("/log", ma.listLogs)
-	mr.GET("/token", ma.getToken)
 	mr.POST("/logout", ma.logout)
 
+	// 仅超管可访问的接口,理论上能走到这里的时候一定有权限，敏感权限多加一层校验
 	wr := mr.Group("")
 	wr.Use(mygin.RequireSuperAdmin())
 	wr.POST("/monitor", ma.addOrEditMonitor)
@@ -68,6 +67,8 @@ func (ma *memberAPI) serve() {
 	wr.POST("/setting", ma.updateSetting)
 	wr.POST("/totp", ma.totp)
 	wr.POST("/token", ma.issueNewToken)
+	wr.GET("/token", ma.getToken)
+	wr.GET("/log", ma.listLogs)
 	wr.DELETE("/token/:token", ma.deleteToken)
 	wr.DELETE("/:model/:id", ma.delete)
 
