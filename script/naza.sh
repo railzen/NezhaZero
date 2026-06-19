@@ -569,7 +569,7 @@ modify_dashboard_config() {
         nz_oauth2_type=github
     fi
     if [ -z "$nz_admin_panel_passwd" ]; then
-        nz_admin_panel_passwd=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
+        nz_admin_panel_passwd=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
     fi
 
     sed -i "s/nz_oauth2_type/${nz_oauth2_type}/" /tmp/nezha-config.yaml

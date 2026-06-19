@@ -51,16 +51,15 @@ func ServeWeb(port uint) *http.Server {
 		pprof.Register(r)
 	}
 
-	// 将全部私有/回环网段设为可信代理
+	// 可信代理：仅保留回环与 Docker 默认桥接等真正会做反代的来源。
+	// 不再信任 10.0.0.0/8、192.168.0.0/16、169.254.0.0/16 等更宽网段，
+	// 避免同网段主机伪造 X-Forwarded-For 绕过基于 ClientIP 的登录限速与审计。
+	// 跨机反代等场景需信任其他来源时，由部署方自行调整。
 	if err := r.SetTrustedProxies([]string{
-		"127.0.0.0/8",    // IPv4 loopback
-		"10.0.0.0/8",     // RFC1918
-		"172.16.0.0/12",  // RFC1918（含 Docker 默认桥接）
-		"192.168.0.0/16", // RFC1918
-		"169.254.0.0/16", // IPv4 link-local
-		"::1/128",        // IPv6 loopback
-		"fc00::/7",       // IPv6 ULA
-		"fe80::/10",      // IPv6 link-local
+		"127.0.0.0/8",   // IPv4 loopback（同机反代）
+		"172.16.0.0/12", // RFC1918（Docker 默认桥接）
+		"::1/128",       // IPv6 loopback
+		"fc00::/7",      // IPv6 ULA
 	}); err != nil {
 		log.Printf("NEZHA>> SetTrustedProxies error: %v", err)
 	}
