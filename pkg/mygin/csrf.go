@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/service/singleton"
 )
 
 const (
@@ -79,6 +80,21 @@ var csrfSkipPaths = map[string]bool{
 	"/view-password": true, // 访问密码验证
 }
 
+// isAPICredential 判断 Authorization 头是否携带有效 API Token。
+// 兼容 README 中的两种格式：`Authorization: Bearer <Key>`（v1）与 `Authorization: <Key>`（v0），
+// 均归一化为裸 Key 后查内存表。凭据有效才返回 true——无效/空的 Authorization 头不再绕过 CSRF。
+func isAPICredential(c *gin.Context) bool {
+	auth := strings.TrimSpace(c.GetHeader("Authorization"))
+	if auth == "" {
+		return false
+	}
+	token := strings.TrimPrefix(auth, "Bearer ")
+	singleton.ApiLock.RLock()
+	_, ok := singleton.ApiTokenList[token]
+	singleton.ApiLock.RUnlock()
+	return ok
+}
+
 // CSRFMiddleware CSRF 防护中间件（Double-Submit Cookie 模式）
 // 对基于 Cookie 的 POST/PUT/DELETE/PATCH 请求校验 X-CSRF-Token 头与 CSRF Cookie 是否一致且签名有效
 func CSRFMiddleware() gin.HandlerFunc {
@@ -93,8 +109,9 @@ func CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Authorization 头由客户端显式设置（Bearer / v0 裸 API Key 等），免疫 CSRF
-		if strings.TrimSpace(c.GetHeader("Authorization")) != "" {
+		// Authorization 头携带有效 API Token 时免疫 CSRF（客户端显式设置，无 Cookie 参与）。
+		// 兼容 `Bearer <Key>` 与裸 `<Key>` 两种格式；无效/空头不跳过，落到下方 CSRF 校验。
+		if isAPICredential(c) {
 			c.Next()
 			return
 		}
