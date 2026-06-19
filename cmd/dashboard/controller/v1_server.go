@@ -351,16 +351,24 @@ func (cv *compatV1) listServiceHistory(c *gin.Context) {
 	}
 
 	ret := make([]*model.V1ServiceInfos, 0, len(monitorHistories.Result))
+	singleton.ServerLock.RLock()
 	for _, history := range monitorHistories.Result {
+		monitor := monitorIDMap[history.MonitorID]
+		server := singleton.ServerList[history.ServerID]
+		// monitor 或 server 已删除但历史记录仍引用时跳过，避免 nil 解引用
+		if monitor == nil || server == nil {
+			continue
+		}
 		ret = append(ret, &model.V1ServiceInfos{
 			ServiceID:   history.MonitorID,
 			ServerID:    history.ServerID,
-			ServiceName: monitorIDMap[history.MonitorID].Name,
-			ServerName:  singleton.ServerList[history.ServerID].Name,
+			ServiceName: monitor.Name,
+			ServerName:  server.Name,
 			CreatedAt:   history.CreatedAt,
 			AvgDelay:    history.AvgDelay,
 		})
 	}
+	singleton.ServerLock.RUnlock()
 
 	c.JSON(200, V1Response[[]*model.V1ServiceInfos]{
 		Success: true,
