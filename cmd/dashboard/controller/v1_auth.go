@@ -184,7 +184,6 @@ func (cv *compatV1) login(c *gin.Context) {
 	mygin.SetCSRFCookie(c)
 
 	c.Set(model.CtxKeyAuthorizedUser, &u)
-	c.Set("isAPI", true)
 
 	c.JSON(200, V1Response[model.V1LoginResponse]{
 		Success: true,

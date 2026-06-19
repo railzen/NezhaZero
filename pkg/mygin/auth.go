@@ -82,7 +82,6 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 						SuperAdmin: false,
 					}
 					c.Set(model.CtxKeyAuthorizedUser, &apiUser)
-					c.Set("isAPI", true)
 				}
 			}
 		}
