@@ -129,3 +129,21 @@ func (r *AlertRule) Check(points [][]interface{}) (int, bool) {
 	// 仅当所有检查均未通过时 返回false
 	return maxNum, count != len(r.Rules)
 }
+
+// RetentionWindow 返回告警规则所需保留的最大采样数。
+// 周期流量规则只需 1 个样本；常规规则需要其 Duration 定义的样本数。
+func (r *AlertRule) RetentionWindow() int {
+	window := 0
+	for _, rule := range r.Rules {
+		need := 1
+		if rule.IsTransferDurationRule() {
+			need = 1
+		} else if d := int(rule.Duration); d > need {
+			need = d
+		}
+		if need > window {
+			window = need
+		}
+	}
+	return window
+}

@@ -102,11 +102,11 @@ func (cv *compatV1) listNotification(c *gin.Context) {
 					UpdatedAt: n.UpdatedAt,
 				},
 				Name:          n.Name,
-				URL:           n.URL,
+				URL:           "secret.api.skip",
 				RequestMethod: uint8(n.RequestMethod),
 				RequestType:   uint8(n.RequestType),
-				RequestHeader: n.RequestHeader,
-				RequestBody:   n.RequestBody,
+				RequestHeader: "Request Header",
+				RequestBody:   "Request Body",
 				VerifyTLS:     n.VerifySSL,
 			})
 		}

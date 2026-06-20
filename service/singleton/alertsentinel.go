@@ -149,7 +149,7 @@ func checkStatus() {
 			alertsStore[alert.ID][server.ID] = append(alertsStore[alert.
 				ID][server.ID], alert.Snapshot(AlertsCycleTransferStatsStore[alert.ID], server, DB))
 			// 发送通知，分为触发报警和恢复通知
-			max, passed := alert.Check(alertsStore[alert.ID][server.ID])
+			_, passed := alert.Check(alertsStore[alert.ID][server.ID])
 			// 保存当前服务器状态信息
 			curServer := model.Server{}
 			copier.Copy(&curServer, server)
@@ -180,9 +180,16 @@ func checkStatus() {
 				}
 				alertsPrevState[alert.ID][server.ID] = _RuleCheckPass
 			}
-			// 清理旧数据
-			if max > 0 && max < len(alertsStore[alert.ID][server.ID]) {
-				alertsStore[alert.ID][server.ID] = alertsStore[alert.ID][server.ID][len(alertsStore[alert.ID][server.ID])-max:]
+			// 清理旧数据：按规则定义的窗口截断，窗口为 0 时清空历史避免泄漏
+			window := alert.RetentionWindow()
+			if window > 0 {
+				n := len(alertsStore[alert.ID][server.ID]) - window
+				if n < 0 {
+					n = 0
+				}
+				alertsStore[alert.ID][server.ID] = alertsStore[alert.ID][server.ID][n:]
+			} else {
+				alertsStore[alert.ID][server.ID] = nil
 			}
 		}
 	}
