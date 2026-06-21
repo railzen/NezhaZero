@@ -396,16 +396,28 @@ func (ma *memberAPI) addOrEditServer(c *gin.Context) {
 	}
 	if isEdit {
 		singleton.ServerLock.Lock()
-		s.CopyFromRunningServer(singleton.ServerList[s.ID])
+		running := singleton.ServerList[s.ID]
+		if running == nil {
+			// DB 已 Save 成功，但内存中无此 server（启动后外部写入等罕见场景）；
+			// 不做运行时状态拷贝与内存索引更新，避免 nil 解引用。下次重启会从 DB 重新加载。
+			singleton.ServerLock.Unlock()
+			audit.Record(c, audit.TypeConfig, "Server updated",
+				fmt.Sprintf("server: %s (ID %d)", s.Name, s.ID))
+			c.JSON(http.StatusOK, model.Response{
+				Code: http.StatusOK,
+			})
+			return
+		}
+		s.CopyFromRunningServer(running)
 		// 如果修改了 Secret
-		if s.Secret != singleton.ServerList[s.ID].Secret {
+		if s.Secret != running.Secret {
 			// 删除旧 Secret-ID 绑定关系
 			singleton.SecretToID[s.Secret] = s.ID
 			// 设置新的 Secret-ID 绑定关系
-			delete(singleton.SecretToID, singleton.ServerList[s.ID].Secret)
+			delete(singleton.SecretToID, running.Secret)
 		}
 		// 如果修改了Tag
-		oldTag := singleton.ServerList[s.ID].Tag
+		oldTag := running.Tag
 		newTag := s.Tag
 		if newTag != oldTag {
 			index := -1
@@ -427,7 +439,7 @@ func (ma *memberAPI) addOrEditServer(c *gin.Context) {
 		}
 
 		//只有修改了 PublicNote 才重新解析国家码
-		if s.PublicNote != singleton.ServerList[s.ID].PublicNote {
+		if s.PublicNote != running.PublicNote {
 			// 生效自定义国家码
 			publicCountryCode := singleton.ParseCountryCodeFromJson([]byte(s.PublicNote))
 			if publicCountryCode != nil {
@@ -670,11 +682,16 @@ func (ma *memberAPI) batchUpdateServerGroup(c *gin.Context) {
 
 	for i := 0; i < len(req.Servers); i++ {
 		serverId := req.Servers[i]
+		// 跳过不存在的 serverId，避免 nil 解引用（客户端可能传入已删除的 ID）
+		running := singleton.ServerList[serverId]
+		if running == nil {
+			continue
+		}
 		var s model.Server
-		copier.Copy(&s, singleton.ServerList[serverId])
+		copier.Copy(&s, running)
 		s.Tag = req.Group
 		// 如果修改了Ta
-		oldTag := singleton.ServerList[serverId].Tag
+		oldTag := running.Tag
 		newTag := s.Tag
 		if newTag != oldTag {
 			index := -1
