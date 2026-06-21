@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -101,6 +102,12 @@ func (cv *compatV1) listServer(c *gin.Context) {
 
 	filterID := c.Query("id")
 	if filterID != "" {
+		// SortedServerList 按 DisplayIndex DESC, ID ASC 排序，不是纯 ID 升序；
+		// appendBinarySearch 要求按 ID 升序，这里仅在 filter 路径重排，
+		// 不影响未带 ?id= 时的默认返回顺序。
+		sort.SliceStable(ssl, func(i, j int) bool {
+			return ssl[i].ID < ssl[j].ID
+		})
 		oldssl := ssl
 		ssl = []*model.V1Server{}
 		ids := strings.Split(filterID, ",")
@@ -244,7 +251,18 @@ func (cv *compatV1) listServerGroup(c *gin.Context) {
 	authorized := isMember || isViewPasswordVerfied
 
 	tagID := uint64(1)
-	for tag, ids := range singleton.ServerTagToIDList {
+	// 按 tag 名升序遍历，保证同一个 tag 集合下 tagID 分配稳定（map 遍历无序会导致重启后 ID 漂移）。
+	tagNames := make([]string, 0, len(singleton.ServerTagToIDList))
+	for tag := range singleton.ServerTagToIDList {
+		tagNames = append(tagNames, tag)
+	}
+	sort.Strings(tagNames)
+	for _, tag := range tagNames {
+		ids, ok := singleton.ServerTagToIDList[tag]
+		if !ok {
+			// 并发写场景下 tag 可能在 range 之后被删除，跳过即可
+			continue
+		}
 		visibleIDs := ids
 		if !authorized {
 			visibleIDs = make([]uint64, 0, len(ids))
@@ -271,7 +289,7 @@ func (cv *compatV1) listServerGroup(c *gin.Context) {
 			},
 			Servers: visibleIDs,
 		})
-		tagID++ // 虽然无法保证 tagID 的唯一性，但至少在绝大部分情况下不会出问题
+		tagID++
 	}
 
 	filterID := c.Query("id")
@@ -284,10 +302,13 @@ func (cv *compatV1) listServerGroup(c *gin.Context) {
 			if err != nil {
 				continue
 			}
-			if idUint >= uint64(len(oldsgRes)) {
-				continue
+			// 按 Group.ID 线性匹配；原实现把 idUint 当下标（oldsgRes[idUint]）语义错位。
+			for i := range oldsgRes {
+				if oldsgRes[i].Group.ID == idUint {
+					sgRes = append(sgRes, oldsgRes[i])
+					break
+				}
 			}
-			sgRes = append(sgRes, oldsgRes[idUint])
 		}
 	}
 

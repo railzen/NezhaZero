@@ -5,6 +5,7 @@ import (
 	"cmp"
 	"net/http"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -114,6 +115,10 @@ func (cv *compatV1) listNotification(c *gin.Context) {
 
 	filterID := c.Query("id")
 	if filterID != "" {
+		// NotificationList 是 map 嵌套 map，遍历无序；按 ID 升序排序后 appendBinarySearch 才能命中。
+		sort.SliceStable(notifications, func(i, j int) bool {
+			return notifications[i].ID < notifications[j].ID
+		})
 		oldns := notifications
 		notifications = []*model.V1Notification{}
 		ids := strings.Split(filterID, ",")
@@ -183,6 +188,10 @@ func (cv *compatV1) listAlertRule(c *gin.Context) {
 
 	filterID := c.Query("id")
 	if filterID != "" {
+		// Alerts 来自 DB.Find + append，无排序保证；按 ID 升序排序后 appendBinarySearch 才能命中。
+		sort.SliceStable(alerts, func(i, j int) bool {
+			return alerts[i].ID < alerts[j].ID
+		})
 		oldalerts := alerts
 		alerts = []*model.V1AlertRule{}
 		ids := strings.Split(filterID, ",")
