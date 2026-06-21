@@ -205,14 +205,8 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		passwordBytes = []byte("_nezha_invalid_password_placeholder_")
 	}
 
-	fakeHash := "$2a$10$C6UzMDM.H6dfI/f/IKcEeO6pC0s3z1c7C1jP4y5tZ5yF0p6Yk0YZa"
-	hash := singleton.Conf.Site.AdminPassword
-	if !allowed {
-		hash = fakeHash
-	}
-
-	// 校验密码（bcrypt）
-	if err := bcrypt.CompareHashAndPassword([]byte(hash), passwordBytes); err != nil {
+	// 校验密码（bcrypt）；始终使用 AdminPassword，避免 fakeHash cost 不一致泄露用户名
+	if err := bcrypt.CompareHashAndPassword([]byte(singleton.Conf.Site.AdminPassword), passwordBytes); err != nil {
 		allowed = false
 	}
 

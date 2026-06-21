@@ -201,7 +201,7 @@ func (c *Config) Read(path string) error {
 	if c.Site.AdminPassword != "" {
 		// 已有密码，判断它是否已经是 bcrypt 哈希
 		if _, err := bcrypt.Cost([]byte(c.Site.AdminPassword)); err != nil {
-			hash, err := bcrypt.GenerateFromPassword([]byte(c.Site.AdminPassword), bcrypt.DefaultCost)
+			hash, err := bcrypt.GenerateFromPassword([]byte(c.Site.AdminPassword), utils.BcryptCost)
 			if err != nil {
 				panic(err)
 			}

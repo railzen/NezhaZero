@@ -14,6 +14,9 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
+// BcryptCost 密码 bcrypt 哈希 cost（默认 10，此处提高到 12 以增强离线破解成本）。
+const BcryptCost = 12
+
 // ErrAdminPasswordPolicy 管理员密码不符合复杂度要求。
 var ErrAdminPasswordPolicy = errors.New("管理员密码需不少于8位，且大写字母、小写字母、数字、特殊字符至少包含三种")
 

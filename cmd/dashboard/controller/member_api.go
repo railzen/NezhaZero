@@ -1160,7 +1160,7 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 			return
 		}
 		if bcrypt.CompareHashAndPassword([]byte(adminPassword), []byte(sf.Password)) != nil {
-			hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), bcrypt.DefaultCost)
+			hash, err := bcrypt.GenerateFromPassword([]byte(sf.Password), utils.BcryptCost)
 			if err != nil {
 				c.JSON(http.StatusOK, model.Response{
 					Code:    http.StatusInternalServerError,
