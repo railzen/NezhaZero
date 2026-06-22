@@ -74,7 +74,6 @@ func SetCSRFCookie(c *gin.Context) {
 
 // 无需 CSRF 校验的路径（登录接口在用户未认证时调用，尚无 CSRF Cookie）
 var csrfSkipPaths = map[string]bool{
-	"/auth":          true, // 密码登录
 	"/api/v1/login":  true, // V1 API 登录
 	"/api/logout":    true, // 注销
 	"/view-password": true, // 访问密码验证

@@ -153,10 +153,16 @@
     try {
       const formData = new FormData(this);
 
+      // /authinfo（GET）已自愈下发 nz-csrf，此处随登录请求回传以通过 CSRF 校验
+      const csrfToken = (document.cookie.match(/(^| )nz-csrf=([^;]+)/) || [])[2] || '';
+
       const response = await fetch('/auth', {
         method: 'POST',
         body: formData,
-        headers: { 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' }
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          ...(csrfToken && { 'X-CSRF-Token': csrfToken })
+        }
       });
 
       restoreBtn();
