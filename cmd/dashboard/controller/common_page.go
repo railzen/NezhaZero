@@ -103,7 +103,7 @@ func (p *commonPage) issueViewPassword(c *gin.Context) {
 		return
 	}
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(singleton.Conf.Site.CookieName+"-vp", string(hash), 60*60*24, "", "", mygin.CookieSecure(c), true)
+	c.SetCookie(singleton.Conf.Site.CookieName+"-vp", string(hash), 60*60*24, "/", "", mygin.CookieSecure(c), true)
 	c.Redirect(http.StatusFound, mygin.SafeRedirectPath(c))
 }
 
