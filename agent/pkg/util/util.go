@@ -53,6 +53,17 @@ func ContainsStr(slice []string, str string) bool {
 	return false
 }
 
+func SubUintChecked[T Unsigned](a, b T) T {
+	if a < b {
+		return 0
+	}
+	return a - b
+}
+
+type Unsigned interface {
+	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
+}
+
 func RemoveDuplicate[T comparable](sliceList []T) []T {
 	allKeys := make(map[T]bool)
 	list := []T{}

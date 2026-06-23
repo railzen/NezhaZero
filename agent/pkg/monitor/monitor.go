@@ -34,7 +34,7 @@ var (
 		"fuseblk", "zfs", "simfs", "ntfs", "fat32", "exfat", "xfs", "fuse.rclone",
 	}
 	excludeNetInterfaces = []string{
-		"lo", "tun", "docker", "veth", "br-", "vmbr", "vnet", "kube",
+		"lo", "tun", "docker", "veth", "br-", "vmbr", "vnet", "kube", "Meta", "tailscale", "fw", "tap",
 	}
 	sensorIgnoreList = []string{
 		"PMU tcal", // the calibration sensor on arm macs, value is fixed
@@ -250,10 +250,10 @@ func TrackNetworkSpeed() {
 			innerNetOutTransfer += v.BytesSent
 		}
 		now := uint64(time.Now().Unix())
-		diff := now - lastUpdateNetStats
+		diff := util.SubUintChecked(now, lastUpdateNetStats)
 		if diff > 0 {
-			netInSpeed = (innerNetInTransfer - netInTransfer) / diff
-			netOutSpeed = (innerNetOutTransfer - netOutTransfer) / diff
+			netInSpeed = util.SubUintChecked(innerNetInTransfer, netInTransfer) / diff
+			netOutSpeed = util.SubUintChecked(innerNetOutTransfer, netOutTransfer) / diff
 		}
 		netInTransfer = innerNetInTransfer
 		netOutTransfer = innerNetOutTransfer
