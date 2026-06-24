@@ -256,7 +256,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		return
 	}
 	user.Token = sessionToken.Hash
-	user.TokenExpired = time.Now().UTC().AddDate(0, 0, 7)
+	user.TokenExpired = time.Now().UTC().AddDate(0, 0, 3)
 
 	if err := user.SavePasswordSession(singleton.DB); err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
@@ -266,7 +266,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(singleton.Conf.Site.CookieName, sessionToken.Plain, 60*60*24*7, "/", "", mygin.CookieSecure(c), true)
+	c.SetCookie(singleton.Conf.Site.CookieName, sessionToken.Plain, 60*60*24*3, "/", "", mygin.CookieSecure(c), true)
 	mygin.SetCSRFCookie(c)
 
 	// 登录成功跳转
@@ -611,7 +611,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 	user.TokenExpired = time.Now().UTC().AddDate(0, 2, 0)
 	singleton.DB.Save(&user)
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(singleton.Conf.Site.CookieName, sessionToken.Plain, 60*60*24*7, "/", "", mygin.CookieSecure(c), true)
+	c.SetCookie(singleton.Conf.Site.CookieName, sessionToken.Plain, 60*60*24*3, "/", "", mygin.CookieSecure(c), true)
 	mygin.SetCSRFCookie(c)
 	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/redirect", mygin.CommonEnvironment(c, gin.H{
 		"URL": "/",

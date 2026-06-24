@@ -173,14 +173,14 @@ func (cv *compatV1) login(c *gin.Context) {
 	}
 
 	u.Token = sessionToken.Hash
-	u.TokenExpired = now.AddDate(0, 0, 7)
+	u.TokenExpired = now.AddDate(0, 0, 3)
 	if err := u.SavePasswordSession(singleton.DB); err != nil {
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return
 	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("nz-jwt", sessionToken.Plain, 60*60*24*7, "/", "", mygin.CookieSecure(c), true)
+	c.SetCookie("nz-jwt", sessionToken.Plain, 60*60*24*3, "/", "", mygin.CookieSecure(c), true)
 	mygin.SetCSRFCookie(c)
 
 	c.Set(model.CtxKeyAuthorizedUser, &u)
