@@ -534,30 +534,70 @@ modify_dashboard_config() {
         return 0
     fi
 
-    echo "关于 GitHub Oauth2 应用：在 https://github.com/settings/developers 创建，无需审核，Callback 填 http(s)://域名或IP/oauth2/callback"
-        echo "关于 Gitee Oauth2 应用：在 https://gitee.com/oauth/applications 创建，无需审核，Callback 填 http(s)://域名或IP/oauth2/callback"
-        printf "请输入 OAuth2 提供商(github/gitlab/jihulab/gitee，默认 github): "
-        read -r nz_oauth2_type
-        printf "请输入 Oauth2 应用的 Client ID: "
-        read -r nz_github_oauth_client_id
-        printf "请输入 Oauth2 应用的 Client Secret: "
-        read -r nz_github_oauth_client_secret
-        printf "请输入 GitHub/Gitee 登录名作为管理员，多个以逗号隔开: "
-        read -r nz_admin_logins
-        printf "请输入面板密码(默认随机生成): "
-        read -r nz_admin_panel_passwd
-        printf "请输入站点标题: "
-        read -r nz_site_title
-        printf "请输入站点访问端口: (默认 8008)"
-        read -r nz_site_port
-        printf "请输入用于 Agent 接入的 RPC 端口: (默认 5555)"
-        read -r nz_grpc_port
+    printf "是否配置 OAuth 登录？[Y/n]: "
+    read -r nz_enable_oauth_login
+    case "$nz_enable_oauth_login" in
+        [Nn]*)
+            nz_oauth2_type=""
+            nz_github_oauth_client_id=""
+            nz_github_oauth_client_secret=""
+            ;;
+        *)
+            echo "关于 GitHub Oauth2 应用：在 https://github.com/settings/developers 创建，无需审核，Callback 填 http(s)://域名或IP/oauth2/callback"
+            echo "关于 Gitee Oauth2 应用：在 https://gitee.com/oauth/applications 创建，无需审核，Callback 填 http(s)://域名或IP/oauth2/callback"
+            printf "请输入 OAuth2 提供商(github/gitlab/jihulab/gitee，默认 github): "
+            read -r nz_oauth2_type
+            printf "请输入 Oauth2 应用的 Client ID: "
+            read -r nz_github_oauth_client_id
+            printf "请输入 Oauth2 应用的 Client Secret: "
+            read -r nz_github_oauth_client_secret
+            ;;
+    esac
 
-    if [ -z "$nz_admin_logins" ] || [ -z "$nz_github_oauth_client_id" ] || [ -z "$nz_github_oauth_client_secret" ] || [ -z "$nz_site_title" ]; then
-        err "所有选项都不能为空"
+    printf "请输入管理员用户名，多个以逗号隔开: "
+    read -r nz_admin_logins
+
+    printf "是否配置密码登录？[Y/n]: "
+    read -r nz_enable_password_login
+    case "$nz_enable_password_login" in
+        [Nn]*)
+            nz_admin_panel_passwd=""
+            ;;
+        *)
+            printf "请输入面板密码(默认随机生成): "
+            read -r nz_admin_panel_passwd
+            ;;
+    esac
+    case "$nz_enable_oauth_login:$nz_enable_password_login" in
+        [Nn]*:[Nn]*)
+            err "OAuth 登录和密码登录不能同时都不配置"
+            before_show_menu
+            return 1
+            ;;
+    esac
+
+    printf "请输入站点标题: "
+    read -r nz_site_title
+    printf "请输入站点访问端口: (默认 8008)"
+    read -r nz_site_port
+    printf "请输入用于 Agent 接入的 RPC 端口: (默认 5555)"
+    read -r nz_grpc_port
+
+    if [ -z "$nz_admin_logins" ] || [ -z "$nz_site_title" ]; then
+        err "管理员用户名和站点标题不能为空"
         before_show_menu
         return 1
     fi
+    case "$nz_enable_oauth_login" in
+        [Nn]*) ;;
+        *)
+            if [ -z "$nz_github_oauth_client_id" ] || [ -z "$nz_github_oauth_client_secret" ]; then
+                err "配置 OAuth 登录时 OAuth2 应用信息不能为空"
+                before_show_menu
+                return 1
+            fi
+            ;;
+    esac
 
     if [ -z "$nz_site_port" ]; then
         nz_site_port=8008
@@ -565,16 +605,26 @@ modify_dashboard_config() {
     if [ -z "$nz_grpc_port" ]; then
         nz_grpc_port=5555
     fi
-    if [ -z "$nz_oauth2_type" ]; then
-        nz_oauth2_type=github
-    fi
-    if [ -z "$nz_admin_panel_passwd" ]; then
-        nz_admin_panel_passwd=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
-    fi
-
+    case "$nz_enable_oauth_login" in
+        [Nn]*) ;;
+        *)
+            if [ -z "$nz_oauth2_type" ]; then
+                nz_oauth2_type=github
+            fi
+            ;;
+    esac
+    case "$nz_enable_password_login" in
+        [Nn]*) ;;
+        *)
+            if [ -z "$nz_admin_panel_passwd" ]; then
+                nz_admin_panel_passwd=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
+            fi
+            ;;
+    esac
     sed -i "s/nz_oauth2_type/${nz_oauth2_type}/" /tmp/nezha-config.yaml
     sed -i "s/nz_admin_logins/${nz_admin_logins}/" /tmp/nezha-config.yaml
-    sed -i "s/nz_admin_panel_passwd/${nz_admin_panel_passwd}/" /tmp/nezha-config.yaml
+    nz_admin_panel_passwd_escaped=$(printf '%s\n' "$nz_admin_panel_passwd" | sed 's/[\\/&]/\\\\&/g')
+    sed -i "s/nz_admin_panel_passwd/${nz_admin_panel_passwd_escaped}/" /tmp/nezha-config.yaml
     sed -i "s/nz_grpc_port/${nz_grpc_port}/" /tmp/nezha-config.yaml
     sed -i "s/nz_github_oauth_client_id/${nz_github_oauth_client_id}/" /tmp/nezha-config.yaml
     sed -i "s/nz_github_oauth_client_secret/${nz_github_oauth_client_secret}/" /tmp/nezha-config.yaml
@@ -616,7 +666,14 @@ modify_dashboard_config() {
         fi
     fi
 
-    success "您的密码是：$nz_admin_panel_passwd"
+    if [ -n "$nz_admin_panel_passwd" ]; then
+        success "您的密码是：$nz_admin_panel_passwd"
+    else
+        success "未配置密码登录"
+    fi
+    case "$nz_enable_oauth_login" in
+        [Nn]*) success "未配置 OAuth 登录" ;;
+    esac
     success "Dashboard 配置 修改成功，请稍等 Dashboard 重启生效"
 
     restart_and_update

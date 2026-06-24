@@ -534,30 +534,70 @@ modify_dashboard_config() {
         return 0
     fi
 
-    echo "About the GitHub Oauth2 application: create it at https://github.com/settings/developers, no review required, and fill in the http(s)://domain_or_IP/oauth2/callback"
-        echo "(Not recommended) About the Gitee Oauth2 application: create it at https://gitee.com/oauth/applications, no auditing required, and fill in the http(s)://domain_or_IP/oauth2/callback"
-        printf "Please enter the OAuth2 provider (github/gitlab/jihulab/gitee, default github): "
-        read -r nz_oauth2_type
-        printf "Please enter the Client ID of the Oauth2 application: "
-        read -r nz_github_oauth_client_id
-        printf "Please enter the Client Secret of the Oauth2 application: "
-        read -r nz_github_oauth_client_secret
-        printf "Please enter your GitHub/Gitee login name as the administrator, separated by commas: "
-        read -r nz_admin_logins
-        printf "Please enter your panel password(default random): "
-        read -r nz_admin_panel_passwd
-        printf "Please enter the site title: "
-        read -r nz_site_title
-        printf "Please enter the site access port: (default 8008)"
-        read -r nz_site_port
-        printf "Please enter the RPC port to be used for Agent access: (default 5555)"
-        read -r nz_grpc_port
+    printf "Configure OAuth login? [Y/n]: "
+    read -r nz_enable_oauth_login
+    case "$nz_enable_oauth_login" in
+        [Nn]*)
+            nz_oauth2_type=""
+            nz_github_oauth_client_id=""
+            nz_github_oauth_client_secret=""
+            ;;
+        *)
+            echo "About the GitHub Oauth2 application: create it at https://github.com/settings/developers, no review required, and fill in the http(s)://domain_or_IP/oauth2/callback"
+            echo "(Not recommended) About the Gitee Oauth2 application: create it at https://gitee.com/oauth/applications, no auditing required, and fill in the http(s)://domain_or_IP/oauth2/callback"
+            printf "Please enter the OAuth2 provider (github/gitlab/jihulab/gitee, default github): "
+            read -r nz_oauth2_type
+            printf "Please enter the Client ID of the Oauth2 application: "
+            read -r nz_github_oauth_client_id
+            printf "Please enter the Client Secret of the Oauth2 application: "
+            read -r nz_github_oauth_client_secret
+            ;;
+    esac
 
-    if [ -z "$nz_admin_logins" ] || [ -z "$nz_github_oauth_client_id" ] || [ -z "$nz_github_oauth_client_secret" ] || [ -z "$nz_site_title" ]; then
-        err "All options cannot be empty"
+    printf "Please enter the administrator username, separated by commas: "
+    read -r nz_admin_logins
+
+    printf "Configure password login? [Y/n]: "
+    read -r nz_enable_password_login
+    case "$nz_enable_password_login" in
+        [Nn]*)
+            nz_admin_panel_passwd=""
+            ;;
+        *)
+            printf "Please enter your panel password(default random): "
+            read -r nz_admin_panel_passwd
+            ;;
+    esac
+    case "$nz_enable_oauth_login:$nz_enable_password_login" in
+        [Nn]*:[Nn]*)
+            err "OAuth login and password login cannot both be left unconfigured"
+            before_show_menu
+            return 1
+            ;;
+    esac
+
+    printf "Please enter the site title: "
+    read -r nz_site_title
+    printf "Please enter the site access port: (default 8008)"
+    read -r nz_site_port
+    printf "Please enter the RPC port to be used for Agent access: (default 5555)"
+    read -r nz_grpc_port
+
+    if [ -z "$nz_admin_logins" ] || [ -z "$nz_site_title" ]; then
+        err "Administrator username and site title cannot be empty"
         before_show_menu
         return 1
     fi
+    case "$nz_enable_oauth_login" in
+        [Nn]*) ;;
+        *)
+            if [ -z "$nz_github_oauth_client_id" ] || [ -z "$nz_github_oauth_client_secret" ]; then
+                err "OAuth2 application info cannot be empty when configuring OAuth login"
+                before_show_menu
+                return 1
+            fi
+            ;;
+    esac
 
     if [ -z "$nz_site_port" ]; then
         nz_site_port=8008
@@ -565,16 +605,26 @@ modify_dashboard_config() {
     if [ -z "$nz_grpc_port" ]; then
         nz_grpc_port=5555
     fi
-    if [ -z "$nz_oauth2_type" ]; then
-        nz_oauth2_type=github
-    fi
-    if [ -z "$nz_admin_panel_passwd" ]; then
-        nz_admin_panel_passwd=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
-    fi
-
+    case "$nz_enable_oauth_login" in
+        [Nn]*) ;;
+        *)
+            if [ -z "$nz_oauth2_type" ]; then
+                nz_oauth2_type=github
+            fi
+            ;;
+    esac
+    case "$nz_enable_password_login" in
+        [Nn]*) ;;
+        *)
+            if [ -z "$nz_admin_panel_passwd" ]; then
+                nz_admin_panel_passwd=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
+            fi
+            ;;
+    esac
     sed -i "s/nz_oauth2_type/${nz_oauth2_type}/" /tmp/nezha-config.yaml
     sed -i "s/nz_admin_logins/${nz_admin_logins}/" /tmp/nezha-config.yaml
-    sed -i "s/nz_admin_panel_passwd/${nz_admin_panel_passwd}/" /tmp/nezha-config.yaml
+    nz_admin_panel_passwd_escaped=$(printf '%s\n' "$nz_admin_panel_passwd" | sed 's/[\\/&]/\\\\&/g')
+    sed -i "s/nz_admin_panel_passwd/${nz_admin_panel_passwd_escaped}/" /tmp/nezha-config.yaml
     sed -i "s/nz_grpc_port/${nz_grpc_port}/" /tmp/nezha-config.yaml
     sed -i "s/nz_github_oauth_client_id/${nz_github_oauth_client_id}/" /tmp/nezha-config.yaml
     sed -i "s/nz_github_oauth_client_secret/${nz_github_oauth_client_secret}/" /tmp/nezha-config.yaml
@@ -616,7 +666,14 @@ modify_dashboard_config() {
         fi
     fi
 
-    success "Your Password is：$nz_admin_panel_passwd"
+    if [ -n "$nz_admin_panel_passwd" ]; then
+        success "Your Password is：$nz_admin_panel_passwd"
+    else
+        success "Password login is not configured"
+    fi
+    case "$nz_enable_oauth_login" in
+        [Nn]*) success "OAuth login is not configured" ;;
+    esac
     success "Dashboard configuration modified successfully, please wait for Dashboard self-restart to take effect"
 
     restart_and_update

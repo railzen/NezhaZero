@@ -176,9 +176,16 @@ func (c *Config) Read(path string) error {
 	if c.Oauth2.Admin == "" {
 		return errors.New("missing admin user config")
 	}
-	if !c.Oauth2.DisableOauthLogin &&
-		(c.Oauth2.Type == "" || c.Oauth2.ClientID == "" || c.Oauth2.ClientSecret == "") {
-		return errors.New("missing oauth2 config")
+
+	oauthConfigIncomplete := c.Oauth2.Type == "" || c.Oauth2.ClientID == "" || c.Oauth2.ClientSecret == ""
+	if oauthConfigIncomplete {
+		if c.k.Exists("oauth2.disableoauthlogin") && !c.Oauth2.DisableOauthLogin {
+			return errors.New("missing oauth2 config")
+		}
+		if !c.Oauth2.DisableOauthLogin {
+			c.Oauth2.DisableOauthLogin = true
+			haveParaChange = true
+		}
 	}
 
 	if c.Site.Brand == "" {
