@@ -73,6 +73,7 @@ type AgentCliParam struct {
 type GitHubAsset struct {
 	Name        string `json:"name"`
 	DownloadURL string `json:"browser_download_url"`
+	Digest      string `json:"digest"`
 }
 
 type GitHubRelease struct {
@@ -730,11 +731,12 @@ func doSelfUpdate(useLocalVersion bool) {
 
 	// 4. 查找正确的文件
 	expectedName := fmt.Sprintf("nezha-agent_%s_%s.zip", runtime.GOOS, runtime.GOARCH)
-	var assetURL, assetName string
+	var assetURL, assetName, assetDigest string
 	for _, asset := range release.Assets {
 		if asset.Name == expectedName {
 			assetURL = asset.DownloadURL
 			assetName = asset.Name
+			assetDigest = asset.Digest
 			break
 		}
 	}
@@ -770,6 +772,11 @@ func doSelfUpdate(useLocalVersion bool) {
 	//fmt.Fprintf(os.Stdout, "Download Complete!\n")
 
 	// 8. 解压文件
+	if err := verifyFileSHA256(zipPath, assetDigest); err != nil {
+		fmt.Fprintf(os.Stdout, "SHA-256 verify failed: %v\n", err)
+		return
+	}
+
 	if err := unzip(zipPath, tmpDir); err != nil {
 		fmt.Fprintf(os.Stdout, "Unzip failed: %v\n", err)
 		return
@@ -897,6 +904,49 @@ func downloadFile(url, filepath string) error {
 }
 
 // 解压 ZIP 文件
+func verifyFileSHA256(filePath, expectedDigest string) error {
+	expected, err := normalizeSHA256Digest(expectedDigest)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return err
+	}
+
+	actual := hex.EncodeToString(hash.Sum(nil))
+	if actual != expected {
+		return fmt.Errorf("checksum mismatch, expected %s, got %s", expected, actual)
+	}
+
+	return nil
+}
+
+func normalizeSHA256Digest(digest string) (string, error) {
+	digest = strings.TrimSpace(strings.ToLower(digest))
+	if digest == "" {
+		return "", errors.New("release metadata missing sha256 digest")
+	}
+
+	digest = strings.TrimPrefix(digest, "sha256:")
+	if len(digest) != sha256.Size*2 {
+		return "", fmt.Errorf("invalid sha256 digest length: %d", len(digest))
+	}
+
+	if _, err := hex.DecodeString(digest); err != nil {
+		return "", fmt.Errorf("invalid sha256 digest: %w", err)
+	}
+
+	return digest, nil
+}
+
 func unzip(zipPath, destDir string) error {
 	r, err := zip.OpenReader(zipPath)
 	if err != nil {
