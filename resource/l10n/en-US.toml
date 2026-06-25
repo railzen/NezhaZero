@@ -875,7 +875,7 @@ other = "Disable Password Login"
 other = "Disable OAuth Login"
 
 [EnableCompatAPI]
-other = "Enable V1 CompatAPI"
+other = "Enable Compatible API"
 
 [EnableTwoFactor]
 other = "Password login two-factor authentication (TOTP)"
@@ -911,7 +911,7 @@ other = "Confirm enable"
 other = "Disable two-factor authentication and remove the bound secret?"
 
 [TwoFactorV1LoginHint]
-other = "For security reasons, two-factor authentication disables V1 API authentication"
+other = "For security reasons, enabling two-factor authentication disables Compatible API login"
 
 [EditPublicNote]
 other = "Edit Public Note"

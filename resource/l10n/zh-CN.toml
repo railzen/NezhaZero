@@ -875,7 +875,7 @@ other = "禁用密码登录"
 other = "禁用 OAuth 登录"
 
 [EnableCompatAPI]
-other = "启用V1兼容API"
+other = "启用兼容 API"
 
 [EnableTwoFactor]
 other = "密码登录双重验证（TOTP）"
@@ -911,7 +911,7 @@ other = "确认启用"
 other = "确认关闭双重验证并清除已绑定的密钥？"
 
 [TwoFactorV1LoginHint]
-other = "出于安全考虑，启用二次验证后将禁用 V1 接口的认证能力"
+other = "出于安全考虑，启用二次验证后将禁用兼容 API 登录"
 
 [EditPublicNote]
 other = "编辑公开备注"

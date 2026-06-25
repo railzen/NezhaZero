@@ -758,7 +758,7 @@ other = "Deshabilitar inicio de sesión con contraseña"
 other = "Deshabilitar inicio de sesión OAuth"
 
 [EnableCompatAPI]
-other = "Habilitar API compatible V1"
+other = "Habilitar API compatible"
 
 [ServersOnWorldMap]
 other = "Servidores en el mapa mundial"
@@ -902,7 +902,7 @@ other = "Confirmar activación"
 other = "¿Desactivar la autenticación en dos pasos y eliminar el secreto vinculado?"
 
 [TwoFactorV1LoginHint]
-other = "Por seguridad, la autenticación en dos pasos desactiva la autenticación de la API V1"
+other = "Por seguridad, activar la autenticación en dos pasos desactiva el inicio de sesión de la API compatible"
 
 [EditPublicNote]
 other = "Editar nota pública"
