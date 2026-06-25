@@ -1,5 +1,8 @@
 .git
 .gitignore
+.claude
+.agents
+.codex
 docker-compose.yml
 Dockerfile
 Dockerfile.dev

@@ -1,3 +1,4 @@
+*.sh text eol=lf
 resource/** linguist-vendored
 resource/static/* !linguist-vendored
 resource/template/dashboard/* !linguist-vendored

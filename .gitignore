@@ -12,6 +12,9 @@
 *.out
 *.pprof
 .idea
+.claude
+.agents
+.codex
 /data
 /dist
 .DS_Store
