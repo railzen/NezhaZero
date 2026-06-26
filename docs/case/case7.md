@@ -26,14 +26,14 @@ Broker for Nezha 需要与特定的数据收集软件一同使用。目前提供
 
 ## 效果参考
 <figure>
-    <img src="/images/case7/dashboard.jpg" alt="Dashboard">
+    <img src="../images/case7/dashboard.jpg" alt="Dashboard">
     <figcaption style="font-size: 0.9em; color: gray; text-align: center;">
     Dashboard
     </figcaption>
 </figure>
 <br />
 <figure>
-    <img src="/images/case7/webssh.jpg" alt="WebSSH">
+    <img src="../images/case7/webssh.jpg" alt="WebSSH">
     <figcaption style="font-size: 0.9em; color: gray; text-align: center;">
     WebSSH
     </figcaption>

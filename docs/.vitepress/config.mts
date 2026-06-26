@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
+  base: '/nezha-zero/',
   lastUpdated: true,
   lang: 'zh-CN',
   head: [
@@ -25,7 +26,7 @@ export default defineConfig({
         src: 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3632738952115558'
       },
     ],
-    ['link', { rel: 'icon', type: 'image/png', sizes: '193x193', href: '/logo.png' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '193x193', href: '/nezha-zero/logo.png' }],
   ],
   locales: {
     root: {

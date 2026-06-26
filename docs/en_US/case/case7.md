@@ -24,14 +24,14 @@ If you need to write your own data collector, you'll need to implement a basic H
 
 ## Examples
 <figure>
-    <img src="/images/case7/dashboard.jpg" alt="Dashboard">
+    <img src="../../images/case7/dashboard.jpg" alt="Dashboard">
     <figcaption style="font-size: 0.9em; color: gray; text-align: center;">
     Dashboard
     </figcaption>
 </figure>
 <br />
 <figure>
-    <img src="/images/case7/webssh.jpg" alt="WebSSH">
+    <img src="../../images/case7/webssh.jpg" alt="WebSSH">
     <figcaption style="font-size: 0.9em; color: gray; text-align: center;">
     WebSSH
     </figcaption>

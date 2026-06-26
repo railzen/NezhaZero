@@ -9,7 +9,7 @@
 :::
 
 ## 从 App Store 下载
-[![Download_on_the_App_Store_Badge_US-UK_RGB_blk_092917](/images/case6/Download_on_the_App_Store_Badge_CNSC_RGB_blk_092917.svg)](https://apps.apple.com/us/app/nezha-mobile/id6596729064)
+[![Download_on_the_App_Store_Badge_US-UK_RGB_blk_092917](../images/case6/Download_on_the_App_Store_Badge_CNSC_RGB_blk_092917.svg)](https://apps.apple.com/us/app/nezha-mobile/id6596729064)
 ::: warning
 App Store版本的Nezha Mobile由于**ICP备案**原因不在**中国大陆**提供服务。
 :::
@@ -19,11 +19,11 @@ App Store版本的Nezha Mobile由于**ICP备案**原因不在**中国大陆**提
 
 ## 使用说明
 + 首次使用时你需要输入**Dashboard链接**和**API Token**。**Dashboard链接**形如`server.hidandelion.com`，不要添加协议头和末尾斜杠。**API Token**可通过Dashboard管理后台获取。
-<img src="/images/case6/1.png" alt="step1" width="200"/>
+<img src="../images/case6/1.png" alt="step1" width="200"/>
 
 ## 配置小组件（可选）
 + 在Springboard添加小组件，长按后点击**编辑小组件**。
-<img src="/images/case6/2.png" alt="step2" width="200"/>
+<img src="../images/case6/2.png" alt="step2" width="200"/>
 
 + 在随后的页面中选择一台你需要监控的服务器。你可以为多个小组件配置不同的服务器。
-<img src="/images/case6/3.png" alt="step3" width="200"/>
+<img src="../images/case6/3.png" alt="step3" width="200"/>
