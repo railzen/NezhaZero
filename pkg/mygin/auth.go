@@ -77,8 +77,8 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 					isLogin = true
 					apiUser := model.User{
 						Common:     model.Common{ID: apiToken.UserID},
-						Login:      "Admin",
-						Name:       "Admin",
+						Login:      "ApiUser",
+						Name:       "ApiUser",
 						SuperAdmin: false,
 					}
 					c.Set(model.CtxKeyAuthorizedUser, &apiUser)
