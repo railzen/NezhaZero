@@ -8,10 +8,9 @@ export default defineComponent({
         const { site } = useData();
 
         const banner = ref({
-            link: 'https://t.me/nezhanews',
+            link: 'https://github.com/railzen/nezha-zero/releases',
             icon: 'https://nezha.wiki/logo.png',
-            dashboardVersionApi: 'https://api.github.com/repos/naiba/nezha/releases/latest',
-            agentVersionApi: 'https://api.github.com/repos/nezhahq/agent/releases/latest',
+            projectVersionApi: 'https://api.github.com/repos/railzen/nezha-zero/releases/latest',
             dashboardVersion: '',
             agentVersion: '',
         });
@@ -22,20 +21,13 @@ export default defineComponent({
 
         const fetchLatestVersions = async () => {
             try {
-                const dashboardResponse = await fetch(banner.value.dashboardVersionApi);
-                const dashboardData = await dashboardResponse.json();
-                banner.value.dashboardVersion = dashboardData.tag_name;
+                const response = await fetch(banner.value.projectVersionApi);
+                const data = await response.json();
+                banner.value.dashboardVersion = data.tag_name;
+                banner.value.agentVersion = data.tag_name;
             } catch (error) {
-                console.error('Error fetching dashboard latest version:', error);
+                console.error('Error fetching project latest version:', error);
                 banner.value.dashboardVersion = 'Error fetching';
-            }
-
-            try {
-                const agentResponse = await fetch(banner.value.agentVersionApi);
-                const agentData = await agentResponse.json();
-                banner.value.agentVersion = agentData.tag_name;
-            } catch (error) {
-                console.error('Error fetching agent latest version:', error);
                 banner.value.agentVersion = 'Error fetching';
             }
         };
