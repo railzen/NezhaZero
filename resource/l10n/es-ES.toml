@@ -856,6 +856,15 @@ other = "Establecer contraseña (mín. 8 caracteres; al menos 3 de mayúsculas, 
 [AdminPasswordPolicyError]
 other = "La contraseña debe tener al menos 8 caracteres e incluir al menos 3 de: mayúsculas, minúsculas, dígitos y caracteres especiales"
 
+[AdminPasswordConfirmPlaceholder]
+other = "Confirmar nueva contraseña"
+
+[AdminPasswordConfirmRequired]
+other = "Confirme la nueva contraseña"
+
+[AdminPasswordMismatch]
+other = "Las contraseñas no coinciden"
+
 [AdminLogin]
 other = "Admin Login"
 

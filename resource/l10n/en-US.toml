@@ -847,6 +847,15 @@ other = "Set password (min 8 chars; at least 3 of uppercase, lowercase, digits, 
 [AdminPasswordPolicyError]
 other = "Admin password must be at least 8 characters and include at least 3 of: uppercase, lowercase, digits, and special characters"
 
+[AdminPasswordConfirmPlaceholder]
+other = "Confirm new password"
+
+[AdminPasswordConfirmRequired]
+other = "Please confirm the new password"
+
+[AdminPasswordMismatch]
+other = "Passwords do not match"
+
 [AdminLogin]
 other = "Admin Login"
 

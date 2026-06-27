@@ -847,6 +847,15 @@ other = "设置密码（不少于8位，大写、小写、数字、特殊字符�
 [AdminPasswordPolicyError]
 other = "管理员密码需不少于8位，且大写字母、小写字母、数字、特殊字符至少包含三种"
 
+[AdminPasswordConfirmPlaceholder]
+other = "再次输入新密码"
+
+[AdminPasswordConfirmRequired]
+other = "请再次输入新密码"
+
+[AdminPasswordMismatch]
+other = "两次输入的密码不一致"
+
 [AdminLogin]
 other = "管理员登陆"
 

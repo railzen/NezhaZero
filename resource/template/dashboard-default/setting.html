@@ -56,7 +56,8 @@
         line-height: 1.4;
     }
 
-    #passwordLoginSettings .ui.action.input.admin-password-invalid > input {
+    #passwordLoginSettings .ui.action.input.admin-password-invalid > input,
+    #passwordLoginSettings .ui.input.admin-password-invalid > input {
         background: #fff6f6 !important;
         border-color: #e0b4b4 !important;
         color: #9f3a3a !important;
@@ -66,7 +67,8 @@
         color: #ffb4b4;
     }
 
-    html[nz-theme='dark'] #passwordLoginSettings .ui.action.input.admin-password-invalid > input {
+    html[nz-theme='dark'] #passwordLoginSettings .ui.action.input.admin-password-invalid > input,
+    html[nz-theme='dark'] #passwordLoginSettings .ui.input.admin-password-invalid > input {
         background: #3a2a2a !important;
         border-color: #9f6060 !important;
         color: #ffb4b4 !important;
@@ -120,6 +122,10 @@
                         {{end}}
                     </div>
                     <div class="admin-password-prompt" id="adminPasswordPrompt" role="alert"></div>
+                    <div class="ui input" id="adminPasswordConfirmInputWrap" style="display: none; margin-top: 0.75rem; width: 100%;">
+                        <input type="password" id="adminPasswordConfirmInput" placeholder="{{tr "AdminPasswordConfirmPlaceholder"}}" autocomplete="off" autocapitalize="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly');" data-lpignore="true" data-1p-ignore data-bwignore>
+                    </div>
+                    <div class="admin-password-prompt" id="adminPasswordConfirmPrompt" role="alert"></div>
                 </div>
                 <div class="field">
                     <label>{{tr "AccessPassword"}}</label>
@@ -288,8 +294,14 @@
         return types;
     }
 
+    const hasAdminPassword = {{if .Conf.Site.AdminPassword}}true{{else}}false{{end}};
+
+    function isAdminPasswordUnchanged(pwd) {
+        return pwd === '********' || (hasAdminPassword && !pwd);
+    }
+
     function validateAdminPassword(pwd) {
-        if (!pwd || pwd === '********') {
+        if (isAdminPasswordUnchanged(pwd)) {
             return { ok: true };
         }
         if (pwd.length < 8 || pwd.length > 32 || adminPasswordCharTypes(pwd) < 3) {
@@ -298,30 +310,77 @@
         return { ok: true };
     }
 
-    function renderAdminPasswordValidation(pwd) {
-        const $inputWrap = $('#adminPasswordInputWrap');
-        const $prompt = $('#adminPasswordPrompt');
-        const check = validateAdminPassword(pwd);
-        if (check.ok) {
-            $prompt.hide().text('');
-            $inputWrap.removeClass('admin-password-invalid');
-            return true;
+    function validateAdminPasswordConfirmation(pwd, confirmPwd) {
+        if (isAdminPasswordUnchanged(pwd)) {
+            return { ok: true };
         }
-        $prompt.text(check.message).show();
-        $inputWrap.addClass('admin-password-invalid');
-        return false;
+        if (!confirmPwd) {
+            return { ok: false, message: '{{tr "AdminPasswordConfirmRequired"}}' };
+        }
+        if (pwd !== confirmPwd) {
+            return { ok: false, message: '{{tr "AdminPasswordMismatch"}}' };
+        }
+        return { ok: true };
     }
 
-    $('#adminPasswordInput').on('input blur', function () {
-        renderAdminPasswordValidation($(this).val());
+    function renderAdminPasswordValidation(pwd, confirmPwd) {
+        const $inputWrap = $('#adminPasswordInputWrap');
+        const $prompt = $('#adminPasswordPrompt');
+        const $confirmInputWrap = $('#adminPasswordConfirmInputWrap');
+        const $confirmPrompt = $('#adminPasswordConfirmPrompt');
+        if (isAdminPasswordUnchanged(pwd)) {
+            $confirmInputWrap.hide();
+            $confirmPrompt.hide().text('');
+            $('#adminPasswordConfirmInput').val('');
+            $confirmInputWrap.removeClass('admin-password-invalid');
+        } else {
+            $confirmInputWrap.show();
+        }
+        const passwordCheck = validateAdminPassword(pwd);
+        const confirmCheck = validateAdminPasswordConfirmation(pwd, confirmPwd);
+        if (passwordCheck.ok) {
+            $prompt.hide().text('');
+            $inputWrap.removeClass('admin-password-invalid');
+        } else {
+            $prompt.text(passwordCheck.message).show();
+            $inputWrap.addClass('admin-password-invalid');
+        }
+        if (confirmCheck.ok) {
+            $confirmPrompt.hide().text('');
+            $confirmInputWrap.removeClass('admin-password-invalid');
+        } else {
+            $confirmPrompt.text(confirmCheck.message).show();
+            $confirmInputWrap.addClass('admin-password-invalid');
+        }
+        return passwordCheck.ok && confirmCheck.ok;
+    }
+
+    $('#adminPasswordInput, #adminPasswordConfirmInput').on('input blur', function () {
+        renderAdminPasswordValidation($('#adminPasswordInput').val(), $('#adminPasswordConfirmInput').val());
+    });
+
+    $('#adminPasswordInput').on('keydown', function (e) {
+        if (e.key === 'Tab' && !e.shiftKey && !isAdminPasswordUnchanged($(this).val())) {
+            e.preventDefault();
+            $('#adminPasswordConfirmInput').focus();
+        }
     });
 
     $('#settingForm').submit(function () {
         syncCompatAPIDisableField();
-        const password = $('#adminPasswordInput').val();
-        if (!renderAdminPasswordValidation(password)) {
-            $('#adminPasswordInput').focus();
+        const $passwordInput = $('#adminPasswordInput');
+        const password = $passwordInput.val();
+        const confirmPassword = $('#adminPasswordConfirmInput').val();
+        if (!renderAdminPasswordValidation(password, confirmPassword)) {
+            if (!validateAdminPassword(password).ok) {
+                $('#adminPasswordInput').focus();
+            } else {
+                $('#adminPasswordConfirmInput').focus();
+            }
             return false;
+        }
+        if (hasAdminPassword && !password) {
+            $passwordInput.val('********');
         }
         $.post('/api/setting', $('#settingForm').serialize())
             .then((resp) => {
@@ -369,10 +428,12 @@
         if (disabled) {
             $('#passwordLoginSettings').hide();
             $('#adminPasswordPrompt').hide().text('');
+            $('#adminPasswordConfirmPrompt').hide().text('');
             $('#adminPasswordInputWrap').removeClass('admin-password-invalid');
+            $('#adminPasswordConfirmInputWrap').removeClass('admin-password-invalid');
         } else {
             $('#passwordLoginSettings').show();
-            renderAdminPasswordValidation($('#adminPasswordInput').val());
+            renderAdminPasswordValidation($('#adminPasswordInput').val(), $('#adminPasswordConfirmInput').val());
         }
     }
     $('.checkbox.disable-password-login').checkbox({

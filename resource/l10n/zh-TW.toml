@@ -847,6 +847,15 @@ other = "設定密碼（不少於8位，大寫、小寫、數字、特殊字元�
 [AdminPasswordPolicyError]
 other = "管理員密碼需不少於8位，且大寫字母、小寫字母、數字、特殊字元至少包含三種"
 
+[AdminPasswordConfirmPlaceholder]
+other = "再次輸入新密碼"
+
+[AdminPasswordConfirmRequired]
+other = "請再次輸入新密碼"
+
+[AdminPasswordMismatch]
+other = "兩次輸入的密碼不一致"
+
 [AdminLogin]
 other = "管理員登入"
 
