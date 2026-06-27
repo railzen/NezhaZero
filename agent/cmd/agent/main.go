@@ -219,7 +219,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		log.Println("New server secret found\n")
+		log.Println("New server secret found")
 		time.Sleep(2 * time.Second)
 
 		println("Restarting...")
