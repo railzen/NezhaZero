@@ -100,20 +100,62 @@
             });
         },
         mounted() {
-            // 初始化时建立WebSocket连接
+            // Initialize the WebSocket connection on first load
             this.connect();
-            // 监听页面可见性变化
+            this.scheduleResponsiveTableLayout();
+            window.addEventListener("resize", this.scheduleResponsiveTableLayout);
+            // Reconnect and recompute layout when the page becomes visible again
             document.addEventListener("visibilitychange", () => {
                 if (document.visibilityState === "visible") {
                     setTimeout(() => {
                         if (document.hasFocus()) {
                             this.connect();
+                            this.scheduleResponsiveTableLayout();
                         }
                     }, 200);
                 }
             });
         },
+        updated() {
+            this.scheduleResponsiveTableLayout();
+        },
+        beforeDestroy() {
+            window.removeEventListener("resize", this.scheduleResponsiveTableLayout);
+        },
         methods: {
+            scheduleResponsiveTableLayout() {
+                if (this._responsiveTableLayoutFrame) {
+                    cancelAnimationFrame(this._responsiveTableLayoutFrame);
+                }
+                this._responsiveTableLayoutFrame = requestAnimationFrame(() => {
+                    this.applyResponsiveTableLayout();
+                });
+            },
+            applyResponsiveTableLayout() {
+                const containers = document.querySelectorAll(".table-responsive.content");
+                containers.forEach(container => {
+                    const table = container.querySelector("table");
+                    if (!table) {
+                        return;
+                    }
+                    container.classList.remove("table-responsive-compact");
+                    if (!this.isMobile) {
+                        return;
+                    }
+                    const availableWidth = container.clientWidth;
+                    if (!availableWidth) {
+                        return;
+                    }
+                    const tableWidth = table.scrollWidth;
+                    if (tableWidth <= availableWidth) {
+                        return;
+                    }
+                    const overflowRatio = (tableWidth - availableWidth) / availableWidth;
+                    if (overflowRatio <= 0.10) {
+                        container.classList.add("table-responsive-compact");
+                    }
+                });
+            },
             initAdditional(servers) {
                 let nodes = {};
                 servers?.forEach(server => {
