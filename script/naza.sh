@@ -378,6 +378,7 @@ pre_install_agent_bin() {
         clean_all
     fi
 
+    cd ~
     install_base
     selinux
 
