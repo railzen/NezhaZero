@@ -558,15 +558,24 @@ modify_dashboard_config() {
     printf "请输入管理员用户名，多个以逗号隔开: "
     read -r nz_admin_logins
 
-    printf "是否配置密码登录？[Y/n]: "
-    read -r nz_enable_password_login
-    case "$nz_enable_password_login" in
+    case "$nz_enable_oauth_login" in
         [Nn]*)
-            nz_admin_panel_passwd=""
-            ;;
-        *)
+            nz_enable_password_login=Y
             printf "请输入面板密码(默认随机生成): "
             read -r nz_admin_panel_passwd
+            ;;
+        *)
+            printf "是否配置密码登录？[Y/n]: "
+            read -r nz_enable_password_login
+            case "$nz_enable_password_login" in
+                [Nn]*)
+                    nz_admin_panel_passwd=""
+                    ;;
+                *)
+                    printf "请输入面板密码(默认随机生成): "
+                    read -r nz_admin_panel_passwd
+                    ;;
+            esac
             ;;
     esac
     case "$nz_enable_oauth_login:$nz_enable_password_login" in

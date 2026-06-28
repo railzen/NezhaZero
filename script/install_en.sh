@@ -558,15 +558,24 @@ modify_dashboard_config() {
     printf "Please enter the administrator username, separated by commas: "
     read -r nz_admin_logins
 
-    printf "Configure password login? [Y/n]: "
-    read -r nz_enable_password_login
-    case "$nz_enable_password_login" in
+    case "$nz_enable_oauth_login" in
         [Nn]*)
-            nz_admin_panel_passwd=""
-            ;;
-        *)
+            nz_enable_password_login=Y
             printf "Please enter your panel password(default random): "
             read -r nz_admin_panel_passwd
+            ;;
+        *)
+            printf "Configure password login? [Y/n]: "
+            read -r nz_enable_password_login
+            case "$nz_enable_password_login" in
+                [Nn]*)
+                    nz_admin_panel_passwd=""
+                    ;;
+                *)
+                    printf "Please enter your panel password(default random): "
+                    read -r nz_admin_panel_passwd
+                    ;;
+            esac
             ;;
     esac
     case "$nz_enable_oauth_login:$nz_enable_password_login" in
