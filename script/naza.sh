@@ -684,7 +684,7 @@ modify_dashboard_config() {
     else
         success "管理员密码：未配置密码登录"
     fi
-    success "面板端口：http://IP:$nz_site_port"
+    success "面板端口：http://[IP]:$nz_site_port"
     success "RPC 端口：$nz_grpc_port"
     case "$nz_enable_oauth_login" in
         [Nn]*) success "OAuth 登录：未配置" ;;

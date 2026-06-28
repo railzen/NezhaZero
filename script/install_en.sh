@@ -684,7 +684,7 @@ modify_dashboard_config() {
     else
         success "Admin password: password login is not configured"
     fi
-    success "Dashboard port: http://IP:$nz_site_port"
+    success "Dashboard port: http://[IP]:$nz_site_port"
     success "RPC port: $nz_grpc_port"
     case "$nz_enable_oauth_login" in
         [Nn]*) success "OAuth login: not configured" ;;

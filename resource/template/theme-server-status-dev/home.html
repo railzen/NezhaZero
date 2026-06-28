@@ -118,7 +118,7 @@
             document.addEventListener("visibilitychange", this._handleVisibilityChange);
         },
         updated() {
-            this.scheduleResponsiveTableLayout({ skipUnchangedViewport: true });
+            this.scheduleResponsiveTableLayout();
         },
         beforeDestroy() {
             window.removeEventListener("resize", this.scheduleResponsiveTableLayout);
@@ -131,16 +131,7 @@
             }
         },
         methods: {
-            scheduleResponsiveTableLayout(options = {}) {
-                const currentIsMobile = this.checkIsMobile();
-                const currentViewportWidth = window.innerWidth;
-                if (
-                    options.skipUnchangedViewport &&
-                    this._lastResponsiveIsMobile === currentIsMobile &&
-                    this._lastResponsiveViewportWidth === currentViewportWidth
-                ) {
-                    return;
-                }
+            scheduleResponsiveTableLayout() {
                 if (this._responsiveTableLayoutFrame) {
                     cancelAnimationFrame(this._responsiveTableLayoutFrame);
                 }
@@ -150,11 +141,8 @@
             },
             applyResponsiveTableLayout() {
                 const currentIsMobile = this.checkIsMobile();
-                const currentViewportWidth = window.innerWidth;
                 this._responsiveTableLayoutFrame = null;
                 this.isMobile = currentIsMobile;
-                this._lastResponsiveIsMobile = currentIsMobile;
-                this._lastResponsiveViewportWidth = currentViewportWidth;
                 const containers = document.querySelectorAll(".table-responsive.content");
                 containers.forEach(container => {
                     const table = container.querySelector("table");
