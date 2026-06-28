@@ -104,8 +104,7 @@
             this.connect();
             this.scheduleResponsiveTableLayout();
             window.addEventListener("resize", this.scheduleResponsiveTableLayout);
-            // Reconnect and recompute layout when the page becomes visible again
-            document.addEventListener("visibilitychange", () => {
+            this._handleVisibilityChange = () => {
                 if (document.visibilityState === "visible") {
                     setTimeout(() => {
                         if (document.hasFocus()) {
@@ -114,16 +113,34 @@
                         }
                     }, 200);
                 }
-            });
+            };
+            // Reconnect and recompute layout when the page becomes visible again
+            document.addEventListener("visibilitychange", this._handleVisibilityChange);
         },
         updated() {
-            this.scheduleResponsiveTableLayout();
+            this.scheduleResponsiveTableLayout({ skipUnchangedViewport: true });
         },
         beforeDestroy() {
             window.removeEventListener("resize", this.scheduleResponsiveTableLayout);
+            if (this._handleVisibilityChange) {
+                document.removeEventListener("visibilitychange", this._handleVisibilityChange);
+            }
+            if (this._responsiveTableLayoutFrame) {
+                cancelAnimationFrame(this._responsiveTableLayoutFrame);
+                this._responsiveTableLayoutFrame = null;
+            }
         },
         methods: {
-            scheduleResponsiveTableLayout() {
+            scheduleResponsiveTableLayout(options = {}) {
+                const currentIsMobile = this.checkIsMobile();
+                const currentViewportWidth = window.innerWidth;
+                if (
+                    options.skipUnchangedViewport &&
+                    this._lastResponsiveIsMobile === currentIsMobile &&
+                    this._lastResponsiveViewportWidth === currentViewportWidth
+                ) {
+                    return;
+                }
                 if (this._responsiveTableLayoutFrame) {
                     cancelAnimationFrame(this._responsiveTableLayoutFrame);
                 }
@@ -132,6 +149,12 @@
                 });
             },
             applyResponsiveTableLayout() {
+                const currentIsMobile = this.checkIsMobile();
+                const currentViewportWidth = window.innerWidth;
+                this._responsiveTableLayoutFrame = null;
+                this.isMobile = currentIsMobile;
+                this._lastResponsiveIsMobile = currentIsMobile;
+                this._lastResponsiveViewportWidth = currentViewportWidth;
                 const containers = document.querySelectorAll(".table-responsive.content");
                 containers.forEach(container => {
                     const table = container.querySelector("table");
@@ -139,7 +162,7 @@
                         return;
                     }
                     container.classList.remove("table-responsive-compact");
-                    if (!this.isMobile) {
+                    if (!currentIsMobile) {
                         return;
                     }
                     const availableWidth = container.clientWidth;

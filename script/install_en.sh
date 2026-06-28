@@ -416,7 +416,7 @@ pre_install_agent_bin() {
 
     sudo unzip -qo nezha-agent_linux_${os_arch}.zip &&
         sudo mv nezha-agent $NZ_AGENT_PATH &&
-        sudo rm -rf nezha-agent_linux_${os_arch}.zip README.md
+        sudo rm -rf nezha-agent_linux_${os_arch}.zip
 }
 
 install_agent() {
@@ -990,7 +990,7 @@ update_agent(){
 
     sudo unzip -qo nezha-agent_linux_${os_arch}.zip &&
         sudo mv -f nezha-agent $NZ_AGENT_PATH &&
-        sudo rm -rf nezha-agent_linux_${os_arch}.zip README.md
+        sudo rm -rf nezha-agent_linux_${os_arch}.zip
         
     [ -f "${NZ_AGENT_PATH}/nezha-agent" ] && sudo ${NZ_AGENT_PATH}/nezha-agent service restart
 }
