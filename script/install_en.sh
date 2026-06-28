@@ -676,14 +676,21 @@ modify_dashboard_config() {
         fi
     fi
 
+    success "=================================================="
+    success "Dashboard configuration saved"
+    success "Admin username(s): $nz_admin_logins"
     if [ -n "$nz_admin_panel_passwd" ]; then
-        success "Your Password is：$nz_admin_panel_passwd"
+        success "Admin password: $nz_admin_panel_passwd"
     else
-        success "Password login is not configured"
+        success "Admin password: password login is not configured"
     fi
+    success "Dashboard port: http://IP:$nz_site_port"
+    success "RPC port: $nz_grpc_port"
     case "$nz_enable_oauth_login" in
-        [Nn]*) success "OAuth login is not configured" ;;
+        [Nn]*) success "OAuth login: not configured" ;;
+        *) success "OAuth login: configured" ;;
     esac
+    success "=================================================="
     success "Dashboard configuration modified successfully, please wait for Dashboard self-restart to take effect"
 
     restart_and_update

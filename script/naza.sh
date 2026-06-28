@@ -676,14 +676,21 @@ modify_dashboard_config() {
         fi
     fi
 
+    success "=================================================="
+    success "Dashboard 配置已保存"
+    success "管理员用户名：$nz_admin_logins"
     if [ -n "$nz_admin_panel_passwd" ]; then
-        success "您的密码是：$nz_admin_panel_passwd"
+        success "管理员密码：$nz_admin_panel_passwd"
     else
-        success "未配置密码登录"
+        success "管理员密码：未配置密码登录"
     fi
+    success "面板端口：http://IP:$nz_site_port"
+    success "RPC 端口：$nz_grpc_port"
     case "$nz_enable_oauth_login" in
-        [Nn]*) success "未配置 OAuth 登录" ;;
+        [Nn]*) success "OAuth 登录：未配置" ;;
+        *) success "OAuth 登录：已配置" ;;
     esac
+    success "=================================================="
     success "Dashboard 配置 修改成功，请稍等 Dashboard 重启生效"
 
     restart_and_update
