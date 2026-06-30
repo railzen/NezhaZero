@@ -156,7 +156,11 @@ func (ss *ServiceSentinel) refreshMonthlyServiceStatus() {
 
 // Dispatch 将传入的 ReportData 传给 服务状态汇报管道
 func (ss *ServiceSentinel) Dispatch(r ReportData) {
-	ss.serviceReportChannel <- r
+	select {
+	case ss.serviceReportChannel <- r:
+	default:
+		log.Printf("NEZHA>> Service report channel full, dropped monitor report: monitor=%d reporter=%d type=%s", r.Data.GetId(), r.Reporter, r.Data.GetType())
+	}
 }
 
 func (ss *ServiceSentinel) Monitors() []*model.Monitor {
