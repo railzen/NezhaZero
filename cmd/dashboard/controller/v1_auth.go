@@ -221,6 +221,15 @@ func (cv *compatV1) refreshToken(c *gin.Context) {
 	}
 	if u, ok := c.Get(model.CtxKeyAuthorizedUser); ok {
 		user := u.(*model.User)
+		if user.SuperAdmin {
+			c.JSON(200, V1Response[model.V1LoginResponse]{
+				Success: true,
+				Data: model.V1LoginResponse{
+					Expire: user.TokenExpired.Format(time.RFC3339),
+				},
+			})
+			return
+		}
 		sessionToken, err := utils.NewSessionToken()
 		if err != nil {
 			mygin.ShowErrorPage(c, mygin.ErrInfo{
