@@ -159,7 +159,7 @@ func (ss *ServiceSentinel) Dispatch(r ReportData) {
 	select {
 	case ss.serviceReportChannel <- r:
 	default:
-		log.Printf("NEZHA>> Service report channel full, dropped monitor report: monitor=%d reporter=%d type=%s", r.Data.GetId(), r.Reporter, r.Data.GetType())
+		log.Printf("NEZHA>> Service report channel full, dropped monitor report: monitor=%d reporter=%d type=%d", r.Data.GetId(), r.Reporter, r.Data.GetType())
 	}
 }
 

@@ -112,7 +112,7 @@ var (
 			return http.ErrUseLastResponse
 		},
 		Timeout:   time.Second * 30,
-		Transport: &http3.RoundTripper{},
+		Transport: &http3.Transport{},
 	}
 
 	hostStatus = new(atomic.Bool)
