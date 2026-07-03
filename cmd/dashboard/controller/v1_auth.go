@@ -221,12 +221,12 @@ func (cv *compatV1) refreshToken(c *gin.Context) {
 	}
 	if u, ok := c.Get(model.CtxKeyAuthorizedUser); ok {
 		user := u.(*model.User)
-		if user.SuperAdmin {
+		// Only compat V1 login sessions are refreshable here.
+		// API-token contexts and normal super-admin sessions are treated as
+		// successful no-ops for compatibility, without rotating tokens.
+		if user.SuperAdmin || user.Token == "" {
 			c.JSON(200, V1Response[model.V1LoginResponse]{
 				Success: true,
-				Data: model.V1LoginResponse{
-					Expire: user.TokenExpired.Format(time.RFC3339),
-				},
 			})
 			return
 		}
