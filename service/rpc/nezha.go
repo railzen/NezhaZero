@@ -13,6 +13,7 @@ import (
 	"github.com/railzen/nezha-zero/pkg/geoip"
 	"github.com/railzen/nezha-zero/pkg/grpcx"
 	"github.com/railzen/nezha-zero/pkg/utils"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -29,7 +30,16 @@ var NezhaHandlerSingleton *NezhaHandler
 
 // 全局内存缓存 device_id -> secret
 var DeviceIDToSecret = make(map[string]string)
+var DeviceIDLastSeen = make(map[string]time.Time)
 var DeviceIDLock sync.Mutex
+
+const (
+	discoverCreateBurst       = 10
+	discoverCreateInterval    = 100 * time.Millisecond
+	discoverDeviceSecretLimit = 10000
+)
+
+var discoverCreateLimiter = rate.NewLimiter(rate.Every(discoverCreateInterval), discoverCreateBurst)
 
 type NezhaHandler struct {
 	pb.UnimplementedNezhaServiceServer
@@ -44,6 +54,49 @@ func NewNezhaHandler() *NezhaHandler {
 		ioStreamMutex: new(sync.RWMutex),
 		ioStreams:     make(map[string]*ioStreamContext),
 	}
+}
+
+func getDiscoverDeviceSecret(deviceID string) (string, bool) {
+	DeviceIDLock.Lock()
+	defer DeviceIDLock.Unlock()
+
+	secret, exists := DeviceIDToSecret[deviceID]
+	if exists {
+		DeviceIDLastSeen[deviceID] = time.Now()
+	}
+	return secret, exists
+}
+
+func setDiscoverDeviceSecret(deviceID, secret string) {
+	DeviceIDLock.Lock()
+	defer DeviceIDLock.Unlock()
+
+	if _, exists := DeviceIDToSecret[deviceID]; !exists && len(DeviceIDToSecret) >= discoverDeviceSecretLimit {
+		evictOldestDiscoverDeviceSecretLocked()
+	}
+
+	DeviceIDToSecret[deviceID] = secret
+	DeviceIDLastSeen[deviceID] = time.Now()
+}
+
+func evictOldestDiscoverDeviceSecretLocked() {
+	var oldestDeviceID string
+	var oldestSeen time.Time
+	for deviceID, lastSeen := range DeviceIDLastSeen {
+		if oldestDeviceID == "" || lastSeen.Before(oldestSeen) {
+			oldestDeviceID = deviceID
+			oldestSeen = lastSeen
+		}
+	}
+
+	if oldestDeviceID == "" {
+		for deviceID := range DeviceIDToSecret {
+			oldestDeviceID = deviceID
+			break
+		}
+	}
+	delete(DeviceIDToSecret, oldestDeviceID)
+	delete(DeviceIDLastSeen, oldestDeviceID)
 }
 
 func (s *NezhaHandler) ReportTask(c context.Context, r *pb.TaskResult) (*pb.Receipt, error) {
@@ -168,9 +221,7 @@ func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServe
 	}
 
 	// 内存幂等检查
-	DeviceIDLock.Lock()
-	secret, exists := DeviceIDToSecret[req.DeviceId]
-	DeviceIDLock.Unlock()
+	secret, exists := getDiscoverDeviceSecret(req.DeviceId)
 
 	if exists {
 		// 已经添加过设备，直接返回 secret
@@ -180,15 +231,17 @@ func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServe
 	}
 
 	// 新设备
+	if err := discoverCreateLimiter.Wait(ctx); err != nil {
+		return nil, status.Error(codes.ResourceExhausted, "Discover create rate limit exceeded")
+	}
+
 	secret, err := addDiscoverServer()
 	if err != nil {
 		return nil, status.Error(codes.Internal, "Failed to create server")
 	}
 
 	// 保存到全局 map
-	DeviceIDLock.Lock()
-	DeviceIDToSecret[req.DeviceId] = secret
-	DeviceIDLock.Unlock()
+	setDiscoverDeviceSecret(req.DeviceId, secret)
 
 	return &pb.DiscoverServerResponse{
 		NewServerSecret: secret,
