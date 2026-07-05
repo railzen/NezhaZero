@@ -175,6 +175,8 @@ function showFormModal(modelSelector, formID, URL, getData) {
                 obj[item.name] = parseInt(item.value);
               } else if (item.name.endsWith("Latency")) {
                 obj[item.name] = parseFloat(item.value);
+              } else if (item.name === "Command") {
+                obj[item.name] = trimCommandTrailingBlankLines(item.value);
               } else {
                 obj[item.name] = item.value;
               }
@@ -244,6 +246,10 @@ function showFormModal(modelSelector, formID, URL, getData) {
   if (!$modal.hasClass("active") && !$modal.hasClass("animating")) {
     $modal.modal("show");
   }
+}
+
+function trimCommandTrailingBlankLines(command) {
+  return command.replace(/[\t ]*(?:\r?\n)+$/g, "");
 }
 
 function addOrEditAlertRule(rule) {
