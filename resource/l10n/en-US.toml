@@ -49,6 +49,9 @@ other = "Detail"
 [LogRecordCount]
 other = "Records"
 
+[LogSequence]
+other = "No."
+
 [LogPrevPage]
 other = "Previous"
 

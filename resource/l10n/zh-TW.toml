@@ -49,6 +49,9 @@ other = "詳情"
 [LogRecordCount]
 other = "記錄數"
 
+[LogSequence]
+other = "序號"
+
 [LogPrevPage]
 other = "上一頁"
 

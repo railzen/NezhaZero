@@ -24,6 +24,7 @@
             <table class="ui basic table selectable nb-log-table">
                 <thead>
                     <tr>
+                        <th class="nb-log-seq">{{tr "LogSequence"}}</th>
                         <th>{{tr "LogTime"}}</th>
                         <th>{{tr "LogType"}}</th>
                         <th>{{tr "LogAction"}}</th>
@@ -34,6 +35,7 @@
                 <tbody>
                     {{range $log := .Logs}}
                     <tr>
+                        <td class="nb-log-seq" data-label="{{tr "LogSequence"}}"></td>
                         <td data-label="{{tr "LogTime"}}">{{$log.CreatedAt|tfymd}}</td>
                         <td data-label="{{tr "LogType"}}">{{logTypeLabel $log.Type}}</td>
                         <td data-label="{{tr "LogAction"}}">{{$log.Action}}</td>
@@ -48,6 +50,7 @@
             {{range $log := .Logs}}
             <div class="ui segment nb-log-card">
                 <div class="nb-log-card-head">
+                    <span class="ui mini label nb-log-card-seq" data-label="{{tr "LogSequence"}}"></span>
                     <span class="ui mini label">{{logTypeLabel $log.Type}}</span>
                     <span class="nb-log-card-time">{{$log.CreatedAt|tfymd}}</span>
                 </div>
@@ -87,6 +90,22 @@
         {{end}}
     </div>
 </div>
+<script>
+    (() => {
+        const pageSize = 20;
+        const params = new URLSearchParams(window.location.search);
+        const page = Math.max(parseInt(params.get("page") || "1", 10) || 1, 1);
+        const start = (page - 1) * pageSize + 1;
+
+        document.querySelectorAll(".nb-log-table tbody .nb-log-seq").forEach((cell, index) => {
+            cell.textContent = String(start + index);
+        });
+
+        document.querySelectorAll(".nb-log-card-seq").forEach((label, index) => {
+            label.textContent = `${label.dataset.label} ${start + index}`;
+        });
+    })();
+</script>
 <style>
     .nb-log-toolbar {
         display: flex;
@@ -110,6 +129,11 @@
 
     .nb-log-cards {
         display: none;
+    }
+
+    .nb-log-seq {
+        width: 4rem;
+        white-space: nowrap;
     }
 
     .nb-log-card {
