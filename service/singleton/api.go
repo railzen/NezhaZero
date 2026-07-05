@@ -309,6 +309,10 @@ func (m *MonitorAPIService) GetMonitorHistories(query map[string]any) *MonitorIn
 			Message: err.Error(),
 		}
 	} else {
+		ServiceSentinelShared.monitorsLock.RLock()
+		defer ServiceSentinelShared.monitorsLock.RUnlock()
+		ServerLock.RLock()
+		defer ServerLock.RUnlock()
 		for _, history := range monitorHistories {
 			if ServiceSentinelShared.monitors[history.MonitorID] == nil || ServerList[history.ServerID] == nil {
 				continue
