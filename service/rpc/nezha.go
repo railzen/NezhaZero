@@ -255,7 +255,7 @@ func (s *NezhaHandler) RequestTask(h *pb.Host, stream pb.NezhaService_RequestTas
 		return err
 	}
 	closeCh := make(chan error)
-	singleton.ServerLock.RLock()
+	singleton.ServerLock.Lock()
 	singleton.ServerList[clientID].TaskCloseLock.Lock()
 	// 修复不断的请求 task 但是没有 return 导致内存泄漏
 	if singleton.ServerList[clientID].TaskClose != nil {
@@ -264,7 +264,7 @@ func (s *NezhaHandler) RequestTask(h *pb.Host, stream pb.NezhaService_RequestTas
 	singleton.ServerList[clientID].TaskStream = stream
 	singleton.ServerList[clientID].TaskClose = closeCh
 	singleton.ServerList[clientID].TaskCloseLock.Unlock()
-	singleton.ServerLock.RUnlock()
+	singleton.ServerLock.Unlock()
 	return <-closeCh
 }
 
@@ -275,8 +275,8 @@ func (s *NezhaHandler) ReportSystemState(c context.Context, r *pb.State) (*pb.Re
 		return nil, err
 	}
 	state := model.PB2State(r)
-	singleton.ServerLock.RLock()
-	defer singleton.ServerLock.RUnlock()
+	singleton.ServerLock.Lock()
+	defer singleton.ServerLock.Unlock()
 	singleton.ServerList[clientID].LastActive = time.Now()
 	singleton.ServerList[clientID].State = &state
 
@@ -296,8 +296,8 @@ func (s *NezhaHandler) ReportSystemInfo(c context.Context, r *pb.Host) (*pb.Rece
 		return nil, err
 	}
 	host := model.PB2Host(r)
-	singleton.ServerLock.RLock()
-	defer singleton.ServerLock.RUnlock()
+	singleton.ServerLock.Lock()
+	defer singleton.ServerLock.Unlock()
 
 	// 检查并更新DDNS
 	if singleton.ServerList[clientID].EnableDDNS && host.IP != "" &&
@@ -407,8 +407,8 @@ func (s *NezhaHandler) LookupGeoIP(c context.Context, r *pb.GeoIP) (*pb.GeoIP, e
 	}
 
 	// 将地区码写入到 Host
-	singleton.ServerLock.RLock()
-	defer singleton.ServerLock.RUnlock()
+	singleton.ServerLock.Lock()
+	defer singleton.ServerLock.Unlock()
 	if singleton.ServerList[clientID].Host == nil {
 		return nil, fmt.Errorf("host not found")
 	}
