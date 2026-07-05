@@ -710,7 +710,7 @@ function manualTrigger(btn, cronId) {
           title: "触发成功，等待执行结果",
           type: "success",
           description: "Success",
-          time: "3",
+          time: "0.5",
           position: "top-center",
         });
       } else {
