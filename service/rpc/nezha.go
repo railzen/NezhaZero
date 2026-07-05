@@ -255,16 +255,28 @@ func (s *NezhaHandler) RequestTask(h *pb.Host, stream pb.NezhaService_RequestTas
 		return err
 	}
 	closeCh := make(chan error)
-	singleton.ServerLock.Lock()
-	singleton.ServerList[clientID].TaskCloseLock.Lock()
-	// 修复不断的请求 task 但是没有 return 导致内存泄漏
-	if singleton.ServerList[clientID].TaskClose != nil {
-		close(singleton.ServerList[clientID].TaskClose)
+	singleton.ServerLock.RLock()
+	server := singleton.ServerList[clientID]
+	singleton.ServerLock.RUnlock()
+	if server == nil || server.TaskCloseLock == nil {
+		return status.Errorf(codes.Unauthenticated, "客户端认证失败")
 	}
-	singleton.ServerList[clientID].TaskStream = stream
-	singleton.ServerList[clientID].TaskClose = closeCh
-	singleton.ServerList[clientID].TaskCloseLock.Unlock()
+
+	server.TaskCloseLock.Lock()
+	singleton.ServerLock.Lock()
+	if singleton.ServerList[clientID] != server {
+		singleton.ServerLock.Unlock()
+		server.TaskCloseLock.Unlock()
+		return status.Errorf(codes.Unauthenticated, "客户端认证失败")
+	}
+	// 修复不断的请求 task 但是没有 return 导致内存泄漏
+	if server.TaskClose != nil {
+		close(server.TaskClose)
+	}
+	server.TaskStream = stream
+	server.TaskClose = closeCh
 	singleton.ServerLock.Unlock()
+	server.TaskCloseLock.Unlock()
 	return <-closeCh
 }
 

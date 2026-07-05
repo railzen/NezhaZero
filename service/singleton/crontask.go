@@ -19,6 +19,12 @@ var (
 	CronLock sync.RWMutex
 )
 
+type cronOfflineNotification struct {
+	tag     string
+	message string
+	server  *model.Server
+}
+
 func InitCronTask() {
 	Cron = cron.New(cron.WithSeconds(), cron.WithLocation(Loc))
 	Crons = make(map[uint64]*model.Cron)
@@ -91,50 +97,64 @@ func CronTrigger(cr model.Cron, triggerServer ...uint64) func() {
 		crIgnoreMap[cr.Servers[j]] = true
 	}
 	return func() {
+		task := &pb.Task{
+			Id:   cr.ID,
+			Data: cr.Command,
+			Type: model.TaskTypeCommand,
+		}
+		var targetServers []*model.Server
+		var offlineNotifications []cronOfflineNotification
+
 		if cr.Cover == model.CronCoverAlertTrigger {
 			if len(triggerServer) == 0 {
 				return
 			}
 			ServerLock.RLock()
-			defer ServerLock.RUnlock()
 			if s, ok := ServerList[triggerServer[0]]; ok {
 				if s.TaskStream != nil {
-					s.SendTask(&pb.Task{
-						Id:   cr.ID,
-						Data: cr.Command,
-						Type: model.TaskTypeCommand,
-					})
+					targetServers = append(targetServers, s)
 				} else {
 					// 保存当前服务器状态信息
 					curServer := model.Server{}
 					copier.Copy(&curServer, s)
-					SendNotification(cr.NotificationTag, fmt.Sprintf("[任务失败] %s，服务器 %s 离线，无法执行。", cr.Name, s.Name), nil, &curServer)
+					offlineNotifications = append(offlineNotifications, cronOfflineNotification{
+						tag:     cr.NotificationTag,
+						message: fmt.Sprintf("[任务失败] %s，服务器 %s 离线，无法执行。", cr.Name, s.Name),
+						server:  &curServer,
+					})
 				}
 			}
-			return
+			ServerLock.RUnlock()
+		} else {
+			ServerLock.RLock()
+			for _, s := range ServerList {
+				if cr.Cover == model.CronCoverAll && crIgnoreMap[s.ID] {
+					continue
+				}
+				if cr.Cover == model.CronCoverIgnoreAll && !crIgnoreMap[s.ID] {
+					continue
+				}
+				if s.TaskStream != nil {
+					targetServers = append(targetServers, s)
+				} else {
+					// 保存当前服务器状态信息
+					curServer := model.Server{}
+					copier.Copy(&curServer, s)
+					offlineNotifications = append(offlineNotifications, cronOfflineNotification{
+						tag:     cr.NotificationTag,
+						message: fmt.Sprintf("[任务失败] %s，服务器 %s 离线，无法执行。", cr.Name, s.Name),
+						server:  &curServer,
+					})
+				}
+			}
+			ServerLock.RUnlock()
 		}
 
-		ServerLock.RLock()
-		defer ServerLock.RUnlock()
-		for _, s := range ServerList {
-			if cr.Cover == model.CronCoverAll && crIgnoreMap[s.ID] {
-				continue
-			}
-			if cr.Cover == model.CronCoverIgnoreAll && !crIgnoreMap[s.ID] {
-				continue
-			}
-			if s.TaskStream != nil {
-				s.SendTask(&pb.Task{
-					Id:   cr.ID,
-					Data: cr.Command,
-					Type: model.TaskTypeCommand,
-				})
-			} else {
-				// 保存当前服务器状态信息
-				curServer := model.Server{}
-				copier.Copy(&curServer, s)
-				SendNotification(cr.NotificationTag, fmt.Sprintf("[任务失败] %s，服务器 %s 离线，无法执行。", cr.Name, s.Name), nil, &curServer)
-			}
+		for _, s := range targetServers {
+			s.SendTask(task)
+		}
+		for _, notification := range offlineNotifications {
+			SendNotification(notification.tag, notification.message, nil, notification.server)
 		}
 	}
 }
