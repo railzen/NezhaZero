@@ -43,6 +43,7 @@ func (cv *compatV1) createTerminal(c *gin.Context) {
 	server := singleton.ServerList[createTerminalReq.ServerID]
 	singleton.ServerLock.RUnlock()
 	if server == nil || server.TaskStream == nil {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
 		c.JSON(500, V1Response[string]{
 			Success: false,
 			Error:   "服务器不存在或处于离线状态",
@@ -57,6 +58,7 @@ func (cv *compatV1) createTerminal(c *gin.Context) {
 		Type: model.TaskTypeTerminalGRPC,
 		Data: string(terminalData),
 	}); err != nil {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
 		c.JSON(500, V1Response[any]{
 			Success: false,
 			Error:   err.Error(),

@@ -532,6 +532,7 @@ func (cp *commonPage) createTerminal(c *gin.Context) {
 	server := singleton.ServerList[createTerminalReq.ID]
 	singleton.ServerLock.RUnlock()
 	if server == nil || server.TaskStream == nil {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
 			Title: "请求失败",
@@ -549,6 +550,7 @@ func (cp *commonPage) createTerminal(c *gin.Context) {
 		Type: model.TaskTypeTerminalGRPC,
 		Data: string(terminalData),
 	}); err != nil {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
 			Title: "请求失败",
@@ -662,6 +664,7 @@ func (cp *commonPage) createFM(c *gin.Context) {
 
 	serverId, err := strconv.Atoi(IdString)
 	if err != nil {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
 			Title: "请求失败",
@@ -675,7 +678,8 @@ func (cp *commonPage) createFM(c *gin.Context) {
 	singleton.ServerLock.RLock()
 	server := singleton.ServerList[uint64(serverId)]
 	singleton.ServerLock.RUnlock()
-	if server == nil {
+	if server == nil || server.TaskStream == nil {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
 			Title: "请求失败",
@@ -693,6 +697,7 @@ func (cp *commonPage) createFM(c *gin.Context) {
 		Type: model.TaskTypeFM,
 		Data: string(fmData),
 	}); err != nil {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
 			Title: "请求失败",

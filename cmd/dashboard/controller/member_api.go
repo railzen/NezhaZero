@@ -250,8 +250,8 @@ func (ma *memberAPI) delete(c *gin.Context) {
 	case "cron":
 		err = singleton.DB.Unscoped().Delete(&model.Cron{}, "id = ?", id).Error
 		if err == nil {
-			singleton.CronLock.RLock()
-			defer singleton.CronLock.RUnlock()
+			singleton.CronLock.Lock()
+			defer singleton.CronLock.Unlock()
 			cr := singleton.Crons[id]
 			if cr != nil && cr.CronJobID != 0 {
 				singleton.Cron.Remove(cr.CronJobID)

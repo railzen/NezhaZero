@@ -35,6 +35,7 @@ func (cv *compatV1) createFM(c *gin.Context) {
 
 	serverId, err := strconv.Atoi(IdString)
 	if err != nil {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
 		c.JSON(400, V1Response[any]{
 			Success: false,
 			Error:   err.Error(),
@@ -46,6 +47,7 @@ func (cv *compatV1) createFM(c *gin.Context) {
 	server := singleton.ServerList[uint64(serverId)]
 	singleton.ServerLock.RUnlock()
 	if server == nil || server.TaskStream == nil {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
 		c.JSON(500, V1Response[any]{
 			Success: false,
 			Error:   "服务器不存在或处于离线状态",
@@ -60,6 +62,7 @@ func (cv *compatV1) createFM(c *gin.Context) {
 		Type: model.TaskTypeFM,
 		Data: string(fmData),
 	}); err != nil {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
 		c.JSON(500, V1Response[any]{
 			Success: false,
 			Error:   err.Error(),
