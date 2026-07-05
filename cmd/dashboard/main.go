@@ -122,18 +122,18 @@ func main() {
 
 func dispatchReportInfoTask() {
 	time.Sleep(time.Second * 15)
-	var taskStreams []proto.NezhaService_RequestTaskServer
+	var servers []*model.Server
 	singleton.ServerLock.RLock()
 	for _, server := range singleton.ServerList {
 		if server == nil || server.TaskStream == nil {
 			continue
 		}
-		taskStreams = append(taskStreams, server.TaskStream)
+		servers = append(servers, server)
 	}
 	singleton.ServerLock.RUnlock()
 
-	for _, taskStream := range taskStreams {
-		taskStream.Send(&proto.Task{
+	for _, server := range servers {
+		_ = server.SendTask(&proto.Task{
 			Type: model.TaskTypeReportHostInfo,
 			Data: "",
 		})

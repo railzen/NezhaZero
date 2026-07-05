@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -47,6 +48,23 @@ func (s *Server) CopyFromRunningServer(old *Server) {
 	s.TaskStream = old.TaskStream
 	s.PrevTransferInSnapshot = old.PrevTransferInSnapshot
 	s.PrevTransferOutSnapshot = old.PrevTransferOutSnapshot
+}
+
+func (s *Server) SendTask(task *pb.Task) error {
+	if s == nil {
+		return errors.New("server is nil")
+	}
+	if s.TaskCloseLock == nil {
+		return errors.New("task stream lock is nil")
+	}
+
+	s.TaskCloseLock.Lock()
+	defer s.TaskCloseLock.Unlock()
+
+	if s.TaskStream == nil {
+		return errors.New("task stream is nil")
+	}
+	return s.TaskStream.Send(task)
 }
 
 func (s *Server) AfterFind(tx *gorm.DB) error {

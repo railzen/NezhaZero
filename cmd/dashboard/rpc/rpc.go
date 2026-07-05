@@ -124,7 +124,7 @@ func DispatchTask(serviceSentinelDispatchBus <-chan model.Monitor) {
 	for task := range serviceSentinelDispatchBus {
 		round := 0
 		endIndex := workedServerIndex
-		var taskStreams []pb.NezhaService_RequestTaskServer
+		var servers []*model.Server
 		singleton.SortedServerLock.RLock()
 		// 如果已经轮了一整圈又轮到自己，没有合适机器去请求，跳出循环
 		for round < 1 || workedServerIndex < endIndex {
@@ -146,12 +146,12 @@ func DispatchTask(serviceSentinelDispatchBus <-chan model.Monitor) {
 				continue
 			}
 			if task.Cover == model.MonitorCoverIgnoreAll && task.SkipServers[singleton.SortedServerList[workedServerIndex].ID] {
-				taskStreams = append(taskStreams, singleton.SortedServerList[workedServerIndex].TaskStream)
+				servers = append(servers, singleton.SortedServerList[workedServerIndex])
 				workedServerIndex++
 				continue
 			}
 			if task.Cover == model.MonitorCoverAll && !task.SkipServers[singleton.SortedServerList[workedServerIndex].ID] {
-				taskStreams = append(taskStreams, singleton.SortedServerList[workedServerIndex].TaskStream)
+				servers = append(servers, singleton.SortedServerList[workedServerIndex])
 				workedServerIndex++
 				continue
 			}
@@ -161,26 +161,26 @@ func DispatchTask(serviceSentinelDispatchBus <-chan model.Monitor) {
 			// break
 		}
 		singleton.SortedServerLock.RUnlock()
-		for _, taskStream := range taskStreams {
-			taskStream.Send(task.PB())
+		for _, server := range servers {
+			server.SendTask(task.PB())
 		}
 	}
 }
 
 func DispatchKeepalive() {
 	singleton.Cron.AddFunc("@every 30s", func() {
-		var taskStreams []pb.NezhaService_RequestTaskServer
+		var servers []*model.Server
 		singleton.SortedServerLock.RLock()
 		for i := 0; i < len(singleton.SortedServerList); i++ {
 			if singleton.SortedServerList[i] == nil || singleton.SortedServerList[i].TaskStream == nil {
 				continue
 			}
 
-			taskStreams = append(taskStreams, singleton.SortedServerList[i].TaskStream)
+			servers = append(servers, singleton.SortedServerList[i])
 		}
 		singleton.SortedServerLock.RUnlock()
-		for _, taskStream := range taskStreams {
-			taskStream.Send(&pb.Task{Type: model.TaskTypeKeepalive})
+		for _, server := range servers {
+			server.SendTask(&pb.Task{Type: model.TaskTypeKeepalive})
 		}
 	})
 }

@@ -740,7 +740,7 @@ func (ma *memberAPI) forceUpdate(c *gin.Context) {
 		server := singleton.ServerList[forceUpdateServers[i]]
 		singleton.ServerLock.RUnlock()
 		if server != nil && server.TaskStream != nil {
-			if err := server.TaskStream.Send(&proto.Task{
+			if err := server.SendTask(&proto.Task{
 				Type: model.TaskTypeUpgrade,
 			}); err != nil {
 				executeResult.WriteString(fmt.Sprintf("%d 下发指令失败 %+v<br/>", forceUpdateServers[i], err))

@@ -106,21 +106,26 @@ func (s *NezhaHandler) StartStream(streamId string, timeout time.Duration) error
 	}
 
 	timeoutTimer := time.NewTimer(timeout)
+	defer timeoutTimer.Stop()
 
 LOOP:
 	for {
 		select {
+		case <-timeoutTimer.C:
+			break LOOP
+		default:
+		}
+
+		select {
 		case <-stream.userIoConnectCh:
 			if stream.agentIo != nil {
-				timeoutTimer.Stop()
 				break LOOP
 			}
 		case <-stream.agentIoConnectCh:
 			if stream.userIo != nil {
-				timeoutTimer.Stop()
 				break LOOP
 			}
-		case <-time.After(timeout):
+		case <-timeoutTimer.C:
 			break LOOP
 		}
 		time.Sleep(time.Millisecond * 500)

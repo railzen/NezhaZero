@@ -58,7 +58,7 @@ func (cv *compatV1) createFM(c *gin.Context) {
 	fmData, _ := utils.Json.Marshal(&model.TaskFM{
 		StreamID: streamId,
 	})
-	if err := server.TaskStream.Send(&proto.Task{
+	if err := server.SendTask(&proto.Task{
 		Type: model.TaskTypeFM,
 		Data: string(fmData),
 	}); err != nil {

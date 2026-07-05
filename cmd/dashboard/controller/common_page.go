@@ -546,7 +546,7 @@ func (cp *commonPage) createTerminal(c *gin.Context) {
 	terminalData, _ := utils.Json.Marshal(&model.TerminalTask{
 		StreamID: streamId,
 	})
-	if err := server.TaskStream.Send(&proto.Task{
+	if err := server.SendTask(&proto.Task{
 		Type: model.TaskTypeTerminalGRPC,
 		Data: string(terminalData),
 	}); err != nil {
@@ -693,7 +693,7 @@ func (cp *commonPage) createFM(c *gin.Context) {
 	fmData, _ := utils.Json.Marshal(&model.TaskFM{
 		StreamID: streamId,
 	})
-	if err := server.TaskStream.Send(&proto.Task{
+	if err := server.SendTask(&proto.Task{
 		Type: model.TaskTypeFM,
 		Data: string(fmData),
 	}); err != nil {

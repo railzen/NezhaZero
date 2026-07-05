@@ -412,7 +412,7 @@ func natGateway(c *gin.Context) {
 		return
 	}
 
-	if err := server.TaskStream.Send(&proto.Task{
+	if err := server.SendTask(&proto.Task{
 		Type: model.TaskTypeNAT,
 		Data: string(taskData),
 	}); err != nil {

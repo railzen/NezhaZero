@@ -99,7 +99,7 @@ func CronTrigger(cr model.Cron, triggerServer ...uint64) func() {
 			defer ServerLock.RUnlock()
 			if s, ok := ServerList[triggerServer[0]]; ok {
 				if s.TaskStream != nil {
-					s.TaskStream.Send(&pb.Task{
+					s.SendTask(&pb.Task{
 						Id:   cr.ID,
 						Data: cr.Command,
 						Type: model.TaskTypeCommand,
@@ -124,7 +124,7 @@ func CronTrigger(cr model.Cron, triggerServer ...uint64) func() {
 				continue
 			}
 			if s.TaskStream != nil {
-				s.TaskStream.Send(&pb.Task{
+				s.SendTask(&pb.Task{
 					Id:   cr.ID,
 					Data: cr.Command,
 					Type: model.TaskTypeCommand,

@@ -134,10 +134,11 @@ func OnDeleteAlert(id uint64) {
 
 // checkStatus 检查报警规则并发送报警
 func checkStatus() {
-	AlertsLock.RLock()
-	defer AlertsLock.RUnlock()
+	// 锁顺序：ServerLock → AlertsLock，与 onServerDelete 一致，避免 AB-BA 死锁
 	ServerLock.RLock()
 	defer ServerLock.RUnlock()
+	AlertsLock.RLock()
+	defer AlertsLock.RUnlock()
 
 	for _, alert := range Alerts {
 		// 跳过未启用
