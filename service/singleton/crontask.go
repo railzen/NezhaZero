@@ -3,6 +3,7 @@ package singleton
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/jinzhu/copier"
@@ -24,6 +25,12 @@ type cronOfflineNotification struct {
 	message string
 	server  *model.Server
 }
+
+const (
+	cronTriggerSourceScheduled = "scheduled"
+	cronTriggerSourceManual    = "manual"
+	cronTriggerSourceAlert     = "alert"
+)
 
 func InitCronTask() {
 	Cron = cron.New(cron.WithSeconds(), cron.WithLocation(Loc))
@@ -72,7 +79,7 @@ func loadCronTasks() {
 }
 
 func ManualTrigger(c model.Cron) {
-	CronTrigger(c)()
+	cronTrigger(c, cronTriggerSourceManual)()
 }
 
 func SendTriggerTasks(taskIDs []uint64, triggerServer uint64) {
@@ -87,11 +94,15 @@ func SendTriggerTasks(taskIDs []uint64, triggerServer uint64) {
 
 	// 依次调用CronTrigger发送任务
 	for _, c := range cronLists {
-		go CronTrigger(*c, triggerServer)()
+		go cronTrigger(*c, cronTriggerSourceAlert, triggerServer)()
 	}
 }
 
 func CronTrigger(cr model.Cron, triggerServer ...uint64) func() {
+	return cronTrigger(cr, cronTriggerSourceScheduled, triggerServer...)
+}
+
+func cronTrigger(cr model.Cron, triggerSource string, triggerServer ...uint64) func() {
 	crIgnoreMap := make(map[uint64]bool)
 	for j := 0; j < len(cr.Servers); j++ {
 		crIgnoreMap[cr.Servers[j]] = true
@@ -150,11 +161,59 @@ func CronTrigger(cr model.Cron, triggerServer ...uint64) func() {
 			ServerLock.RUnlock()
 		}
 
+		var sentServers []string
 		for _, s := range targetServers {
-			s.SendTask(task)
+			if err := s.SendTask(task); err != nil {
+				continue
+			}
+			sentServers = append(sentServers, serverAuditID(s))
 		}
+		recordCronTriggerAudit(cr, triggerSource, sentServers)
 		for _, notification := range offlineNotifications {
 			SendNotification(notification.tag, notification.message, nil, notification.server)
 		}
 	}
+}
+
+func recordCronTriggerAudit(cr model.Cron, triggerSource string, sentServers []string) {
+	if DB == nil {
+		return
+	}
+
+	detail := fmt.Sprintf("Trigger: %s, Task %d, Command: %s, RunServerID %s",
+		triggerSource,
+		cr.ID,
+		truncateAuditText(cr.Command, 200),
+		joinAuditList(sentServers),
+	)
+
+	_ = DB.Create(&model.AuditLog{
+		Type:   "event",
+		Action: "Scheduled task triggered",
+		Detail: truncateAuditText(detail, 1024),
+	}).Error
+}
+
+func serverAuditID(server *model.Server) string {
+	if server == nil {
+		return "unknown"
+	}
+	return fmt.Sprintf("%d", server.ID)
+}
+
+func joinAuditList(values []string) string {
+	if len(values) == 0 {
+		return "None"
+	}
+	return strings.Join(values, ", ")
+}
+
+func truncateAuditText(value string, limit int) string {
+	if len(value) <= limit {
+		return value
+	}
+	if limit <= 3 {
+		return value[:limit]
+	}
+	return value[:limit-3] + "..."
 }
