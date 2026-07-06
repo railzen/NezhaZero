@@ -170,15 +170,14 @@ LOOP:
 
 	isDone := new(atomic.Bool)
 	endCh := make(chan struct{})
+	doneErrCh := make(chan error, 1)
 
 	go func() {
 		bp := bufPool.Get().(*bp)
 		defer bufPool.Put(bp)
 		_, innerErr := io.CopyBuffer(stream.userIo, stream.agentIo, bp.buf)
-		if innerErr != nil {
-			err = innerErr
-		}
 		if isDone.CompareAndSwap(false, true) {
+			doneErrCh <- innerErr
 			close(endCh)
 		}
 	}()
@@ -186,14 +185,12 @@ LOOP:
 		bp := bufPool.Get().(*bp)
 		defer bufPool.Put(bp)
 		_, innerErr := io.CopyBuffer(stream.agentIo, stream.userIo, bp.buf)
-		if innerErr != nil {
-			err = innerErr
-		}
 		if isDone.CompareAndSwap(false, true) {
+			doneErrCh <- innerErr
 			close(endCh)
 		}
 	}()
 
 	<-endCh
-	return err
+	return <-doneErrCh
 }
