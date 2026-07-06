@@ -51,9 +51,10 @@ func (cv *compatV1) login(c *gin.Context) {
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return
 	}
+	lr.Username = strings.TrimSpace(lr.Username)
 
 	// 强制要求用户名和密码
-	if lr.Username == "" || lr.Password == "" {
+	if lr.Username == "" || strings.TrimSpace(lr.Password) == "" {
 		audit.Record(c, audit.TypeAuth, "V1 password login failed", "username or password is empty")
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return

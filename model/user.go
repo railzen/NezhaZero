@@ -1,6 +1,8 @@
 package model
 
 import (
+	"errors"
+	"strings"
 	"time"
 
 	"code.gitea.io/sdk/gitea"
@@ -50,6 +52,10 @@ func (u *User) SavePasswordSession(db *gorm.DB) error {
 
 // FindUserBySessionToken 按明文会话 Token 查找用户（库内仅存哈希）。
 func FindUserBySessionToken(db *gorm.DB, plainToken string) (*User, error) {
+	plainToken = strings.TrimSpace(plainToken)
+	if plainToken == "" {
+		return nil, errors.New("empty session token")
+	}
 	var u User
 	err := db.Where("token = ?", utils.HashSessionToken(plainToken)).First(&u).Error
 	if err != nil {

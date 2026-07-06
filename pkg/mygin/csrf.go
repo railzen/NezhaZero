@@ -88,6 +88,10 @@ func isAPICredential(c *gin.Context) bool {
 		return false
 	}
 	token := strings.TrimPrefix(auth, "Bearer ")
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return false
+	}
 	singleton.ApiLock.RLock()
 	_, ok := singleton.ApiTokenList[token]
 	singleton.ApiLock.RUnlock()
@@ -143,6 +147,7 @@ func CSRFMiddleware() gin.HandlerFunc {
 		if headerToken == "" {
 			headerToken = c.PostForm("_csrf")
 		}
+		headerToken = strings.TrimSpace(headerToken)
 
 		if headerToken == "" || cookieToken != headerToken || !validateCSRFToken(cookieToken) {
 			c.AbortWithStatusJSON(http.StatusForbidden, model.Response{

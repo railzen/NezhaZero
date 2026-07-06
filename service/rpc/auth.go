@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -30,7 +31,13 @@ func (a *authHandler) Check(ctx context.Context) (uint64, error) {
 
 	var clientSecret string
 	if value, ok := md["client_secret"]; ok {
-		clientSecret = value[0]
+		if len(value) == 0 {
+			return 0, status.Errorf(codes.Unauthenticated, "客户端认证失败")
+		}
+		clientSecret = strings.TrimSpace(value[0])
+	}
+	if clientSecret == "" {
+		return 0, status.Errorf(codes.Unauthenticated, "客户端认证失败")
 	}
 
 	singleton.ServerLock.RLock()

@@ -124,6 +124,9 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		showLoginFailed(c)
 		return
 	}
+	req.Username = strings.TrimSpace(req.Username)
+	req.Password = strings.TrimSpace(req.Password)
+	req.OTP = strings.TrimSpace(req.OTP)
 
 	ruleAllowed := true
 	if !singleton.Conf.PasswordLoginActive() {
@@ -187,12 +190,12 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 			allowed = false
 		} else {
 			parts := bytes.SplitN(plaintext, []byte{'\n'}, 3)
-			if len(parts) != 3 || len(parts[1]) < 6 {
+			if len(parts) != 3 || len(bytes.TrimSpace(parts[0])) == 0 || len(parts[1]) < 6 || len(bytes.TrimSpace(parts[2])) == 0 {
 				allowed = false
 			} else {
-				challengeID = string(parts[0])
+				challengeID = strings.TrimSpace(string(parts[0]))
 				passwordBytes = parts[1]
-				challenge := string(parts[2])
+				challenge := strings.TrimSpace(string(parts[2]))
 				if !consumeLoginChallenge(challengeID, challenge) {
 					allowed = false
 				}
@@ -227,6 +230,13 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	if singleton.Conf.TwoFactorActive() {
+		if req.OTP == "" {
+			incrementFailCount(failKey)
+			incrementFailCount(ipFailKey)
+			audit.Record(c, audit.TypeAuth, "Password login failed", "empty two-factor code")
+			showLoginFailed(c)
+			return
+		}
 		if !totp.Validate(singleton.Conf.Site.TwoFactorSecret, req.OTP, 1) {
 			incrementFailCount(failKey)
 			incrementFailCount(ipFailKey)
@@ -292,6 +302,11 @@ func showLoginRuleFailed(c *gin.Context) {
 
 // consumeLoginChallenge 校验并一次性消费登录 challenge，防止并发重放。
 func consumeLoginChallenge(challengeID, challenge string) bool {
+	challengeID = strings.TrimSpace(challengeID)
+	challenge = strings.TrimSpace(challenge)
+	if challengeID == "" || challenge == "" {
+		return false
+	}
 	loginChallengeConsumeMu.Lock()
 	defer loginChallengeConsumeMu.Unlock()
 
@@ -477,10 +492,17 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 	var err error
 	// 验证登录跳转时的 State
 	stateKey, err := c.Cookie(singleton.Conf.Site.CookieName + "-sk")
+	stateKey = strings.TrimSpace(stateKey)
+	stateParam := strings.TrimSpace(c.Query("state"))
+	codeParam := strings.TrimSpace(c.Query("code"))
+	if stateKey == "" || stateParam == "" || codeParam == "" {
+		err = errors.New("非法的登录方式")
+	}
 	if err == nil {
 		cacheKey := fmt.Sprintf("%s%s", model.CacheKeyOauth2State, stateKey)
 		state, ok := singleton.Cache.Get(cacheKey)
-		if !ok || state.(string) != c.Query("state") {
+		cachedState, _ := state.(string)
+		if !ok || cachedState == "" || cachedState != stateParam {
 			err = errors.New("非法的登录方式")
 		} else {
 			singleton.Cache.Delete(cacheKey)
@@ -492,7 +514,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 	ctx := context.Background()
 	var otk *oauth2.Token
 	if err == nil {
-		otk, err = oauth2Config.Exchange(ctx, c.Query("code"))
+		otk, err = oauth2Config.Exchange(ctx, codeParam)
 	}
 
 	var user model.User

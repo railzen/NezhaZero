@@ -49,6 +49,7 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 			token = c.GetHeader("Authorization")
 			// 兼容 v1 的鉴权
 			token = strings.TrimPrefix(token, "Bearer ")
+			token = strings.TrimSpace(token)
 		}
 		if token != "" {
 			var u model.User

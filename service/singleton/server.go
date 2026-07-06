@@ -2,6 +2,7 @@ package singleton
 
 import (
 	"encoding/json"
+	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -38,7 +39,12 @@ func loadServers() {
 		innerS.State = &model.HostState{}
 		innerS.TaskCloseLock = new(sync.Mutex)
 		ServerList[innerS.ID] = &innerS
-		SecretToID[innerS.Secret] = innerS.ID
+		innerS.Secret = strings.TrimSpace(innerS.Secret)
+		if innerS.Secret == "" {
+			log.Printf("NEZHA>> Server %d has empty secret, agent authentication disabled until secret is reset", innerS.ID)
+		} else {
+			SecretToID[innerS.Secret] = innerS.ID
+		}
 		ServerTagToIDList[innerS.Tag] = append(ServerTagToIDList[innerS.Tag], innerS.ID)
 	}
 	ReSortServer()

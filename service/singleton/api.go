@@ -1,6 +1,7 @@
 package singleton
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -95,6 +96,10 @@ func loadAPI() {
 	var tokenList []*model.ApiToken
 	DB.Find(&tokenList)
 	for _, token := range tokenList {
+		token.Token = strings.TrimSpace(token.Token)
+		if token.Token == "" {
+			continue
+		}
 		ApiTokenList[token.Token] = token
 		UserIDToApiTokenList[token.UserID] = append(UserIDToApiTokenList[token.UserID], token.Token)
 	}

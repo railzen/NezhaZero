@@ -207,12 +207,21 @@ func addDiscoverServer() (string, error) {
 
 func (s *NezhaHandler) DiscoverServer(ctx context.Context, req *pb.DiscoverServerRequest,
 ) (*pb.DiscoverServerResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "Discover request required")
+	}
+	req.DiscoverKey = strings.TrimSpace(req.DiscoverKey)
+	req.DeviceId = strings.TrimSpace(req.DeviceId)
+	discoverKey := strings.TrimSpace(singleton.Conf.GRPCDiscoverKey)
 
-	if singleton.Conf.GRPCDiscoverKey == "" {
+	if discoverKey == "" {
 		return nil, status.Error(codes.FailedPrecondition, "Discover is disabled")
 	}
 
-	if req.DiscoverKey != singleton.Conf.GRPCDiscoverKey {
+	if req.DiscoverKey == "" {
+		return nil, status.Error(codes.InvalidArgument, "DiscoverKey required")
+	}
+	if req.DiscoverKey != discoverKey {
 		return nil, status.Error(codes.PermissionDenied, "Invalid Key")
 	}
 

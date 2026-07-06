@@ -365,7 +365,7 @@ func (ma *memberAPI) addOrEditServer(c *gin.Context) {
 	err := c.ShouldBindJSON(&sf)
 	if err == nil {
 		s.Name = sf.Name
-		s.Secret = sf.Secret
+		s.Secret = strings.TrimSpace(sf.Secret)
 		s.DisplayIndex = sf.DisplayIndex
 		s.ID = sf.ID
 		s.Tag = sf.Tag
@@ -382,8 +382,13 @@ func (ma *memberAPI) addOrEditServer(c *gin.Context) {
 					err = singleton.DB.Create(&s).Error
 				}
 			} else {
+				if s.Secret == "" {
+					err = errors.New("server secret cannot be empty")
+				}
 				isEdit = true
-				err = singleton.DB.Save(&s).Error
+				if err == nil {
+					err = singleton.DB.Save(&s).Error
+				}
 			}
 		}
 	}
@@ -1359,6 +1364,9 @@ func (ma *memberAPI) totp(c *gin.Context) {
 		})
 		return
 	}
+	req.Operation = strings.TrimSpace(req.Operation)
+	req.SetupID = strings.TrimSpace(req.SetupID)
+	req.Code = strings.TrimSpace(req.Code)
 
 	switch req.Operation {
 	case "bind":
