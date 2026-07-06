@@ -13,6 +13,7 @@ type ioStreamContext struct {
 	agentIo          io.ReadWriteCloser
 	userIoConnectCh  chan struct{}
 	agentIoConnectCh chan struct{}
+	createdAt        time.Time
 }
 
 type bp struct {
@@ -27,6 +28,11 @@ var bufPool = sync.Pool{
 	},
 }
 
+const (
+	ioStreamCleanupInterval = time.Minute
+	ioStreamConnectTimeout  = 5 * time.Minute
+)
+
 func (s *NezhaHandler) CreateStream(streamId string) {
 	s.ioStreamMutex.Lock()
 	defer s.ioStreamMutex.Unlock()
@@ -34,6 +40,7 @@ func (s *NezhaHandler) CreateStream(streamId string) {
 	s.ioStreams[streamId] = &ioStreamContext{
 		userIoConnectCh:  make(chan struct{}),
 		agentIoConnectCh: make(chan struct{}),
+		createdAt:        time.Now(),
 	}
 }
 
@@ -53,16 +60,36 @@ func (s *NezhaHandler) CloseStream(streamId string) error {
 	defer s.ioStreamMutex.Unlock()
 
 	if ctx, ok := s.ioStreams[streamId]; ok {
-		if ctx.userIo != nil {
-			ctx.userIo.Close()
-		}
-		if ctx.agentIo != nil {
-			ctx.agentIo.Close()
-		}
-		delete(s.ioStreams, streamId)
+		s.closeStreamLocked(streamId, ctx)
 	}
 
 	return nil
+}
+
+func (s *NezhaHandler) closeStreamLocked(streamId string, ctx *ioStreamContext) {
+	if ctx.userIo != nil {
+		ctx.userIo.Close()
+	}
+	if ctx.agentIo != nil {
+		ctx.agentIo.Close()
+	}
+	delete(s.ioStreams, streamId)
+}
+
+func (s *NezhaHandler) cleanupStaleStreams() {
+	ticker := time.NewTicker(ioStreamCleanupInterval)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		cutoff := time.Now().Add(-ioStreamConnectTimeout)
+		s.ioStreamMutex.Lock()
+		for streamId, ctx := range s.ioStreams {
+			if ctx.createdAt.Before(cutoff) && (ctx.userIo == nil || ctx.agentIo == nil) {
+				s.closeStreamLocked(streamId, ctx)
+			}
+		}
+		s.ioStreamMutex.Unlock()
+	}
 }
 
 func (s *NezhaHandler) UserConnected(streamId string, userIo io.ReadWriteCloser) error {

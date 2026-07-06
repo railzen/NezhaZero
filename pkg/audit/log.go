@@ -303,17 +303,18 @@ func snapshotServersForWatch() []serverWatchSnapshot {
 		if server == nil {
 			continue
 		}
+		host, state, lastActive, _, _ := server.RuntimeSnapshot()
 		snap := serverWatchSnapshot{
 			id:         id,
 			name:       server.Name,
-			lastActive: server.LastActive,
+			lastActive: lastActive,
 		}
-		if server.State != nil {
-			snap.cpu = server.State.CPU
-			snap.memUsed = server.State.MemUsed
+		if state != nil {
+			snap.cpu = state.CPU
+			snap.memUsed = state.MemUsed
 		}
-		if server.Host != nil {
-			snap.memTotal = server.Host.MemTotal
+		if host != nil {
+			snap.memTotal = host.MemTotal
 		}
 		snaps = append(snaps, snap)
 	}

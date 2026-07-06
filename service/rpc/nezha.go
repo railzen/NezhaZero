@@ -49,11 +49,13 @@ type NezhaHandler struct {
 }
 
 func NewNezhaHandler() *NezhaHandler {
-	return &NezhaHandler{
+	h := &NezhaHandler{
 		Auth:          &authHandler{},
 		ioStreamMutex: new(sync.RWMutex),
 		ioStreams:     make(map[string]*ioStreamContext),
 	}
+	go h.cleanupStaleStreams()
+	return h
 }
 
 func getDiscoverDeviceSecret(deviceID string) (string, bool) {

@@ -174,7 +174,7 @@ func (u *Rule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, 
 		cycleTransferStats.To = u.GetTransferDurationEnd()
 	}
 
-	if u.Type == "offline" && float64(time.Now().Unix())-src > 6 {
+	if u.Type == "offline" && float64(time.Now().Unix())-src > 15 {
 		return struct{}{}
 	} else if (u.Max > 0 && src > u.Max) || (u.Min > 0 && src < u.Min) {
 		return struct{}{}

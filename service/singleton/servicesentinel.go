@@ -338,11 +338,22 @@ func (ss *ServiceSentinel) LoadStats() map[uint64]*model.ServiceItemResponse {
 func (ss *ServiceSentinel) worker() {
 	// 从服务状态汇报管道获取汇报的服务数据
 	for r := range ss.serviceReportChannel {
-		if ss.monitors[r.Data.GetId()] == nil || ss.monitors[r.Data.GetId()].ID == 0 {
+		mh := r.Data
+		monitorID := mh.GetId()
+
+		ss.monitorsLock.RLock()
+		monitor := ss.monitors[monitorID]
+		var monitorSnapshot model.Monitor
+		if monitor != nil {
+			monitorSnapshot = *monitor
+		}
+		ss.monitorsLock.RUnlock()
+
+		if monitorSnapshot.ID == 0 {
 			log.Printf("NEZHA>> 错误的服务监控上报 %+v", r)
 			continue
 		}
-		mh := r.Data
+
 		if mh.Type == model.TaskTypeTCPPing || mh.Type == model.TaskTypeICMPPing {
 			monitorTcpMap, ok := ss.serviceResponsePing[mh.GetId()]
 			if !ok {
@@ -439,23 +450,22 @@ func (ss *ServiceSentinel) worker() {
 
 		// 延迟报警
 		if mh.Delay > 0 {
-			ss.monitorsLock.RLock()
-			if ss.monitors[mh.GetId()].LatencyNotify {
-				notificationTag := ss.monitors[mh.GetId()].NotificationTag
+			if monitorSnapshot.LatencyNotify {
+				notificationTag := monitorSnapshot.NotificationTag
 				minMuteLabel := NotificationMuteLabel.ServiceLatencyMin(mh.GetId())
 				maxMuteLabel := NotificationMuteLabel.ServiceLatencyMax(mh.GetId())
-				if mh.Delay > ss.monitors[mh.GetId()].MaxLatency {
+				if mh.Delay > monitorSnapshot.MaxLatency {
 					// 延迟超过最大值
 					ServerLock.RLock()
 					reporterServer := ServerList[r.Reporter]
-					msg := fmt.Sprintf("[Latency] %s %2f > %2f, Reporter: %s", ss.monitors[mh.GetId()].Name, mh.Delay, ss.monitors[mh.GetId()].MaxLatency, reporterServer.Name)
+					msg := fmt.Sprintf("[Latency] %s %2f > %2f, Reporter: %s", monitorSnapshot.Name, mh.Delay, monitorSnapshot.MaxLatency, reporterServer.Name)
 					go SendNotification(notificationTag, msg, minMuteLabel)
 					ServerLock.RUnlock()
-				} else if mh.Delay < ss.monitors[mh.GetId()].MinLatency {
+				} else if mh.Delay < monitorSnapshot.MinLatency {
 					// 延迟低于最小值
 					ServerLock.RLock()
 					reporterServer := ServerList[r.Reporter]
-					msg := fmt.Sprintf("[Latency] %s %2f < %2f, Reporter: %s", ss.monitors[mh.GetId()].Name, mh.Delay, ss.monitors[mh.GetId()].MinLatency, reporterServer.Name)
+					msg := fmt.Sprintf("[Latency] %s %2f < %2f, Reporter: %s", monitorSnapshot.Name, mh.Delay, monitorSnapshot.MinLatency, reporterServer.Name)
 					go SendNotification(notificationTag, msg, maxMuteLabel)
 					ServerLock.RUnlock()
 				} else {
@@ -464,7 +474,6 @@ func (ss *ServiceSentinel) worker() {
 					UnMuteNotification(notificationTag, maxMuteLabel)
 				}
 			}
-			ss.monitorsLock.RUnlock()
 		}
 
 		// 状态变更报警+触发任务执行
@@ -475,13 +484,13 @@ func (ss *ServiceSentinel) worker() {
 			ss.lastStatus[mh.GetId()] = stateCode
 
 			// 判断是否需要发送通知
-			isNeedSendNotification := ss.monitors[mh.GetId()].Notify && (lastStatus != 0 || stateCode == StatusDown)
+			isNeedSendNotification := monitorSnapshot.Notify && (lastStatus != 0 || stateCode == StatusDown)
 			if isNeedSendNotification {
 				ServerLock.RLock()
 
 				reporterServer := ServerList[r.Reporter]
-				notificationTag := ss.monitors[mh.GetId()].NotificationTag
-				notificationMsg := fmt.Sprintf("[%s] %s Reporter: %s, Error: %s", StatusCodeToString(stateCode), ss.monitors[mh.GetId()].Name, reporterServer.Name, mh.Data)
+				notificationTag := monitorSnapshot.NotificationTag
+				notificationMsg := fmt.Sprintf("[%s] %s Reporter: %s, Error: %s", StatusCodeToString(stateCode), monitorSnapshot.Name, reporterServer.Name, mh.Data)
 				muteLabel := NotificationMuteLabel.ServiceStateChanged(mh.GetId())
 
 				// 状态变更时，清除静音缓存
@@ -494,7 +503,7 @@ func (ss *ServiceSentinel) worker() {
 			}
 
 			// 判断是否需要触发任务
-			isNeedTriggerTask := ss.monitors[mh.GetId()].EnableTriggerTask && lastStatus != 0
+			isNeedTriggerTask := monitorSnapshot.EnableTriggerTask && lastStatus != 0
 			if isNeedTriggerTask {
 				ServerLock.RLock()
 				reporterServer := ServerList[r.Reporter]
@@ -502,10 +511,10 @@ func (ss *ServiceSentinel) worker() {
 
 				if stateCode == StatusGood && lastStatus != stateCode {
 					// 当前状态正常 前序状态非正常时 触发恢复任务
-					go SendTriggerTasks(ss.monitors[mh.GetId()].RecoverTriggerTasks, reporterServer.ID)
+					go SendTriggerTasks(monitorSnapshot.RecoverTriggerTasks, reporterServer.ID)
 				} else if lastStatus == StatusGood && lastStatus != stateCode {
 					// 前序状态正常 当前状态非正常时 触发失败任务
-					go SendTriggerTasks(ss.monitors[mh.GetId()].FailTriggerTasks, reporterServer.ID)
+					go SendTriggerTasks(monitorSnapshot.FailTriggerTasks, reporterServer.ID)
 				}
 			}
 
@@ -521,22 +530,20 @@ func (ss *ServiceSentinel) worker() {
 				!strings.HasSuffix(mh.Data, "EOF") &&
 				!strings.HasSuffix(mh.Data, "timed out") {
 				errMsg = mh.Data
-				ss.monitorsLock.RLock()
-				if ss.monitors[mh.GetId()].Notify {
+				if monitorSnapshot.Notify {
 					muteLabel := NotificationMuteLabel.ServiceSSL(mh.GetId(), "network")
-					go SendNotification(ss.monitors[mh.GetId()].NotificationTag, fmt.Sprintf("[SSL] Fetch cert info failed, %s %s", ss.monitors[mh.GetId()].Name, errMsg), muteLabel)
+					go SendNotification(monitorSnapshot.NotificationTag, fmt.Sprintf("[SSL] Fetch cert info failed, %s %s", monitorSnapshot.Name, errMsg), muteLabel)
 				}
-				ss.monitorsLock.RUnlock()
 
 			}
 		} else {
 			// 清除网络错误静音缓存
-			UnMuteNotification(ss.monitors[mh.GetId()].NotificationTag, NotificationMuteLabel.ServiceSSL(mh.GetId(), "network"))
+			UnMuteNotification(monitorSnapshot.NotificationTag, NotificationMuteLabel.ServiceSSL(mh.GetId(), "network"))
 
 			var newCert = strings.Split(mh.Data, "|")
 			if len(newCert) > 1 {
 				ss.monitorsLock.Lock()
-				enableNotify := ss.monitors[mh.GetId()].Notify
+				enableNotify := monitorSnapshot.Notify
 
 				// 首次获取证书信息时，缓存证书信息
 				if ss.sslCertCache[mh.GetId()] == "" {
@@ -554,8 +561,8 @@ func (ss *ServiceSentinel) worker() {
 					ss.sslCertCache[mh.GetId()] = mh.Data
 				}
 
-				notificationTag := ss.monitors[mh.GetId()].NotificationTag
-				serviceName := ss.monitors[mh.GetId()].Name
+				notificationTag := monitorSnapshot.NotificationTag
+				serviceName := monitorSnapshot.Name
 				ss.monitorsLock.Unlock()
 
 				// 需要发送提醒
