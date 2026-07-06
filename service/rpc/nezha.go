@@ -108,48 +108,59 @@ func (s *NezhaHandler) ReportTask(c context.Context, r *pb.TaskResult) (*pb.Rece
 	if r.GetType() == model.TaskTypeCommand {
 		// 处理上报的计划任务
 		singleton.CronLock.RLock()
-		defer singleton.CronLock.RUnlock()
 		cr := singleton.Crons[r.GetId()]
+		var crp model.Cron
 		if cr != nil {
-			singleton.ServerLock.RLock()
-			defer singleton.ServerLock.RUnlock()
-			// 保存当前服务器状态信息
-			curServer := model.Server{}
-			copier.Copy(&curServer, singleton.ServerList[clientID])
-
-			// 记录定时命令执行的审计日志
-			serverName := singleton.ServerList[clientID].Name
-			resultStatus := "success"
-			if !r.GetSuccessful() {
-				resultStatus = "failed"
-			}
-			command := cr.Command
-			if len(command) > 200 {
-				command = command[:200] + "..."
-			}
-			audit.Record(nil, audit.TypeEvent, "Scheduled task executed",
-				fmt.Sprintf("task: %s, command: %s, server: %s (ID %d), result: %s",
-					cr.Name, command, serverName, clientID, resultStatus))
-
-			if cr.PushSuccessful && r.GetSuccessful() {
-				singleton.SendNotification(cr.NotificationTag, fmt.Sprintf("[%s] %s, %s\n%s", singleton.Localizer.MustLocalize(
-					&i18n.LocalizeConfig{
-						MessageID: "ScheduledTaskExecutedSuccessfully",
-					},
-				), cr.Name, singleton.ServerList[clientID].Name, r.GetData()), nil, &curServer)
-			}
-			if !r.GetSuccessful() {
-				singleton.SendNotification(cr.NotificationTag, fmt.Sprintf("[%s] %s, %s\n%s", singleton.Localizer.MustLocalize(
-					&i18n.LocalizeConfig{
-						MessageID: "ScheduledTaskExecutedFailed",
-					},
-				), cr.Name, singleton.ServerList[clientID].Name, r.GetData()), nil, &curServer)
-			}
-			singleton.DB.Model(cr).Updates(model.Cron{
-				LastExecutedAt: time.Now().Add(time.Second * -1 * time.Duration(r.GetDelay())),
-				LastResult:     r.GetSuccessful(),
-			})
+			crp = *cr // 值拷贝，锁外使用不被并发写覆盖
 		}
+		singleton.CronLock.RUnlock()
+
+		if crp.ID == 0 {
+			// 未见对应计划任务，保持与原逻辑一致的早退
+			return &pb.Receipt{Proced: true}, nil
+		}
+
+		// 取服务器快照（与 CronLock 顺序使用，不再嵌套持有，杜绝锁环路）
+		var curServer model.Server
+		var serverName string
+		singleton.ServerLock.RLock()
+		if srv := singleton.ServerList[clientID]; srv != nil {
+			copier.Copy(&curServer, srv)
+			serverName = srv.Name
+		}
+		singleton.ServerLock.RUnlock()
+
+		// ===== 以下全部无锁：HTTP 通知、审计、DB 更新均不依赖上述锁 =====
+		command := crp.Command
+		if len(command) > 200 {
+			command = command[:200] + "..."
+		}
+		resultStatus := "success"
+		if !r.GetSuccessful() {
+			resultStatus = "failed"
+		}
+		audit.Record(nil, audit.TypeEvent, "Scheduled task executed",
+			fmt.Sprintf("task: %s, command: %s, server: %s (ID %d), result: %s",
+				crp.Name, command, serverName, clientID, resultStatus))
+
+		if crp.PushSuccessful && r.GetSuccessful() {
+			singleton.SendNotification(crp.NotificationTag, fmt.Sprintf("[%s] %s, %s\n%s", singleton.Localizer.MustLocalize(
+				&i18n.LocalizeConfig{
+					MessageID: "ScheduledTaskExecutedSuccessfully",
+				},
+			), crp.Name, serverName, r.GetData()), nil, &curServer)
+		}
+		if !r.GetSuccessful() {
+			singleton.SendNotification(crp.NotificationTag, fmt.Sprintf("[%s] %s, %s\n%s", singleton.Localizer.MustLocalize(
+				&i18n.LocalizeConfig{
+					MessageID: "ScheduledTaskExecutedFailed",
+				},
+			), crp.Name, serverName, r.GetData()), nil, &curServer)
+		}
+		singleton.DB.Model(&crp).Updates(model.Cron{
+			LastExecutedAt: time.Now().Add(time.Second * -1 * time.Duration(r.GetDelay())),
+			LastResult:     r.GetSuccessful(),
+		})
 	} else if model.IsServiceSentinelNeeded(r.GetType()) {
 		singleton.ServiceSentinelShared.Dispatch(singleton.ReportData{
 			Data:     r,
