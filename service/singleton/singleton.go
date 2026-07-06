@@ -78,22 +78,30 @@ func InitDBFromPath(path string) {
 
 // RecordTransferHourlyUsage 对流量记录进行打点
 func RecordTransferHourlyUsage() {
-	ServerLock.Lock()
-	defer ServerLock.Unlock()
+	ServerLock.RLock()
+	defer ServerLock.RUnlock()
 	now := time.Now()
 	nowTrimSeconds := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 	var txs []model.Transfer
 	for id, server := range ServerList {
+		server.InitRuntimeLock()
+		server.RuntimeLock.Lock()
+		if server.State == nil {
+			server.RuntimeLock.Unlock()
+			continue
+		}
 		tx := model.Transfer{
 			ServerID: id,
 			In:       utils.Uint64SubInt64(server.State.NetInTransfer, server.PrevTransferInSnapshot),
 			Out:      utils.Uint64SubInt64(server.State.NetOutTransfer, server.PrevTransferOutSnapshot),
 		}
 		if tx.In == 0 && tx.Out == 0 {
+			server.RuntimeLock.Unlock()
 			continue
 		}
 		server.PrevTransferInSnapshot = int64(server.State.NetInTransfer)
 		server.PrevTransferOutSnapshot = int64(server.State.NetOutTransfer)
+		server.RuntimeLock.Unlock()
 		tx.CreatedAt = nowTrimSeconds
 		txs = append(txs, tx)
 	}

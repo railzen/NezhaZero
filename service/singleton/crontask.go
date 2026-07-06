@@ -128,6 +128,7 @@ func cronTrigger(cr model.Cron, triggerSource string, triggerServer ...uint64) f
 					// 保存当前服务器状态信息
 					curServer := model.Server{}
 					copier.Copy(&curServer, s)
+					curServer.CopyFromRunningServer(s)
 					offlineNotifications = append(offlineNotifications, cronOfflineNotification{
 						tag:     cr.NotificationTag,
 						message: fmt.Sprintf("[任务失败] %s，服务器 %s 离线，无法执行。", cr.Name, s.Name),
@@ -151,6 +152,7 @@ func cronTrigger(cr model.Cron, triggerSource string, triggerServer ...uint64) f
 					// 保存当前服务器状态信息
 					curServer := model.Server{}
 					copier.Copy(&curServer, s)
+					curServer.CopyFromRunningServer(s)
 					offlineNotifications = append(offlineNotifications, cronOfflineNotification{
 						tag:     cr.NotificationTag,
 						message: fmt.Sprintf("[任务失败] %s，服务器 %s 离线，无法执行。", cr.Name, s.Name),

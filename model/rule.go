@@ -62,78 +62,87 @@ func (u *Rule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, 
 	}
 
 	var src float64
+	host, state, lastActive, prevIn, prevOut := server.RuntimeSnapshot()
+	if state == nil {
+		return nil
+	}
+	if host == nil {
+		host = &Host{}
+	}
 
 	switch u.Type {
 	case "cpu":
-		src = float64(server.State.CPU)
+		src = float64(state.CPU)
 	case "gpu":
-		src = float64(server.State.GPU)
+		src = float64(state.GPU)
 	case "memory":
-		src = percentage(server.State.MemUsed, server.Host.MemTotal)
+		src = percentage(state.MemUsed, host.MemTotal)
 	case "swap":
-		src = percentage(server.State.SwapUsed, server.Host.SwapTotal)
+		src = percentage(state.SwapUsed, host.SwapTotal)
 	case "disk":
-		src = percentage(server.State.DiskUsed, server.Host.DiskTotal)
+		src = percentage(state.DiskUsed, host.DiskTotal)
 	case "net_in_speed":
-		src = float64(server.State.NetInSpeed)
+		src = float64(state.NetInSpeed)
 	case "net_out_speed":
-		src = float64(server.State.NetOutSpeed)
+		src = float64(state.NetOutSpeed)
 	case "net_all_speed":
-		src = float64(server.State.NetOutSpeed + server.State.NetInSpeed)
+		src = float64(state.NetOutSpeed + state.NetInSpeed)
 	case "transfer_in":
-		src = float64(server.State.NetInTransfer)
+		src = float64(state.NetInTransfer)
 	case "transfer_out":
-		src = float64(server.State.NetOutTransfer)
+		src = float64(state.NetOutTransfer)
 	case "transfer_all":
-		src = float64(server.State.NetOutTransfer + server.State.NetInTransfer)
+		src = float64(state.NetOutTransfer + state.NetInTransfer)
 	case "offline":
-		if server.LastActive.IsZero() {
+		if lastActive.IsZero() {
 			src = 0
 		} else {
-			src = float64(server.LastActive.Unix())
+			src = float64(lastActive.Unix())
 		}
 	case "transfer_in_cycle":
-		src = float64(utils.Uint64SubInt64(server.State.NetInTransfer, server.PrevTransferInSnapshot))
+		src = float64(utils.Uint64SubInt64(state.NetInTransfer, prevIn))
 		if u.CycleInterval != 0 {
 			var res NResult
 			db.Model(&Transfer{}).Select("SUM(`in`) AS n").Where("datetime(`created_at`) >= datetime(?) AND server_id = ?", u.GetTransferDurationStart().UTC(), server.ID).Scan(&res)
 			src += float64(res.N)
 		}
 	case "transfer_out_cycle":
-		src = float64(utils.Uint64SubInt64(server.State.NetOutTransfer, server.PrevTransferOutSnapshot))
+		src = float64(utils.Uint64SubInt64(state.NetOutTransfer, prevOut))
 		if u.CycleInterval != 0 {
 			var res NResult
 			db.Model(&Transfer{}).Select("SUM(`out`) AS n").Where("datetime(`created_at`) >= datetime(?) AND server_id = ?", u.GetTransferDurationStart().UTC(), server.ID).Scan(&res)
 			src += float64(res.N)
 		}
 	case "transfer_all_cycle":
-		src = float64(utils.Uint64SubInt64(server.State.NetOutTransfer, server.PrevTransferOutSnapshot) + utils.Uint64SubInt64(server.State.NetInTransfer, server.PrevTransferInSnapshot))
+		src = float64(utils.Uint64SubInt64(state.NetOutTransfer, prevOut) + utils.Uint64SubInt64(state.NetInTransfer, prevIn))
 		if u.CycleInterval != 0 {
 			var res NResult
 			db.Model(&Transfer{}).Select("SUM(`in`+`out`) AS n").Where("datetime(`created_at`) >= datetime(?) AND server_id = ?", u.GetTransferDurationStart().UTC(), server.ID).Scan(&res)
 			src += float64(res.N)
 		}
 	case "load1":
-		src = server.State.Load1
+		src = state.Load1
 	case "load5":
-		src = server.State.Load5
+		src = state.Load5
 	case "load15":
-		src = server.State.Load15
+		src = state.Load15
 	case "tcp_conn_count":
-		src = float64(server.State.TcpConnCount)
+		src = float64(state.TcpConnCount)
 	case "udp_conn_count":
-		src = float64(server.State.UdpConnCount)
+		src = float64(state.UdpConnCount)
 	case "process_count":
-		src = float64(server.State.ProcessCount)
+		src = float64(state.ProcessCount)
 	case "temperature_max":
 		var temp []float64
-		if server.State.Temperatures != nil {
-			for _, tempStat := range server.State.Temperatures {
+		if state.Temperatures != nil {
+			for _, tempStat := range state.Temperatures {
 				if tempStat.Temperature != 0 {
 					temp = append(temp, tempStat.Temperature)
 				}
 			}
-			src = slices.Max(temp)
+			if len(temp) > 0 {
+				src = slices.Max(temp)
+			}
 		}
 	}
 

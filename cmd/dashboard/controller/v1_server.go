@@ -34,7 +34,11 @@ func (cv *compatV1) listServer(c *gin.Context) {
 
 	var ssl []*model.V1Server
 	for _, s := range serverList {
-		ipv4, ipv6, _ := utils.SplitIPAddr(s.Host.IP)
+		host, state, lastActive, prevIn, prevOut := s.RuntimeSnapshot()
+		if host == nil || state == nil {
+			continue
+		}
+		ipv4, ipv6, _ := utils.SplitIPAddr(host.IP)
 		ssl = append(ssl, &model.V1Server{
 			V1Common: model.V1Common{
 				ID:        s.ID,
@@ -50,38 +54,38 @@ func (cv *compatV1) listServer(c *gin.Context) {
 			EnableDDNS:   s.EnableDDNS,
 			DDNSProfiles: s.DDNSProfiles,
 			Host: &model.V1Host{
-				Platform:        s.Host.Platform,
-				PlatformVersion: s.Host.PlatformVersion,
-				CPU:             s.Host.CPU,
-				MemTotal:        s.Host.MemTotal,
-				DiskTotal:       s.Host.DiskTotal,
-				SwapTotal:       s.Host.SwapTotal,
-				Arch:            s.Host.Arch,
-				Virtualization:  s.Host.Virtualization,
-				BootTime:        s.Host.BootTime,
-				Version:         s.Host.Version,
-				GPU:             s.Host.GPU,
+				Platform:        host.Platform,
+				PlatformVersion: host.PlatformVersion,
+				CPU:             host.CPU,
+				MemTotal:        host.MemTotal,
+				DiskTotal:       host.DiskTotal,
+				SwapTotal:       host.SwapTotal,
+				Arch:            host.Arch,
+				Virtualization:  host.Virtualization,
+				BootTime:        host.BootTime,
+				Version:         host.Version,
+				GPU:             host.GPU,
 			},
 			State: &model.V1HostState{
-				CPU:            s.State.CPU,
-				MemUsed:        s.State.MemUsed,
-				SwapUsed:       s.State.SwapUsed,
-				DiskUsed:       s.State.DiskUsed,
-				NetInTransfer:  s.State.NetInTransfer,
-				NetOutTransfer: s.State.NetOutTransfer,
-				NetInSpeed:     s.State.NetInSpeed,
-				NetOutSpeed:    s.State.NetOutSpeed,
-				Uptime:         s.State.Uptime,
-				Load1:          s.State.Load1,
-				Load5:          s.State.Load5,
-				Load15:         s.State.Load15,
-				TcpConnCount:   s.State.TcpConnCount,
-				UdpConnCount:   s.State.UdpConnCount,
-				ProcessCount:   s.State.ProcessCount,
-				Temperatures:   s.State.Temperatures,
+				CPU:            state.CPU,
+				MemUsed:        state.MemUsed,
+				SwapUsed:       state.SwapUsed,
+				DiskUsed:       state.DiskUsed,
+				NetInTransfer:  state.NetInTransfer,
+				NetOutTransfer: state.NetOutTransfer,
+				NetInSpeed:     state.NetInSpeed,
+				NetOutSpeed:    state.NetOutSpeed,
+				Uptime:         state.Uptime,
+				Load1:          state.Load1,
+				Load5:          state.Load5,
+				Load15:         state.Load15,
+				TcpConnCount:   state.TcpConnCount,
+				UdpConnCount:   state.UdpConnCount,
+				ProcessCount:   state.ProcessCount,
+				Temperatures:   state.Temperatures,
 				GPU: func() []float64 {
-					if len(s.Host.GPU) > 0 {
-						return []float64{s.State.GPU}
+					if len(host.GPU) > 0 {
+						return []float64{state.GPU}
 					}
 					return nil
 				}(),
@@ -91,12 +95,12 @@ func (cv *compatV1) listServer(c *gin.Context) {
 					IPv4Addr: ipv4,
 					IPv6Addr: ipv6,
 				},
-				CountryCode: s.Host.CountryCode,
+				CountryCode: host.CountryCode,
 			},
-			LastActive:              s.LastActive,
+			LastActive:              lastActive,
 			TaskStream:              s.TaskStream,
-			PrevTransferInSnapshot:  s.PrevTransferInSnapshot,
-			PrevTransferOutSnapshot: s.PrevTransferOutSnapshot,
+			PrevTransferInSnapshot:  prevIn,
+			PrevTransferOutSnapshot: prevOut,
 		})
 	}
 
@@ -179,6 +183,10 @@ func (cv *compatV1) getServerStat(c *gin.Context, withPublicNote bool) ([]byte, 
 
 		servers := make([]model.V1StreamServer, 0, len(serverList))
 		for _, server := range serverList {
+			host, state, lastActive, _, _ := server.RuntimeSnapshot()
+			if host == nil || state == nil {
+				continue
+			}
 			servers = append(servers, model.V1StreamServer{
 				ID:   server.ID,
 				Name: server.Name,
@@ -190,44 +198,44 @@ func (cv *compatV1) getServerStat(c *gin.Context, withPublicNote bool) ([]byte, 
 				}(),
 				DisplayIndex: server.DisplayIndex,
 				Host: &model.V1Host{
-					Platform:        server.Host.Platform,
-					PlatformVersion: server.Host.PlatformVersion,
-					CPU:             server.Host.CPU,
-					MemTotal:        server.Host.MemTotal,
-					DiskTotal:       server.Host.DiskTotal,
-					SwapTotal:       server.Host.SwapTotal,
-					Arch:            server.Host.Arch,
-					Virtualization:  server.Host.Virtualization,
-					BootTime:        server.Host.BootTime,
-					Version:         server.Host.Version,
-					GPU:             server.Host.GPU,
+					Platform:        host.Platform,
+					PlatformVersion: host.PlatformVersion,
+					CPU:             host.CPU,
+					MemTotal:        host.MemTotal,
+					DiskTotal:       host.DiskTotal,
+					SwapTotal:       host.SwapTotal,
+					Arch:            host.Arch,
+					Virtualization:  host.Virtualization,
+					BootTime:        host.BootTime,
+					Version:         host.Version,
+					GPU:             host.GPU,
 				},
 				State: &model.V1HostState{
-					CPU:            server.State.CPU,
-					MemUsed:        server.State.MemUsed,
-					SwapUsed:       server.State.SwapUsed,
-					DiskUsed:       server.State.DiskUsed,
-					NetInTransfer:  server.State.NetInTransfer,
-					NetOutTransfer: server.State.NetOutTransfer,
-					NetInSpeed:     server.State.NetInSpeed,
-					NetOutSpeed:    server.State.NetOutSpeed,
-					Uptime:         server.State.Uptime,
-					Load1:          server.State.Load1,
-					Load5:          server.State.Load5,
-					Load15:         server.State.Load15,
-					TcpConnCount:   server.State.TcpConnCount,
-					UdpConnCount:   server.State.UdpConnCount,
-					ProcessCount:   server.State.ProcessCount,
-					Temperatures:   server.State.Temperatures,
+					CPU:            state.CPU,
+					MemUsed:        state.MemUsed,
+					SwapUsed:       state.SwapUsed,
+					DiskUsed:       state.DiskUsed,
+					NetInTransfer:  state.NetInTransfer,
+					NetOutTransfer: state.NetOutTransfer,
+					NetInSpeed:     state.NetInSpeed,
+					NetOutSpeed:    state.NetOutSpeed,
+					Uptime:         state.Uptime,
+					Load1:          state.Load1,
+					Load5:          state.Load5,
+					Load15:         state.Load15,
+					TcpConnCount:   state.TcpConnCount,
+					UdpConnCount:   state.UdpConnCount,
+					ProcessCount:   state.ProcessCount,
+					Temperatures:   state.Temperatures,
 					GPU: func() []float64 {
-						if len(server.Host.GPU) > 0 {
-							return []float64{server.State.GPU}
+						if len(host.GPU) > 0 {
+							return []float64{state.GPU}
 						}
 						return nil
 					}(),
 				},
-				CountryCode: server.Host.CountryCode,
-				LastActive:  server.LastActive,
+				CountryCode: host.CountryCode,
+				LastActive:  lastActive,
 			})
 		}
 

@@ -126,6 +126,7 @@ func (s *NezhaHandler) ReportTask(c context.Context, r *pb.TaskResult) (*pb.Rece
 		singleton.ServerLock.RLock()
 		if srv := singleton.ServerList[clientID]; srv != nil {
 			copier.Copy(&curServer, srv)
+			curServer.CopyFromRunningServer(srv)
 			serverName = srv.Name
 		}
 		singleton.ServerLock.RUnlock()
@@ -194,6 +195,7 @@ func addDiscoverServer() (string, error) {
 	s.Host = &model.Host{}
 	s.State = &model.HostState{}
 	s.TaskCloseLock = new(sync.Mutex)
+	s.RuntimeLock = new(sync.RWMutex)
 
 	// 写入数据库（只一次）
 	if err := singleton.DB.Create(&s).Error; err != nil {
@@ -307,15 +309,22 @@ func (s *NezhaHandler) ReportSystemState(c context.Context, r *pb.State) (*pb.Re
 		return nil, err
 	}
 	state := model.PB2State(r)
-	singleton.ServerLock.Lock()
-	defer singleton.ServerLock.Unlock()
-	singleton.ServerList[clientID].LastActive = time.Now()
-	singleton.ServerList[clientID].State = &state
+	singleton.ServerLock.RLock()
+	server := singleton.ServerList[clientID]
+	singleton.ServerLock.RUnlock()
+	if server == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "客户端认证失败")
+	}
+	server.InitRuntimeLock()
+	server.RuntimeLock.Lock()
+	defer server.RuntimeLock.Unlock()
+	server.LastActive = time.Now()
+	server.State = &state
 
 	// 应对 dashboard 重启的情况，如果从未记录过，先打点，等到小时时间点时入库
-	if singleton.ServerList[clientID].PrevTransferInSnapshot == 0 || singleton.ServerList[clientID].PrevTransferOutSnapshot == 0 {
-		singleton.ServerList[clientID].PrevTransferInSnapshot = int64(state.NetInTransfer)
-		singleton.ServerList[clientID].PrevTransferOutSnapshot = int64(state.NetOutTransfer)
+	if server.PrevTransferInSnapshot == 0 || server.PrevTransferOutSnapshot == 0 {
+		server.PrevTransferInSnapshot = int64(state.NetInTransfer)
+		server.PrevTransferOutSnapshot = int64(state.NetOutTransfer)
 	}
 
 	return &pb.Receipt{Proced: true}, nil
@@ -328,43 +337,45 @@ func (s *NezhaHandler) ReportSystemInfo(c context.Context, r *pb.Host) (*pb.Rece
 		return nil, err
 	}
 	host := model.PB2Host(r)
-	singleton.ServerLock.Lock()
-	defer singleton.ServerLock.Unlock()
+	singleton.ServerLock.RLock()
+	server := singleton.ServerList[clientID]
+	singleton.ServerLock.RUnlock()
+	if server == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "客户端认证失败")
+	}
+	var ddnsProviders []*ddns.Provider
+	var ipChangeMessage string
+	server.InitRuntimeLock()
+	server.RuntimeLock.Lock()
 
 	// 检查并更新DDNS
-	if singleton.ServerList[clientID].EnableDDNS && host.IP != "" &&
-		(singleton.ServerList[clientID].Host == nil || singleton.ServerList[clientID].Host.IP != host.IP) {
+	if server.EnableDDNS && host.IP != "" &&
+		(server.Host == nil || server.Host.IP != host.IP) {
 		ipv4, ipv6, _ := utils.SplitIPAddr(host.IP)
-		providers, err := singleton.GetDDNSProvidersFromProfiles(singleton.ServerList[clientID].DDNSProfiles, &ddns.IP{Ipv4Addr: ipv4, Ipv6Addr: ipv6})
+		providers, err := singleton.GetDDNSProvidersFromProfiles(server.DDNSProfiles, &ddns.IP{Ipv4Addr: ipv4, Ipv6Addr: ipv6})
 		if err == nil {
-			for _, provider := range providers {
-				go func(provider *ddns.Provider) {
-					provider.UpdateDomain(context.Background())
-				}(provider)
-			}
+			ddnsProviders = providers
 		} else {
 			log.Printf("NEZHA>> 获取DDNS配置时发生错误: %v", err)
 		}
 	}
 
 	// 发送IP变动通知
-	if singleton.ServerList[clientID].Host != nil && singleton.Conf.EnableIPChangeNotification &&
+	if server.Host != nil && singleton.Conf.EnableIPChangeNotification &&
 		((singleton.Conf.Cover == model.ConfigCoverAll && !singleton.Conf.IgnoredIPNotificationServerIDs[clientID]) ||
 			(singleton.Conf.Cover == model.ConfigCoverIgnoreAll && singleton.Conf.IgnoredIPNotificationServerIDs[clientID])) &&
-		singleton.ServerList[clientID].Host.IP != "" &&
+		server.Host.IP != "" &&
 		host.IP != "" &&
-		singleton.ServerList[clientID].Host.IP != host.IP {
+		server.Host.IP != host.IP {
 
-		singleton.SendNotification(singleton.Conf.IPChangeNotificationTag,
-			fmt.Sprintf(
-				"[%s] %s, %s => %s",
-				singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{
-					MessageID: "IPChanged",
-				}),
-				singleton.ServerList[clientID].Name, singleton.IPDesensitize(singleton.ServerList[clientID].Host.IP),
-				singleton.IPDesensitize(host.IP),
-			),
-			nil)
+		ipChangeMessage = fmt.Sprintf(
+			"[%s] %s, %s => %s",
+			singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "IPChanged",
+			}),
+			server.Name, singleton.IPDesensitize(server.Host.IP),
+			singleton.IPDesensitize(host.IP),
+		)
 	}
 
 	/**
@@ -372,14 +383,14 @@ func (s *NezhaHandler) ReportSystemInfo(c context.Context, r *pb.Host) (*pb.Rece
 	 * 当 agent 重启时，bootTime 变大，agent 端会先上报 host 信息，然后上报 state 信息
 	 * 这是可以借助上报顺序的空档，将停机前的流量统计数据标记下来，加到下一个小时的数据点上
 	 */
-	if singleton.ServerList[clientID].Host != nil && singleton.ServerList[clientID].Host.BootTime < host.BootTime {
-		singleton.ServerList[clientID].PrevTransferInSnapshot = singleton.ServerList[clientID].PrevTransferInSnapshot - int64(singleton.ServerList[clientID].State.NetInTransfer)
-		singleton.ServerList[clientID].PrevTransferOutSnapshot = singleton.ServerList[clientID].PrevTransferOutSnapshot - int64(singleton.ServerList[clientID].State.NetOutTransfer)
+	if server.Host != nil && server.State != nil && server.Host.BootTime < host.BootTime {
+		server.PrevTransferInSnapshot = server.PrevTransferInSnapshot - int64(server.State.NetInTransfer)
+		server.PrevTransferOutSnapshot = server.PrevTransferOutSnapshot - int64(server.State.NetOutTransfer)
 	}
 
 	// 不要冲掉国家码
-	if singleton.ServerList[clientID].Host != nil {
-		host.CountryCode = singleton.ServerList[clientID].Host.CountryCode
+	if server.Host != nil {
+		host.CountryCode = server.Host.CountryCode
 	}
 	if host.CountryCode == "" && host.IP != "" {
 		_, _, geoIP := utils.SplitIPAddr(host.IP)
@@ -390,12 +401,22 @@ func (s *NezhaHandler) ReportSystemInfo(c context.Context, r *pb.Host) (*pb.Rece
 		}
 	}
 
-	publicCountryCode := singleton.ParseCountryCodeFromJson([]byte(singleton.ServerList[clientID].PublicNote))
+	publicCountryCode := singleton.ParseCountryCodeFromJson([]byte(server.PublicNote))
 	if publicCountryCode != nil {
 		host.CountryCode = *publicCountryCode
 	}
 
-	singleton.ServerList[clientID].Host = &host
+	server.Host = &host
+	server.RuntimeLock.Unlock()
+
+	for _, provider := range ddnsProviders {
+		go func(provider *ddns.Provider) {
+			provider.UpdateDomain(context.Background())
+		}(provider)
+	}
+	if ipChangeMessage != "" {
+		singleton.SendNotification(singleton.Conf.IPChangeNotificationTag, ipChangeMessage, nil)
+	}
 	return &pb.Receipt{Proced: true}, nil
 }
 
@@ -439,16 +460,23 @@ func (s *NezhaHandler) LookupGeoIP(c context.Context, r *pb.GeoIP) (*pb.GeoIP, e
 	}
 
 	// 将地区码写入到 Host
-	singleton.ServerLock.Lock()
-	defer singleton.ServerLock.Unlock()
-	if singleton.ServerList[clientID].Host == nil {
+	singleton.ServerLock.RLock()
+	server := singleton.ServerList[clientID]
+	singleton.ServerLock.RUnlock()
+	if server == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "客户端认证失败")
+	}
+	server.InitRuntimeLock()
+	server.RuntimeLock.Lock()
+	defer server.RuntimeLock.Unlock()
+	if server.Host == nil {
 		return nil, fmt.Errorf("host not found")
 	}
-	singleton.ServerList[clientID].Host.CountryCode = location
+	server.Host.CountryCode = location
 
-	publicCountryCode := singleton.ParseCountryCodeFromJson([]byte(singleton.ServerList[clientID].PublicNote))
+	publicCountryCode := singleton.ParseCountryCodeFromJson([]byte(server.PublicNote))
 	if publicCountryCode != nil {
-		singleton.ServerList[clientID].Host.CountryCode = *publicCountryCode
+		server.Host.CountryCode = *publicCountryCode
 	}
 
 	return &pb.GeoIP{Ip: ip, CountryCode: location}, nil

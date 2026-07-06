@@ -458,6 +458,7 @@ func (ma *memberAPI) addOrEditServer(c *gin.Context) {
 		s.Host = &model.Host{}
 		s.State = &model.HostState{}
 		s.TaskCloseLock = new(sync.Mutex)
+		s.RuntimeLock = new(sync.RWMutex)
 		singleton.ServerLock.Lock()
 		singleton.SecretToID[s.Secret] = s.ID
 		singleton.ServerList[s.ID] = &s
@@ -694,6 +695,7 @@ func (ma *memberAPI) batchUpdateServerGroup(c *gin.Context) {
 		}
 		var s model.Server
 		copier.Copy(&s, running)
+		s.CopyFromRunningServer(running)
 		s.Tag = req.Group
 		// 如果修改了Ta
 		oldTag := running.Tag

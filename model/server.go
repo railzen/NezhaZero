@@ -34,20 +34,62 @@ type Server struct {
 	TaskClose     chan error                        `gorm:"-" json:"-"`
 	TaskCloseLock *sync.Mutex                       `gorm:"-" json:"-"`
 	TaskStream    pb.NezhaService_RequestTaskServer `gorm:"-" json:"-"`
+	RuntimeLock   *sync.RWMutex                     `gorm:"-" json:"-"`
 
 	PrevTransferInSnapshot  int64 `gorm:"-" json:"-"` // 上次数据点时的入站使用量
 	PrevTransferOutSnapshot int64 `gorm:"-" json:"-"` // 上次数据点时的出站使用量
 }
 
 func (s *Server) CopyFromRunningServer(old *Server) {
-	s.Host = old.Host
-	s.State = old.State
-	s.LastActive = old.LastActive
+	if old == nil {
+		return
+	}
+	host, state, lastActive, prevIn, prevOut := old.RuntimeSnapshot()
+	s.Host = host
+	s.State = state
+	s.LastActive = lastActive
 	s.TaskClose = old.TaskClose
 	s.TaskCloseLock = old.TaskCloseLock
 	s.TaskStream = old.TaskStream
-	s.PrevTransferInSnapshot = old.PrevTransferInSnapshot
-	s.PrevTransferOutSnapshot = old.PrevTransferOutSnapshot
+	s.RuntimeLock = old.RuntimeLock
+	s.PrevTransferInSnapshot = prevIn
+	s.PrevTransferOutSnapshot = prevOut
+}
+
+func (s *Server) InitRuntimeLock() {
+	if s.RuntimeLock == nil {
+		s.RuntimeLock = new(sync.RWMutex)
+	}
+}
+
+func (s *Server) RuntimeSnapshot() (*Host, *HostState, time.Time, int64, int64) {
+	if s == nil {
+		return nil, nil, time.Time{}, 0, 0
+	}
+	s.InitRuntimeLock()
+	s.RuntimeLock.RLock()
+	defer s.RuntimeLock.RUnlock()
+
+	var host *Host
+	if s.Host != nil {
+		hostValue := *s.Host
+		if hostValue.CPU != nil {
+			hostValue.CPU = append([]string(nil), hostValue.CPU...)
+		}
+		if hostValue.GPU != nil {
+			hostValue.GPU = append([]string(nil), hostValue.GPU...)
+		}
+		host = &hostValue
+	}
+	var state *HostState
+	if s.State != nil {
+		stateValue := *s.State
+		if stateValue.Temperatures != nil {
+			stateValue.Temperatures = append([]SensorTemperature(nil), stateValue.Temperatures...)
+		}
+		state = &stateValue
+	}
+	return host, state, s.LastActive, s.PrevTransferInSnapshot, s.PrevTransferOutSnapshot
 }
 
 func (s *Server) SendTask(task *pb.Task) error {

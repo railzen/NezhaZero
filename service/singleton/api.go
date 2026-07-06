@@ -118,20 +118,24 @@ func (s *ServerAPIService) GetStatusByIDList(idList []uint64) *ServerStatusRespo
 		if server == nil {
 			continue
 		}
-		ipv4, ipv6, validIP := utils.SplitIPAddr(server.Host.IP)
+		host, state, lastActive, _, _ := server.RuntimeSnapshot()
+		if host == nil || state == nil {
+			continue
+		}
+		ipv4, ipv6, validIP := utils.SplitIPAddr(host.IP)
 		info := CommonServerInfo{
 			ID:         server.ID,
 			Name:       server.Name,
 			Tag:        server.Tag,
-			LastActive: server.LastActive.Unix(),
+			LastActive: lastActive.Unix(),
 			IPV4:       ipv4,
 			IPV6:       ipv6,
 			ValidIP:    validIP,
 		}
 		res.Result = append(res.Result, &StatusResponse{
 			CommonServerInfo: info,
-			Host:             server.Host,
-			Status:           server.State,
+			Host:             host,
+			Status:           state,
 		})
 	}
 	res.CommonResponse = CommonResponse{
@@ -153,8 +157,7 @@ func (s *ServerAPIService) GetAllStatus() *ServerStatusResponse {
 	ServerLock.RLock()
 	defer ServerLock.RUnlock()
 	for _, v := range ServerList {
-		host := v.Host
-		state := v.State
+		host, state, lastActive, _, _ := v.RuntimeSnapshot()
 		if host == nil || state == nil {
 			continue
 		}
@@ -163,7 +166,7 @@ func (s *ServerAPIService) GetAllStatus() *ServerStatusResponse {
 			ID:           v.ID,
 			Name:         v.Name,
 			Tag:          v.Tag,
-			LastActive:   v.LastActive.Unix(),
+			LastActive:   lastActive.Unix(),
 			IPV4:         ipv4,
 			IPV6:         ipv6,
 			ValidIP:      validIP,
@@ -172,8 +175,8 @@ func (s *ServerAPIService) GetAllStatus() *ServerStatusResponse {
 		}
 		res.Result = append(res.Result, &StatusResponse{
 			CommonServerInfo: info,
-			Host:             v.Host,
-			Status:           v.State,
+			Host:             host,
+			Status:           state,
 		})
 	}
 	res.CommonResponse = CommonResponse{
@@ -191,16 +194,20 @@ func (s *ServerAPIService) GetListByTag(tag string) *ServerInfoResponse {
 	ServerLock.RLock()
 	defer ServerLock.RUnlock()
 	for _, v := range ServerTagToIDList[tag] {
-		host := ServerList[v].Host
+		server := ServerList[v]
+		if server == nil {
+			continue
+		}
+		host, _, lastActive, _, _ := server.RuntimeSnapshot()
 		if host == nil {
 			continue
 		}
 		ipv4, ipv6, validIP := utils.SplitIPAddr(host.IP)
 		info := &CommonServerInfo{
 			ID:         v,
-			Name:       ServerList[v].Name,
-			Tag:        ServerList[v].Tag,
-			LastActive: ServerList[v].LastActive.Unix(),
+			Name:       server.Name,
+			Tag:        server.Tag,
+			LastActive: lastActive.Unix(),
 			IPV4:       ipv4,
 			IPV6:       ipv6,
 			ValidIP:    validIP,
@@ -222,7 +229,7 @@ func (s *ServerAPIService) GetAllList() *ServerInfoResponse {
 	ServerLock.RLock()
 	defer ServerLock.RUnlock()
 	for _, v := range ServerList {
-		host := v.Host
+		host, _, lastActive, _, _ := v.RuntimeSnapshot()
 		if host == nil {
 			continue
 		}
@@ -231,7 +238,7 @@ func (s *ServerAPIService) GetAllList() *ServerInfoResponse {
 			ID:         v.ID,
 			Name:       v.Name,
 			Tag:        v.Tag,
-			LastActive: v.LastActive.Unix(),
+			LastActive: lastActive.Unix(),
 			IPV4:       ipv4,
 			IPV6:       ipv6,
 			ValidIP:    validIP,
@@ -278,6 +285,7 @@ func (s *ServerAPIService) Register(rs *RegisterServer) *ServerRegisterResponse 
 	serverInfo.Host = &model.Host{}
 	serverInfo.State = &model.HostState{}
 	serverInfo.TaskCloseLock = new(sync.Mutex)
+	serverInfo.RuntimeLock = new(sync.RWMutex)
 	ServerLock.Lock()
 	SecretToID[serverInfo.Secret] = serverInfo.ID
 	ServerList[serverInfo.ID] = &serverInfo

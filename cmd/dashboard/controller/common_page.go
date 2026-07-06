@@ -329,6 +329,12 @@ func (cp *commonPage) getServerStat(c *gin.Context, withPublicNote bool) ([]byte
 		var servers []*model.Server
 		for _, server := range serverList {
 			item := *server
+			host, state, lastActive, prevIn, prevOut := server.RuntimeSnapshot()
+			item.Host = host
+			item.State = state
+			item.LastActive = lastActive
+			item.PrevTransferInSnapshot = prevIn
+			item.PrevTransferOutSnapshot = prevOut
 			if !withPublicNote {
 				item.PublicNote = ""
 			}

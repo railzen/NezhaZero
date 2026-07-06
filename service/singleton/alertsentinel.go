@@ -154,6 +154,11 @@ func checkStatus() {
 			// 保存当前服务器状态信息
 			curServer := model.Server{}
 			copier.Copy(&curServer, server)
+			curServer.CopyFromRunningServer(server)
+			serverIP := ""
+			if curServer.Host != nil {
+				serverIP = curServer.Host.IP
+			}
 
 			// 本次未通过检查
 			if !passed {
@@ -162,7 +167,7 @@ func checkStatus() {
 					alertsPrevState[alert.ID][server.ID] = _RuleCheckFail
 					message := fmt.Sprintf("[%s] %s(%s) %s", Localizer.MustLocalize(&i18n.LocalizeConfig{
 						MessageID: "Incident",
-					}), server.Name, IPDesensitize(server.Host.IP), alert.Name)
+					}), server.Name, IPDesensitize(serverIP), alert.Name)
 					go SendTriggerTasks(alert.FailTriggerTasks, curServer.ID)
 					go SendNotification(alert.NotificationTag, message, NotificationMuteLabel.ServerIncident(server.ID, alert.ID), &curServer)
 					// 清除恢复通知的静音缓存
@@ -173,7 +178,7 @@ func checkStatus() {
 				if alertsPrevState[alert.ID][server.ID] == _RuleCheckFail {
 					message := fmt.Sprintf("[%s] %s(%s) %s", Localizer.MustLocalize(&i18n.LocalizeConfig{
 						MessageID: "Resolved",
-					}), server.Name, IPDesensitize(server.Host.IP), alert.Name)
+					}), server.Name, IPDesensitize(serverIP), alert.Name)
 					go SendTriggerTasks(alert.RecoverTriggerTasks, curServer.ID)
 					go SendNotification(alert.NotificationTag, message, NotificationMuteLabel.ServerIncidentResolved(server.ID, alert.ID), &curServer)
 					// 清除失败通知的静音缓存
