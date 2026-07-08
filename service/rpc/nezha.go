@@ -301,7 +301,18 @@ func (s *NezhaHandler) RequestTask(h *pb.Host, stream pb.NezhaService_RequestTas
 	server.TaskClose = closeCh
 	singleton.ServerLock.Unlock()
 	server.TaskCloseLock.Unlock()
-	return <-closeCh
+	select {
+	case err := <-closeCh:
+		return err
+	case <-stream.Context().Done():
+		server.TaskCloseLock.Lock()
+		if server.TaskClose == closeCh {
+			server.TaskStream = nil
+			server.TaskClose = nil
+		}
+		server.TaskCloseLock.Unlock()
+		return stream.Context().Err()
+	}
 }
 
 func (s *NezhaHandler) ReportSystemState(c context.Context, r *pb.State) (*pb.Receipt, error) {

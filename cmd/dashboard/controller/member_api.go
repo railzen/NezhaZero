@@ -220,9 +220,7 @@ func (ma *memberAPI) delete(c *gin.Context) {
 		})
 		if err == nil {
 			// 删除服务器
-			singleton.ServerLock.Lock()
-			onServerDelete(id)
-			singleton.ServerLock.Unlock()
+			onServerDeleteWithTaskClose(id)
 			singleton.ReSortServer()
 			audit.Record(c, audit.TypeConfig, "Server deleted", serverDetail)
 		}
@@ -1546,12 +1544,10 @@ func (ma *memberAPI) batchDeleteServer(c *gin.Context) {
 		})
 		return
 	}
-	singleton.ServerLock.Lock()
 	for i := 0; i < len(servers); i++ {
 		id := servers[i]
-		onServerDelete(id)
+		onServerDeleteWithTaskClose(id)
 	}
-	singleton.ServerLock.Unlock()
 	singleton.ReSortServer()
 	for _, detail := range serverDetails {
 		audit.Record(c, audit.TypeConfig, "Server deleted", detail)
@@ -1573,6 +1569,31 @@ func serverAuditLabel(id uint64) string {
 		return fmt.Sprintf("server: %s (ID %d)", row.Name, id)
 	}
 	return fmt.Sprintf("server ID %d", id)
+}
+
+func onServerDeleteWithTaskClose(id uint64) {
+	singleton.ServerLock.RLock()
+	server := singleton.ServerList[id]
+	singleton.ServerLock.RUnlock()
+	if server == nil {
+		return
+	}
+	if server.TaskCloseLock != nil {
+		server.TaskCloseLock.Lock()
+		defer server.TaskCloseLock.Unlock()
+	}
+
+	singleton.ServerLock.Lock()
+	defer singleton.ServerLock.Unlock()
+	if singleton.ServerList[id] != server {
+		return
+	}
+	if server.TaskClose != nil {
+		close(server.TaskClose)
+	}
+	server.TaskClose = nil
+	server.TaskStream = nil
+	onServerDelete(id)
 }
 
 func onServerDelete(id uint64) {
