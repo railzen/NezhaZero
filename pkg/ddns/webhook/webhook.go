@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -58,9 +59,12 @@ func (provider *Provider) SetRecords(ctx context.Context, zone string,
 		if err != nil {
 			return nil, fmt.Errorf("failed to update a domain: %s. Cause by: %v", provider.domain, err)
 		}
-		if _, err := utils.HttpClient.Do(req); err != nil {
+		resp, err := utils.HttpClient.Do(req)
+		if err != nil {
 			return nil, fmt.Errorf("failed to update a domain: %s. Cause by: %v", provider.domain, err)
 		}
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
 	}
 
 	return recs, nil
