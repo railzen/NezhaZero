@@ -23,7 +23,7 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/gin-gonic/gin"
-	GitHubAPI "github.com/google/go-github/v47/github"
+	GitHubAPI "github.com/google/go-github/v75/github"
 	"github.com/patrickmn/go-cache"
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/pkg/audit"

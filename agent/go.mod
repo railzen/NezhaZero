@@ -2,6 +2,8 @@ module github.com/railzen/nezha-zero/agent
 
 go 1.26.4
 
+toolchain go1.26.5
+
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/UserExistsError/conpty v0.1.4
@@ -15,7 +17,7 @@ require (
 	github.com/jaypipes/ghw v0.12.0
 	github.com/json-iterator/go v1.1.12
 	github.com/prometheus-community/pro-bing v0.4.1
-	github.com/quic-go/quic-go v0.57.0
+	github.com/quic-go/quic-go v0.59.1
 	github.com/railzen/nezha-zero/agent/pkg/service v0.0.0-20260212021917-05681318be5d
 	github.com/refraction-networking/utls v1.8.2
 	github.com/shirou/gopsutil/v4 v4.24.10
