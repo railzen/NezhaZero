@@ -137,8 +137,8 @@ func checkStatus() {
 	// 锁顺序：ServerLock → AlertsLock，与 onServerDelete 一致，避免 AB-BA 死锁
 	ServerLock.RLock()
 	defer ServerLock.RUnlock()
-	AlertsLock.RLock()
-	defer AlertsLock.RUnlock()
+	AlertsLock.Lock()
+	defer AlertsLock.Unlock()
 
 	for _, alert := range Alerts {
 		// 跳过未启用

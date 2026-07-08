@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/copier"
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/service/singleton"
 )
@@ -102,19 +103,8 @@ func (cv *compatV1) showService(c *gin.Context) {
 				Down:        service.Down,
 			}
 		}
-		cycleTransferStats := make(map[uint64]model.V1CycleTransferStats)
-		for k, v := range singleton.AlertsCycleTransferStatsStore {
-			cycleTransferStats[k] = model.V1CycleTransferStats{
-				Name:       v.Name,
-				From:       v.From,
-				To:         v.To,
-				Max:        v.Max,
-				Min:        v.Min,
-				ServerName: v.ServerName,
-				Transfer:   v.Transfer,
-				NextUpdate: v.NextUpdate,
-			}
-		}
+		var cycleTransferStats map[uint64]model.V1CycleTransferStats
+		copier.CopyWithOption(&cycleTransferStats, singleton.AlertsCycleTransferStatsStore, copier.Option{DeepCopy: true})
 		return []interface {
 		}{
 			sri, cycleTransferStats,
