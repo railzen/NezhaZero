@@ -7,6 +7,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// CycleTransferDBKey 标识一条周期流量规则在某服务器上的预查结果。
+type CycleTransferDBKey struct {
+	AlertID  uint64
+	RuleIdx  int
+	ServerID uint64
+}
+
 const (
 	ModeAlwaysTrigger  = 0
 	ModeOnetimeTrigger = 1
@@ -74,11 +81,16 @@ func (r *AlertRule) Enabled() bool {
 	return r.Enable != nil && *r.Enable
 }
 
-// Snapshot 对传入的Server进行该报警规则下所有type的检查 返回包含每项检查结果的空接口
-func (r *AlertRule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, db *gorm.DB) []interface{} {
+// Snapshot 对传入的Server进行该报警规则下所有type的检查 返回包含每项检查结果的空接口。
+// cycleFromDB 为锁外预查的周期流量合计，key 见 CycleTransferDBKey；无预查时传 nil。
+func (r *AlertRule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, cycleFromDB map[CycleTransferDBKey]float64) []interface{} {
 	var point []interface{}
 	for i := 0; i < len(r.Rules); i++ {
-		point = append(point, r.Rules[i].Snapshot(cycleTransferStats, server, db))
+		var fromDB float64
+		if cycleFromDB != nil {
+			fromDB = cycleFromDB[CycleTransferDBKey{AlertID: r.ID, RuleIdx: i, ServerID: server.ID}]
+		}
+		point = append(point, r.Rules[i].Snapshot(cycleTransferStats, server, fromDB))
 	}
 	return point
 }

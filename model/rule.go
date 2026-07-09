@@ -5,8 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/railzen/nezha-zero/pkg/utils"
 )
 
@@ -45,8 +43,9 @@ func percentage(used, total uint64) float64 {
 	return float64(used) * 100 / float64(total)
 }
 
-// Snapshot 未通过规则返回 struct{}{}, 通过返回 nil
-func (u *Rule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, db *gorm.DB) interface{} {
+// Snapshot 未通过规则返回 struct{}{}, 通过返回 nil。
+// transferCycleFromDB 为周期流量规则在锁外预查的历史流量合计；非周期规则忽略该参数。
+func (u *Rule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, transferCycleFromDB float64) interface{} {
 	// 监控全部但是排除了此服务器
 	if u.Cover == RuleCoverAll && u.Ignore[server.ID] {
 		return nil
@@ -102,23 +101,17 @@ func (u *Rule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, 
 	case "transfer_in_cycle":
 		src = float64(utils.Uint64SubInt64(state.NetInTransfer, prevIn))
 		if u.CycleInterval != 0 {
-			var res NResult
-			db.Model(&Transfer{}).Select("SUM(`in`) AS n").Where("datetime(`created_at`) >= datetime(?) AND server_id = ?", u.GetTransferDurationStart().UTC(), server.ID).Scan(&res)
-			src += float64(res.N)
+			src += transferCycleFromDB
 		}
 	case "transfer_out_cycle":
 		src = float64(utils.Uint64SubInt64(state.NetOutTransfer, prevOut))
 		if u.CycleInterval != 0 {
-			var res NResult
-			db.Model(&Transfer{}).Select("SUM(`out`) AS n").Where("datetime(`created_at`) >= datetime(?) AND server_id = ?", u.GetTransferDurationStart().UTC(), server.ID).Scan(&res)
-			src += float64(res.N)
+			src += transferCycleFromDB
 		}
 	case "transfer_all_cycle":
 		src = float64(utils.Uint64SubInt64(state.NetOutTransfer, prevOut) + utils.Uint64SubInt64(state.NetInTransfer, prevIn))
 		if u.CycleInterval != 0 {
-			var res NResult
-			db.Model(&Transfer{}).Select("SUM(`in`+`out`) AS n").Where("datetime(`created_at`) >= datetime(?) AND server_id = ?", u.GetTransferDurationStart().UTC(), server.ID).Scan(&res)
-			src += float64(res.N)
+			src += transferCycleFromDB
 		}
 	case "load1":
 		src = state.Load1
