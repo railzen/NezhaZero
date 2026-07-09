@@ -37,6 +37,20 @@ func (cp *commonPage) serve() {
 	cr.Use(mygin.PreferredTheme)
 	cr.POST("/view-password", cp.issueViewPassword)
 	cr.GET("/terminal/:id", cp.terminal)
+	{
+		v1 := cr.Group("api/v1")
+		v1.Use(mygin.Authorize(mygin.AuthorizeOption{
+			MemberOnly: false,
+			IsPage:     false,
+			AllowAPI:   true,
+		}))
+		v1.Use(mygin.ValidateViewPassword(mygin.ValidateViewPasswordOption{
+			IsPage:        false,
+			AbortWhenFail: true,
+		}))
+		cv := &compatV1{r: v1}
+		cv.serve()
+	}
 	cr.Use(mygin.ValidateViewPassword(mygin.ValidateViewPasswordOption{
 		IsPage:        true,
 		AbortWhenFail: true,
@@ -51,11 +65,6 @@ func (cp *commonPage) serve() {
 	cr.POST("/file", cp.createFM)
 	cr.GET("/file/:id", cp.fm)
 	cr.GET("/dashboard", cp.v1Dashboard)
-
-	{
-		cv := &compatV1{r: cr.Group("api/v1")}
-		cv.serve()
-	}
 }
 
 type viewPasswordForm struct {
