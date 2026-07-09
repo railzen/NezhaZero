@@ -18,5 +18,6 @@ func (u UserInfo) MapToNezhaUser() model.User {
 	user.Login = u.Sub
 	user.Email = u.Email
 	user.Name = u.Name
+	user.SuperAdmin = false
 	return user
 }
