@@ -567,6 +567,13 @@ func (ss *ServiceSentinel) worker() {
 			}
 		}
 
+		ss.monitorsLock.RLock()
+		monitorExists := ss.monitors[monitorID] != nil
+		ss.monitorsLock.RUnlock()
+		if !monitorExists {
+			continue
+		}
+
 		// SSL 证书报警
 		var errMsg string
 		if strings.HasPrefix(mh.Data, "SSL证书错误：") {
@@ -588,6 +595,10 @@ func (ss *ServiceSentinel) worker() {
 			var newCert = strings.Split(mh.Data, "|")
 			if len(newCert) > 1 {
 				ss.monitorsLock.Lock()
+				if ss.monitors[monitorID] == nil {
+					ss.monitorsLock.Unlock()
+					continue
+				}
 				enableNotify := monitorSnapshot.Notify
 
 				// 首次获取证书信息时，缓存证书信息
