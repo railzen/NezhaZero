@@ -458,15 +458,19 @@ func (ss *ServiceSentinel) worker() {
 					// 延迟超过最大值
 					ServerLock.RLock()
 					reporterServer := ServerList[r.Reporter]
-					msg := fmt.Sprintf("[Latency] %s %2f > %2f, Reporter: %s", monitorSnapshot.Name, mh.Delay, monitorSnapshot.MaxLatency, reporterServer.Name)
-					go SendNotification(notificationTag, msg, minMuteLabel)
+					if reporterServer != nil {
+						msg := fmt.Sprintf("[Latency] %s %2f > %2f, Reporter: %s", monitorSnapshot.Name, mh.Delay, monitorSnapshot.MaxLatency, reporterServer.Name)
+						go SendNotification(notificationTag, msg, minMuteLabel)
+					}
 					ServerLock.RUnlock()
 				} else if mh.Delay < monitorSnapshot.MinLatency {
 					// 延迟低于最小值
 					ServerLock.RLock()
 					reporterServer := ServerList[r.Reporter]
-					msg := fmt.Sprintf("[Latency] %s %2f < %2f, Reporter: %s", monitorSnapshot.Name, mh.Delay, monitorSnapshot.MinLatency, reporterServer.Name)
-					go SendNotification(notificationTag, msg, maxMuteLabel)
+					if reporterServer != nil {
+						msg := fmt.Sprintf("[Latency] %s %2f < %2f, Reporter: %s", monitorSnapshot.Name, mh.Delay, monitorSnapshot.MinLatency, reporterServer.Name)
+						go SendNotification(notificationTag, msg, maxMuteLabel)
+					}
 					ServerLock.RUnlock()
 				} else {
 					// 正常延迟， 清除静音缓存
@@ -490,7 +494,6 @@ func (ss *ServiceSentinel) worker() {
 
 				reporterServer := ServerList[r.Reporter]
 				notificationTag := monitorSnapshot.NotificationTag
-				notificationMsg := fmt.Sprintf("[%s] %s Reporter: %s, Error: %s", StatusCodeToString(stateCode), monitorSnapshot.Name, reporterServer.Name, mh.Data)
 				muteLabel := NotificationMuteLabel.ServiceStateChanged(mh.GetId())
 
 				// 状态变更时，清除静音缓存
@@ -498,7 +501,10 @@ func (ss *ServiceSentinel) worker() {
 					UnMuteNotification(notificationTag, muteLabel)
 				}
 
-				go SendNotification(notificationTag, notificationMsg, muteLabel)
+				if reporterServer != nil {
+					notificationMsg := fmt.Sprintf("[%s] %s Reporter: %s, Error: %s", StatusCodeToString(stateCode), monitorSnapshot.Name, reporterServer.Name, mh.Data)
+					go SendNotification(notificationTag, notificationMsg, muteLabel)
+				}
 				ServerLock.RUnlock()
 			}
 
@@ -509,12 +515,14 @@ func (ss *ServiceSentinel) worker() {
 				reporterServer := ServerList[r.Reporter]
 				ServerLock.RUnlock()
 
-				if stateCode == StatusGood && lastStatus != stateCode {
-					// 当前状态正常 前序状态非正常时 触发恢复任务
-					go SendTriggerTasks(monitorSnapshot.RecoverTriggerTasks, reporterServer.ID)
-				} else if lastStatus == StatusGood && lastStatus != stateCode {
-					// 前序状态正常 当前状态非正常时 触发失败任务
-					go SendTriggerTasks(monitorSnapshot.FailTriggerTasks, reporterServer.ID)
+				if reporterServer != nil {
+					if stateCode == StatusGood && lastStatus != stateCode {
+						// 当前状态正常 前序状态非正常时 触发恢复任务
+						go SendTriggerTasks(monitorSnapshot.RecoverTriggerTasks, reporterServer.ID)
+					} else if lastStatus == StatusGood && lastStatus != stateCode {
+						// 前序状态正常 当前状态非正常时 触发失败任务
+						go SendTriggerTasks(monitorSnapshot.FailTriggerTasks, reporterServer.ID)
+					}
 				}
 			}
 
