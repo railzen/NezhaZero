@@ -141,13 +141,18 @@ func SendNotification(notificationTag string, desc string, muteLabel *string, ex
 			return
 		}
 	}
-	// 向该通知方式组的所有通知方式发出通知
+	// 锁内只拷贝通知列表，HTTP 发送放到锁外，避免慢 webhook 堵住通知读写
 	NotificationsLock.RLock()
-	defer NotificationsLock.RUnlock()
+	nsList := make([]*model.Notification, 0, len(NotificationList[notificationTag]))
 	for _, n := range NotificationList[notificationTag] {
+		nsList = append(nsList, n)
+	}
+	NotificationsLock.RUnlock()
+
+	for _, n := range nsList {
 		log.Println("NEZHA>> 尝试通知", n.Name)
 	}
-	for _, n := range NotificationList[notificationTag] {
+	for _, n := range nsList {
 		ns := model.NotificationServerBundle{
 			Notification: n,
 			Server:       nil,
