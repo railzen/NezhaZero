@@ -431,20 +431,19 @@ func (ss *ServiceSentinel) worker() {
 		}
 		stateCode := GetStatusCode(upPercent)
 
-		// 数据持久化
+		// 数据持久化：锁内只快照，DB.Create 放到解锁后，避免 SQLite 写拖住 store 锁
+		var historyToPersist *model.MonitorHistory
 		if ss.serviceCurrentStatusIndex[mh.GetId()].index == _CurrentStatusSize {
 			ss.serviceCurrentStatusIndex[mh.GetId()] = &indexStore{
 				index: 0,
 				t:     currentTime,
 			}
-			if err := DB.Create(&model.MonitorHistory{
+			historyToPersist = &model.MonitorHistory{
 				MonitorID: mh.GetId(),
 				AvgDelay:  ss.serviceResponseDataStoreCurrentAvgDelay[mh.GetId()],
 				Data:      mh.Data,
 				Up:        ss.serviceResponseDataStoreCurrentUp[mh.GetId()],
 				Down:      ss.serviceResponseDataStoreCurrentDown[mh.GetId()],
-			}).Error; err != nil {
-				log.Println("NEZHA>> 服务监控数据持久化失败：", err)
 			}
 		}
 
@@ -529,6 +528,12 @@ func (ss *ServiceSentinel) worker() {
 			ss.monitorsLock.Unlock()
 		}
 		ss.serviceResponseDataStoreLock.Unlock()
+
+		if historyToPersist != nil {
+			if err := DB.Create(historyToPersist).Error; err != nil {
+				log.Println("NEZHA>> 服务监控数据持久化失败：", err)
+			}
+		}
 
 		// SSL 证书报警
 		var errMsg string
