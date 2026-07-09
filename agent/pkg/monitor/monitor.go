@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -59,12 +60,16 @@ var hostDataFetchAttempts = map[string]int{
 }
 
 // 获取状态数据的尝试次数，Key 为 HostState 的属性名
-var statDataFetchAttempts = map[string]int{
-	"CPU":          0,
-	"Load":         0,
-	"GPU":          0,
-	"Temperatures": 0,
-}
+// 与 temperatureStat 同由 statDataMu 保护：GetState 主协程与 updateTemperatureStat 会并发读写
+var (
+	statDataMu            sync.Mutex
+	statDataFetchAttempts = map[string]int{
+		"CPU":          0,
+		"Load":         0,
+		"GPU":          0,
+		"Temperatures": 0,
+	}
+)
 
 var (
 	updateTempStatus = new(atomic.Bool)
@@ -161,8 +166,12 @@ func GetHost() *model.Host {
 func GetState(skipConnectionCount bool, skipProcsCount bool) *model.HostState {
 	var ret model.HostState
 
-	if statDataFetchAttempts["CPU"] < maxDeviceDataFetchAttempts {
+	statDataMu.Lock()
+	shouldFetchCPU := statDataFetchAttempts["CPU"] < maxDeviceDataFetchAttempts
+	statDataMu.Unlock()
+	if shouldFetchCPU {
 		cp, err := cpu.Percent(0, false)
+		statDataMu.Lock()
 		if err != nil || len(cp) == 0 {
 			statDataFetchAttempts["CPU"]++
 			printf("cpu.Percent error: %v, attempt: %d", err, statDataFetchAttempts["CPU"])
@@ -170,6 +179,7 @@ func GetState(skipConnectionCount bool, skipProcsCount bool) *model.HostState {
 			statDataFetchAttempts["CPU"] = 0
 			ret.CPU = cp[0]
 		}
+		statDataMu.Unlock()
 	}
 
 	vm, err := mem.VirtualMemory()
@@ -193,8 +203,12 @@ func GetState(skipConnectionCount bool, skipProcsCount bool) *model.HostState {
 
 	_, ret.DiskUsed = getDiskTotalAndUsed()
 
-	if statDataFetchAttempts["Load"] < maxDeviceDataFetchAttempts {
+	statDataMu.Lock()
+	shouldFetchLoad := statDataFetchAttempts["Load"] < maxDeviceDataFetchAttempts
+	statDataMu.Unlock()
+	if shouldFetchLoad {
 		loadStat, err := load.Avg()
+		statDataMu.Lock()
 		if err != nil {
 			statDataFetchAttempts["Load"]++
 			printf("load.Avg error: %v, attempt: %d", err, statDataFetchAttempts["Load"])
@@ -204,6 +218,7 @@ func GetState(skipConnectionCount bool, skipProcsCount bool) *model.HostState {
 			ret.Load5 = loadStat.Load5
 			ret.Load15 = loadStat.Load15
 		}
+		statDataMu.Unlock()
 	}
 
 	var procs []int32
@@ -218,7 +233,9 @@ func GetState(skipConnectionCount bool, skipProcsCount bool) *model.HostState {
 
 	if agentConfig.Temperature {
 		go updateTemperatureStat()
+		statDataMu.Lock()
 		ret.Temperatures = temperatureStat
+		statDataMu.Unlock()
 	}
 
 	ret.GPU = updateGPUStat()
@@ -350,20 +367,26 @@ func getConns(skipConnectionCount bool) (tcpConnCount, udpConnCount uint64) {
 }
 
 func updateGPUStat() float64 {
-	if agentConfig.GPU {
-		if statDataFetchAttempts["GPU"] < maxDeviceDataFetchAttempts {
-			gs, err := gpustat.GetGPUStat()
-			if err != nil {
-				statDataFetchAttempts["GPU"]++
-				printf("gpustat.GetGPUStat error: %v, attempt: %d", err, statDataFetchAttempts["GPU"])
-				return 0
-			} else {
-				statDataFetchAttempts["GPU"] = 0
-				return gs
-			}
-		}
+	if !agentConfig.GPU {
+		return 0
 	}
-	return 0
+	statDataMu.Lock()
+	shouldFetch := statDataFetchAttempts["GPU"] < maxDeviceDataFetchAttempts
+	statDataMu.Unlock()
+	if !shouldFetch {
+		return 0
+	}
+
+	gs, err := gpustat.GetGPUStat()
+	statDataMu.Lock()
+	defer statDataMu.Unlock()
+	if err != nil {
+		statDataFetchAttempts["GPU"]++
+		printf("gpustat.GetGPUStat error: %v, attempt: %d", err, statDataFetchAttempts["GPU"])
+		return 0
+	}
+	statDataFetchAttempts["GPU"] = 0
+	return gs
 }
 
 func updateTemperatureStat() {
@@ -372,29 +395,36 @@ func updateTemperatureStat() {
 	}
 	defer updateTempStatus.Store(false)
 
-	if statDataFetchAttempts["Temperatures"] < maxDeviceDataFetchAttempts {
-		temperatures, err := sensors.SensorsTemperatures()
-		if err != nil {
-			statDataFetchAttempts["Temperatures"]++
-			printf("host.SensorsTemperatures error: %v, attempt: %d", err, statDataFetchAttempts["Temperatures"])
-		} else {
-			statDataFetchAttempts["Temperatures"] = 0
-			tempStat := []model.SensorTemperature{}
-			for _, t := range temperatures {
-				if t.Temperature > 0 && !util.ContainsStr(sensorIgnoreList, t.SensorKey) {
-					tempStat = append(tempStat, model.SensorTemperature{
-						Name:        t.SensorKey,
-						Temperature: t.Temperature,
-					})
-				}
+	statDataMu.Lock()
+	shouldFetch := statDataFetchAttempts["Temperatures"] < maxDeviceDataFetchAttempts
+	statDataMu.Unlock()
+	if !shouldFetch {
+		return
+	}
+
+	temperatures, err := sensors.SensorsTemperatures()
+	statDataMu.Lock()
+	defer statDataMu.Unlock()
+	if err != nil {
+		statDataFetchAttempts["Temperatures"]++
+		printf("host.SensorsTemperatures error: %v, attempt: %d", err, statDataFetchAttempts["Temperatures"])
+	} else {
+		statDataFetchAttempts["Temperatures"] = 0
+		tempStat := []model.SensorTemperature{}
+		for _, t := range temperatures {
+			if t.Temperature > 0 && !util.ContainsStr(sensorIgnoreList, t.SensorKey) {
+				tempStat = append(tempStat, model.SensorTemperature{
+					Name:        t.SensorKey,
+					Temperature: t.Temperature,
+				})
 			}
-
-			sort.Slice(tempStat, func(i, j int) bool {
-				return tempStat[i].Name < tempStat[j].Name
-			})
-
-			temperatureStat = tempStat
 		}
+
+		sort.Slice(tempStat, func(i, j int) bool {
+			return tempStat[i].Name < tempStat[j].Name
+		})
+
+		temperatureStat = tempStat
 	}
 }
 
