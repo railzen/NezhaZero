@@ -307,6 +307,9 @@ func (ss *ServiceSentinel) LoadStats() map[uint64]*model.ServiceItemResponse {
 
 	// 刷新最新一天的数据
 	for k := range ss.monitors {
+		if ss.monthlyStatus[k] == nil || ss.serviceStatusToday[k] == nil {
+			continue
+		}
 		ss.monthlyStatus[k].Monitor = ss.monitors[k]
 		v := ss.serviceStatusToday[k]
 
@@ -325,13 +328,38 @@ func (ss *ServiceSentinel) LoadStats() map[uint64]*model.ServiceItemResponse {
 
 	// 最后 5 分钟的状态 与 monitor 对象填充
 	for k, v := range ss.serviceResponseDataStoreCurrentDown {
-		ss.monthlyStatus[k].CurrentDown = v
+		if ss.monthlyStatus[k] != nil {
+			ss.monthlyStatus[k].CurrentDown = v
+		}
 	}
 	for k, v := range ss.serviceResponseDataStoreCurrentUp {
-		ss.monthlyStatus[k].CurrentUp = v
+		if ss.monthlyStatus[k] != nil {
+			ss.monthlyStatus[k].CurrentUp = v
+		}
 	}
 
-	return ss.monthlyStatus
+	stats := make(map[uint64]*model.ServiceItemResponse, len(ss.monthlyStatus))
+	for k, v := range ss.monthlyStatus {
+		if v == nil {
+			continue
+		}
+		item := *v
+		if v.Delay != nil {
+			delay := *v.Delay
+			item.Delay = &delay
+		}
+		if v.Up != nil {
+			up := *v.Up
+			item.Up = &up
+		}
+		if v.Down != nil {
+			down := *v.Down
+			item.Down = &down
+		}
+		stats[k] = &item
+	}
+
+	return stats
 }
 
 // worker 服务监控的实际工作流程
@@ -383,6 +411,10 @@ func (ss *ServiceSentinel) worker() {
 			monitorTcpMap[r.Reporter] = ts
 		}
 		ss.serviceResponseDataStoreLock.Lock()
+		if ss.serviceStatusToday[monitorID] == nil || ss.serviceCurrentStatusData[monitorID] == nil {
+			ss.serviceResponseDataStoreLock.Unlock()
+			continue
+		}
 		// 写入当天状态
 		if mh.Successful {
 			ss.serviceStatusToday[mh.GetId()].Delay = (ss.serviceStatusToday[mh.
