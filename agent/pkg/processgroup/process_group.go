@@ -47,6 +47,7 @@ func killChildProcess(c *exec.Cmd) {
 	if err != nil {
 		// Fall-back on error. Kill the main process only.
 		c.Process.Kill()
+		return
 	}
 	// Kill the whole process group.
 	syscall.Kill(-pgid, syscall.SIGTERM)
