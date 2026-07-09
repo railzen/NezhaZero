@@ -87,9 +87,7 @@ func (cv *compatV1) showService(c *gin.Context) {
 	authorized := isMember || isViewPasswordVerfied
 
 	res, err, _ := cv.requestGroup.Do("list-service", func() (interface{}, error) {
-		singleton.AlertsLock.RLock()
-		defer singleton.AlertsLock.RUnlock()
-
+		// 先 LoadStats 再拿 AlertsLock，避免 Alerts→store→Server→Alerts 三锁环
 		sri := make(map[uint64]model.V1ServiceResponseItem)
 		for k, service := range singleton.ServiceSentinelShared.LoadStats() {
 			if !service.Monitor.EnableShowInService {
@@ -108,7 +106,9 @@ func (cv *compatV1) showService(c *gin.Context) {
 			}
 		}
 		var cycleTransferStats map[uint64]model.V1CycleTransferStats
+		singleton.AlertsLock.RLock()
 		copier.CopyWithOption(&cycleTransferStats, singleton.AlertsCycleTransferStatsStore, copier.Option{DeepCopy: true})
+		singleton.AlertsLock.RUnlock()
 		return []interface {
 		}{
 			sri, cycleTransferStats,

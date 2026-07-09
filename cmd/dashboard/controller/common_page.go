@@ -122,17 +122,18 @@ func (p *commonPage) service(c *gin.Context) {
 	authorized := isMember || isViewPasswordVerfied
 
 	res, _, _ := p.requestGroup.Do("servicePage", func() (interface{}, error) {
-		singleton.AlertsLock.RLock()
-		defer singleton.AlertsLock.RUnlock()
+		// 先 LoadStats 再拿 AlertsLock，避免 Alerts→store→Server→Alerts 三锁环
 		var stats map[uint64]model.ServiceItemResponse
-		var statsStore map[uint64]model.CycleTransferStats
 		copier.Copy(&stats, singleton.ServiceSentinelShared.LoadStats())
-		copier.CopyWithOption(&statsStore, singleton.AlertsCycleTransferStatsStore, copier.Option{DeepCopy: true})
 		for k, service := range stats {
 			if !service.Monitor.EnableShowInService {
 				delete(stats, k)
 			}
 		}
+		var statsStore map[uint64]model.CycleTransferStats
+		singleton.AlertsLock.RLock()
+		copier.CopyWithOption(&statsStore, singleton.AlertsCycleTransferStatsStore, copier.Option{DeepCopy: true})
+		singleton.AlertsLock.RUnlock()
 		return []interface {
 		}{
 			stats, statsStore,
