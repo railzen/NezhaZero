@@ -260,31 +260,35 @@ func (cv *compatV1) listServerGroup(c *gin.Context) {
 
 	tagID := uint64(1)
 	// 按 tag 名升序遍历，保证同一个 tag 集合下 tagID 分配稳定（map 遍历无序会导致重启后 ID 漂移）。
-	tagNames := make([]string, 0, len(singleton.ServerTagToIDList))
-	for tag := range singleton.ServerTagToIDList {
-		tagNames = append(tagNames, tag)
+	// ServerTagToIDList 与 ServerList 同由 ServerLock 保护：锁内快照，锁外组装响应。
+	// guest 下全隐藏的 tag 仍占位递增 tagID，避免后续可见分组 ID 前移。
+	type tagSnapshot struct {
+		name string
+		ids  []uint64
 	}
-	sort.Strings(tagNames)
-	for _, tag := range tagNames {
-		ids, ok := singleton.ServerTagToIDList[tag]
-		if !ok {
-			// 并发写场景下 tag 可能在 range 之后被删除，跳过即可
-			continue
-		}
-		visibleIDs := ids
+	singleton.ServerLock.RLock()
+	snapshots := make([]tagSnapshot, 0, len(singleton.ServerTagToIDList))
+	for tag, ids := range singleton.ServerTagToIDList {
+		visibleIDs := append([]uint64(nil), ids...)
 		if !authorized {
 			visibleIDs = make([]uint64, 0, len(ids))
-			singleton.ServerLock.RLock()
 			for _, id := range ids {
 				if s, ok := singleton.ServerList[id]; ok && !s.HideForGuest {
 					visibleIDs = append(visibleIDs, id)
 				}
 			}
-			singleton.ServerLock.RUnlock()
-			if len(visibleIDs) == 0 {
-				tagID++
-				continue
-			}
+		}
+		snapshots = append(snapshots, tagSnapshot{name: tag, ids: visibleIDs})
+	}
+	singleton.ServerLock.RUnlock()
+
+	sort.Slice(snapshots, func(i, j int) bool {
+		return snapshots[i].name < snapshots[j].name
+	})
+	for _, snap := range snapshots {
+		if !authorized && len(snap.ids) == 0 {
+			tagID++
+			continue
 		}
 		sgRes = append(sgRes, model.V1ServerGroupResponseItem{
 			Group: model.V1ServerGroup{
@@ -293,9 +297,9 @@ func (cv *compatV1) listServerGroup(c *gin.Context) {
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),
 				},
-				Name: tag,
+				Name: snap.name,
 			},
-			Servers: visibleIDs,
+			Servers: snap.ids,
 		})
 		tagID++
 	}

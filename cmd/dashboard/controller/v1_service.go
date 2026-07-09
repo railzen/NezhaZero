@@ -22,13 +22,17 @@ func (cv *compatV1) listService(c *gin.Context) {
 	vs := make([]*model.V1Service, 0, len(services))
 	for _, s := range services {
 		groupID := uint64(0)
-		if len(singleton.NotificationList[s.NotificationTag]) < 1 {
+		singleton.NotificationsLock.RLock()
+		ns := singleton.NotificationList[s.NotificationTag]
+		if len(ns) < 1 {
+			singleton.NotificationsLock.RUnlock()
 			continue
 		}
-		for _, n := range singleton.NotificationList[s.NotificationTag] {
+		for _, n := range ns {
 			groupID = n.ID
 			break
 		}
+		singleton.NotificationsLock.RUnlock()
 		vs = append(vs, &model.V1Service{
 			V1Common: model.V1Common{
 				ID:        s.ID,

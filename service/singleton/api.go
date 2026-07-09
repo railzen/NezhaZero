@@ -147,7 +147,10 @@ func (s *ServerAPIService) GetStatusByIDList(idList []uint64) *ServerStatusRespo
 
 // GetStatusByTag 获取传入分组的所有服务器状态信息
 func (s *ServerAPIService) GetStatusByTag(tag string) *ServerStatusResponse {
-	return s.GetStatusByIDList(ServerTagToIDList[tag])
+	ServerLock.RLock()
+	idList := append([]uint64(nil), ServerTagToIDList[tag]...)
+	ServerLock.RUnlock()
+	return s.GetStatusByIDList(idList)
 }
 
 // GetAllStatus 获取所有服务器状态信息

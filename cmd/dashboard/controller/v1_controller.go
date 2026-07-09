@@ -162,13 +162,19 @@ func (cv *compatV1) listAlertRule(c *gin.Context) {
 			})
 		}
 		groupID := uint64(0)
-		if len(singleton.NotificationList[alert.NotificationTag]) < 1 {
+		// 仅短持 NotificationsLock 读 groupID；外层已持 AlertsLock.RLock。
+		// 锁顺序固定为 AlertsLock → NotificationsLock（写路径无反向嵌套）。
+		singleton.NotificationsLock.RLock()
+		ns := singleton.NotificationList[alert.NotificationTag]
+		if len(ns) < 1 {
+			singleton.NotificationsLock.RUnlock()
 			continue
 		}
-		for _, n := range singleton.NotificationList[alert.NotificationTag] {
+		for _, n := range ns {
 			groupID = n.ID
 			break
 		}
+		singleton.NotificationsLock.RUnlock()
 		alerts = append(alerts, &model.V1AlertRule{
 			V1Common: model.V1Common{
 				ID:        alert.ID,
