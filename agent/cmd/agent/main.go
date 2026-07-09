@@ -1314,7 +1314,7 @@ func handleCommandTask(task *pb.Task, result *pb.TaskResult) {
 	defer stdinW.Close()
 
 	cmd := processgroup.NewCommand(task.GetData())
-	var b bytes.Buffer
+	var b limitedCommandOutput
 	cmd.Stdin = stdinR
 	cmd.Stdout = &b
 	cmd.Env = os.Environ()
@@ -1342,6 +1342,34 @@ func handleCommandTask(task *pb.Task, result *pb.TaskResult) {
 	}
 	pg.Dispose()
 	result.Delay = float32(time.Since(startedAt).Seconds())
+}
+
+type limitedCommandOutput struct {
+	bytes.Buffer
+	truncated bool
+}
+
+func (o *limitedCommandOutput) Write(p []byte) (int, error) {
+	remaining := (1 << 20) - o.Len()
+	if remaining <= 0 {
+		o.truncated = true
+		return len(p), nil
+	}
+	if len(p) > remaining {
+		o.Buffer.Write(p[:remaining])
+		o.truncated = true
+		return len(p), nil
+	}
+	o.Buffer.Write(p)
+	return len(p), nil
+}
+
+func (o *limitedCommandOutput) String() string {
+	out := o.Buffer.String()
+	if o.truncated {
+		out += "\n[output truncated: stdout exceeded 1048576 bytes]"
+	}
+	return out
 }
 
 type WindowSize struct {
