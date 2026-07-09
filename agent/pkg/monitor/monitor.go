@@ -53,16 +53,14 @@ var (
 // 获取设备数据的最大尝试次数
 const maxDeviceDataFetchAttempts = 3
 
-// 获取主机数据的尝试次数，Key 为 Host 的属性名
-var hostDataFetchAttempts = map[string]int{
-	"CPU": 0,
-	"GPU": 0,
-}
-
-// 获取状态数据的尝试次数，Key 为 HostState 的属性名
-// 与 temperatureStat 同由 statDataMu 保护：GetState 主协程与 updateTemperatureStat 会并发读写
+// hostDataFetchAttempts / statDataFetchAttempts / temperatureStat 同由 statDataMu 保护：
+// GetHost 可与 reportState 并发；GetState 主协程与 updateTemperatureStat 会并发读写。
 var (
 	statDataMu            sync.Mutex
+	hostDataFetchAttempts = map[string]int{
+		"CPU": 0,
+		"GPU": 0,
+	}
 	statDataFetchAttempts = map[string]int{
 		"CPU":          0,
 		"Load":         0,
@@ -102,13 +100,20 @@ func GetHost() *model.Host {
 	}
 
 	cpuModelCount := make(map[string]int)
-	if hostDataFetchAttempts["CPU"] < maxDeviceDataFetchAttempts {
+	statDataMu.Lock()
+	shouldFetchHostCPU := hostDataFetchAttempts["CPU"] < maxDeviceDataFetchAttempts
+	statDataMu.Unlock()
+	if shouldFetchHostCPU {
 		ci, err := cpu.Info()
 		if err != nil {
+			statDataMu.Lock()
 			hostDataFetchAttempts["CPU"]++
 			printf("cpu.Info error: %v, attempt: %d", err, hostDataFetchAttempts["CPU"])
+			statDataMu.Unlock()
 		} else {
+			statDataMu.Lock()
 			hostDataFetchAttempts["CPU"] = 0
+			statDataMu.Unlock()
 			for i := 0; i < len(ci); i++ {
 				cpuModelCount[ci[i].ModelName]++
 			}
@@ -123,14 +128,19 @@ func GetHost() *model.Host {
 	}
 
 	if agentConfig.GPU {
-		if hostDataFetchAttempts["GPU"] < maxDeviceDataFetchAttempts {
+		statDataMu.Lock()
+		shouldFetchHostGPU := hostDataFetchAttempts["GPU"] < maxDeviceDataFetchAttempts
+		statDataMu.Unlock()
+		if shouldFetchHostGPU {
 			ret.GPU, err = gpu.GetGPUModel()
+			statDataMu.Lock()
 			if err != nil {
 				hostDataFetchAttempts["GPU"]++
 				printf("gpu.GetGPUModel error: %v, attempt: %d", err, hostDataFetchAttempts["GPU"])
 			} else {
 				hostDataFetchAttempts["GPU"] = 0
 			}
+			statDataMu.Unlock()
 		}
 	}
 
