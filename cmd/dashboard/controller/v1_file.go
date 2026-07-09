@@ -107,7 +107,7 @@ func (cv *compatV1) fmStream(c *gin.Context) {
 	go func() {
 		// PING 保活
 		for {
-			if err = conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			if err := conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 				return
 			}
 			time.Sleep(time.Second * 10)

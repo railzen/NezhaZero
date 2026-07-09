@@ -472,7 +472,7 @@ func (cp *commonPage) terminal(c *gin.Context) {
 	go func() {
 		// PING 保活
 		for {
-			if err = conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			if err := conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 				return
 			}
 			time.Sleep(time.Second * 10)
@@ -623,7 +623,7 @@ func (cp *commonPage) fm(c *gin.Context) {
 	go func() {
 		// PING 保活
 		for {
-			if err = conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			if err := conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 				return
 			}
 			time.Sleep(time.Second * 10)
