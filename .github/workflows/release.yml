@@ -199,6 +199,7 @@ jobs:
               echo "ghcr_tags<<EOF"
               echo "${GHCR}:latest"
               echo "${GHCR}:${TAG}"
+              echo "${GHCR}:dev"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
             {
