@@ -31,10 +31,12 @@ type Server struct {
 	State      *HostState `gorm:"-"`
 	LastActive time.Time  `gorm:"-"`
 
-	TaskClose     chan error                        `gorm:"-" json:"-"`
-	TaskCloseLock *sync.Mutex                       `gorm:"-" json:"-"`
-	TaskStream    pb.NezhaService_RequestTaskServer `gorm:"-" json:"-"`
-	RuntimeLock   *sync.RWMutex                     `gorm:"-" json:"-"`
+	TaskClose        chan error                        `gorm:"-" json:"-"`
+	TaskCloseLock    *sync.Mutex                       `gorm:"-" json:"-"`
+	TaskSendLock     *sync.Mutex                       `gorm:"-" json:"-"`
+	TaskDispatchLock *sync.Mutex                       `gorm:"-" json:"-"`
+	TaskStream       pb.NezhaService_RequestTaskServer `gorm:"-" json:"-"`
+	RuntimeLock      *sync.RWMutex                     `gorm:"-" json:"-"`
 
 	PrevTransferInSnapshot  int64 `gorm:"-" json:"-"` // 上次数据点时的入站使用量
 	PrevTransferOutSnapshot int64 `gorm:"-" json:"-"` // 上次数据点时的出站使用量
@@ -50,6 +52,8 @@ func (s *Server) CopyFromRunningServer(old *Server) {
 	s.LastActive = lastActive
 	s.TaskClose = old.TaskClose
 	s.TaskCloseLock = old.TaskCloseLock
+	s.TaskSendLock = old.TaskSendLock
+	s.TaskDispatchLock = old.TaskDispatchLock
 	s.TaskStream = old.TaskStream
 	s.RuntimeLock = old.RuntimeLock
 	s.PrevTransferInSnapshot = prevIn
@@ -99,14 +103,21 @@ func (s *Server) SendTask(task *pb.Task) error {
 	if s.TaskCloseLock == nil {
 		return errors.New("task stream lock is nil")
 	}
+	if s.TaskSendLock == nil {
+		return errors.New("task stream send lock is nil")
+	}
+
+	s.TaskSendLock.Lock()
+	defer s.TaskSendLock.Unlock()
 
 	s.TaskCloseLock.Lock()
-	defer s.TaskCloseLock.Unlock()
+	taskStream := s.TaskStream
+	s.TaskCloseLock.Unlock()
 
-	if s.TaskStream == nil {
+	if taskStream == nil {
 		return errors.New("task stream is nil")
 	}
-	return s.TaskStream.Send(task)
+	return taskStream.Send(task)
 }
 
 func (s *Server) AfterFind(tx *gorm.DB) error {

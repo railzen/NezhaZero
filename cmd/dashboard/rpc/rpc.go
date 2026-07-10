@@ -162,7 +162,15 @@ func DispatchTask(serviceSentinelDispatchBus <-chan model.Monitor) {
 		}
 		singleton.SortedServerLock.RUnlock()
 		for _, server := range servers {
-			server.SendTask(task.PB())
+			dispatchLock := server.TaskDispatchLock
+			if dispatchLock == nil || !dispatchLock.TryLock() {
+				continue
+			}
+			monitorTask := task.PB()
+			go func(server *model.Server) {
+				defer dispatchLock.Unlock()
+				_ = server.SendTask(monitorTask)
+			}(server)
 		}
 	}
 }
@@ -180,7 +188,14 @@ func DispatchKeepalive() {
 		}
 		singleton.SortedServerLock.RUnlock()
 		for _, server := range servers {
-			server.SendTask(&pb.Task{Type: model.TaskTypeKeepalive})
+			dispatchLock := server.TaskDispatchLock
+			if dispatchLock == nil || !dispatchLock.TryLock() {
+				continue
+			}
+			go func(server *model.Server) {
+				defer dispatchLock.Unlock()
+				_ = server.SendTask(&pb.Task{Type: model.TaskTypeKeepalive})
+			}(server)
 		}
 	})
 }

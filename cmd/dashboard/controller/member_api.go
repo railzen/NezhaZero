@@ -456,6 +456,8 @@ func (ma *memberAPI) addOrEditServer(c *gin.Context) {
 		s.Host = &model.Host{}
 		s.State = &model.HostState{}
 		s.TaskCloseLock = new(sync.Mutex)
+		s.TaskSendLock = new(sync.Mutex)
+		s.TaskDispatchLock = new(sync.Mutex)
 		s.RuntimeLock = new(sync.RWMutex)
 		singleton.ServerLock.Lock()
 		singleton.SecretToID[s.Secret] = s.ID

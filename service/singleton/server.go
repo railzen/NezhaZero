@@ -38,6 +38,8 @@ func loadServers() {
 		innerS.Host = &model.Host{}
 		innerS.State = &model.HostState{}
 		innerS.TaskCloseLock = new(sync.Mutex)
+		innerS.TaskSendLock = new(sync.Mutex)
+		innerS.TaskDispatchLock = new(sync.Mutex)
 		innerS.RuntimeLock = new(sync.RWMutex)
 		ServerList[innerS.ID] = &innerS
 		innerS.Secret = strings.TrimSpace(innerS.Secret)
