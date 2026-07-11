@@ -163,11 +163,12 @@ func DispatchTask(serviceSentinelDispatchBus <-chan model.Monitor) {
 		singleton.SortedServerLock.RUnlock()
 		for _, server := range servers {
 			dispatchLock := server.TaskDispatchLock
-			if dispatchLock == nil || !dispatchLock.TryLock() {
+			if dispatchLock == nil {
 				continue
 			}
 			monitorTask := task.PB()
 			go func(server *model.Server) {
+				dispatchLock.Lock()
 				defer dispatchLock.Unlock()
 				_ = server.SendTask(monitorTask)
 			}(server)
