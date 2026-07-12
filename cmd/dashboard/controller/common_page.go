@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/jinzhu/copier"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
-	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/railzen/nezha-zero/model"
@@ -93,12 +92,12 @@ func (p *commonPage) issueViewPassword(c *gin.Context) {
 
 	var vpf viewPasswordForm
 	err := c.ShouldBind(&vpf)
-	var hash []byte
+	var hash string
 	if err == nil && vpf.Password != singleton.Conf.Site.ViewPassword {
 		err = errors.New(singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "WrongAccessPassword"}))
 	}
 	if err == nil {
-		hash, err = bcrypt.GenerateFromPassword([]byte(vpf.Password), bcrypt.DefaultCost)
+		hash = mygin.HashViewPassword(vpf.Password)
 	}
 	if err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
@@ -112,7 +111,7 @@ func (p *commonPage) issueViewPassword(c *gin.Context) {
 		return
 	}
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(singleton.Conf.Site.CookieName+"-vp", string(hash), 60*60*24, "/", "", mygin.CookieSecure(c), true)
+	c.SetCookie(singleton.Conf.Site.CookieName+"-vp", hash, 60*60*24, "/", "", mygin.CookieSecure(c), true)
 	c.Redirect(http.StatusFound, mygin.SafeRedirectPath(c))
 }
 
