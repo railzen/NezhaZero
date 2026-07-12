@@ -542,6 +542,7 @@ modify_dashboard_config() {
             nz_oauth2_type=""
             nz_github_oauth_client_id=""
             nz_github_oauth_client_secret=""
+            printf "Oauth登陆已禁用，将配置密码登录。"
             ;;
         *)
             echo "关于 GitHub Oauth2 应用：在 https://github.com/settings/developers 创建，无需审核，Callback 填 http(s)://域名或IP/oauth2/callback"

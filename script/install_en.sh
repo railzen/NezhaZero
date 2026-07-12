@@ -542,6 +542,7 @@ modify_dashboard_config() {
             nz_oauth2_type=""
             nz_github_oauth_client_id=""
             nz_github_oauth_client_secret=""
+            printf "OAuth login has been disabled. Password login will be configured."
             ;;
         *)
             echo "About the GitHub Oauth2 application: create it at https://github.com/settings/developers, no review required, and fill in the http(s)://domain_or_IP/oauth2/callback"
