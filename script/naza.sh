@@ -644,7 +644,10 @@ modify_dashboard_config() {
     if [ "$IS_DOCKER_NEZHA" = 1 ]; then
         sed -i "s/nz_site_port/${nz_site_port}/" /tmp/nezha-docker-compose.yaml
         if [ "$nz_grpc_port" = "$nz_site_port" ]; then
+            # 如果 RPC 端口和站点访问端口相同，则将 RPC 端口设置为 80同步HTTP端口
         	sed -i "s/nz_grpc_port/5555/g" /tmp/nezha-docker-compose.yaml
+            sed -i "s/${nz_grpc_port}/80/g" /tmp/nezha-config.yaml
+            echo "proxygrpcport: ${nz_grpc_port:?nz_grpc_port 0}" >> /tmp/nezha-config.yaml
         else
 			sed -i "s/nz_grpc_port/${nz_grpc_port}/g" /tmp/nezha-docker-compose.yaml
 		fi

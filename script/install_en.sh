@@ -644,7 +644,10 @@ modify_dashboard_config() {
     if [ "$IS_DOCKER_NEZHA" = 1 ]; then
         sed -i "s/nz_site_port/${nz_site_port}/" /tmp/nezha-docker-compose.yaml
         if [ "$nz_grpc_port" = "$nz_site_port" ]; then
+			# If the RPC port and site access port are the same, set the RPC port to 80 to share the HTTP port
         	sed -i "s/nz_grpc_port/5555/g" /tmp/nezha-docker-compose.yaml
+            sed -i "s/${nz_grpc_port}/80/g" /tmp/nezha-config.yaml
+            echo "proxygrpcport: ${nz_grpc_port:?nz_grpc_port 0}" >> /tmp/nezha-config.yaml
         else
 			sed -i "s/nz_grpc_port/${nz_grpc_port}/g" /tmp/nezha-docker-compose.yaml
 		fi
