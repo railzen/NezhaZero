@@ -371,16 +371,21 @@
         const $passwordInput = $('#adminPasswordInput');
         const password = $passwordInput.val();
         const confirmPassword = $('#adminPasswordConfirmInput').val();
-        if (!renderAdminPasswordValidation(password, confirmPassword)) {
-            if (!validateAdminPassword(password).ok) {
-                $('#adminPasswordInput').focus();
-            } else {
-                $('#adminPasswordConfirmInput').focus();
+        const passwordLoginDisabled = $('.checkbox.disable-password-login').checkbox('is checked');
+        if (passwordLoginDisabled) {
+            $passwordInput.val('');
+        } else {
+            if (!renderAdminPasswordValidation(password, confirmPassword)) {
+                if (!validateAdminPassword(password).ok) {
+                    $('#adminPasswordInput').focus();
+                } else {
+                    $('#adminPasswordConfirmInput').focus();
+                }
+                return false;
             }
-            return false;
-        }
-        if (hasAdminPassword && !password) {
-            $passwordInput.val('********');
+            if (hasAdminPassword && !password) {
+                $passwordInput.val('********');
+            }
         }
         $.post('/api/setting', $('#settingForm').serialize())
             .then((resp) => {
