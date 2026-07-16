@@ -1,0 +1,851 @@
+{{define "dashboard-default/rdp"}}
+<!DOCTYPE html>
+<html lang="{{.Conf.Language}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RDP@{{.ServerName}} - {{.Title}}</title>
+    <link rel="shortcut icon" type="image/png" href="/static/logo.svg?v20210804">
+    <style>
+        html, body, #rdp-container {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: #111;
+            font-family: Arial, sans-serif;
+        }
+        #rdp-display {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #rdp-display iron-remote-desktop {
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+        #rdp-status {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            z-index: 10;
+            transform: translate(-50%, -50%);
+            padding: 12px 18px;
+            border-radius: 6px;
+            color: #fff;
+            background: rgba(0, 0, 0, .75);
+            font-size: 14px;
+            line-height: 1.5;
+            text-align: center;
+        }
+        #rdp-credential-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, .62);
+            backdrop-filter: blur(3px);
+        }
+        #rdp-credential-dialog {
+            width: min(400px, 100%);
+            box-sizing: border-box;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 10px;
+            color: #eee;
+            background: #202124;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, .5);
+        }
+        #rdp-credential-dialog h2 {
+            margin: 0 0 6px;
+            font-size: 20px;
+        }
+        #rdp-credential-dialog .server-name {
+            margin: 0 0 20px;
+            color: #aaa;
+            font-size: 13px;
+        }
+        #rdp-credential-dialog label {
+            display: block;
+            margin: 12px 0 6px;
+            color: #ddd;
+            font-size: 13px;
+        }
+        #rdp-credential-dialog input {
+            width: 100%;
+            height: 40px;
+            box-sizing: border-box;
+            padding: 0 11px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            outline: none;
+            color: #fff;
+            background: #121212;
+        }
+        #rdp-credential-dialog input:focus {
+            border-color: #2185d0;
+        }
+        #rdp-credential-dialog .credential-hint {
+            margin: 6px 0 0;
+            color: #999;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        #rdp-credential-error {
+            display: none;
+            margin: 14px 0 0;
+            color: #ff8a80;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .rdp-dialog-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .rdp-dialog-actions button {
+            height: 40px;
+            border: 0;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        #rdp-cancel {
+            flex: 0 0 90px;
+            color: #ddd;
+            background: #444;
+        }
+        #rdp-submit {
+            flex: 1;
+            color: #fff;
+            background: #2185d0;
+        }
+        #rdp-submit:disabled {
+            cursor: wait;
+            opacity: .65;
+        }
+        #rdp-toolbar {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 15;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #rdp-toolbar.collapsed .rdp-secondary-tool {
+            display: none;
+        }
+        #rdp-toolbar.collapsed:hover .rdp-secondary-tool:not(:disabled) {
+            display: grid;
+        }
+        .rdp-tool-button {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            padding: 0;
+            border: 1px solid rgba(255, 255, 255, .24);
+            border-radius: 7px;
+            color: #eee;
+            background: rgba(32, 33, 36, .58);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, .22);
+            backdrop-filter: blur(5px);
+            cursor: pointer;
+        }
+        .rdp-tool-button:hover:not(:disabled),
+        .rdp-tool-button.active {
+            color: #fff;
+            border-color: #2185d0;
+            background: rgba(33, 133, 208, .82);
+        }
+        .rdp-tool-button:disabled {
+            cursor: not-allowed;
+            opacity: .4;
+        }
+        .rdp-tool-button svg {
+            width: 21px;
+            height: 21px;
+            fill: none;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.8;
+        }
+        #rdp-hotkey-menu {
+            position: fixed;
+            right: 74px;
+            bottom: 74px;
+            z-index: 16;
+            width: 180px;
+            padding: 6px;
+            border: 1px solid rgba(255, 255, 255, .16);
+            border-radius: 8px;
+            background: rgba(32, 33, 36, .88);
+            backdrop-filter: blur(7px);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, .5);
+        }
+        #rdp-hotkey-menu[hidden] {
+            display: none;
+        }
+        #rdp-hotkey-menu button {
+            width: 100%;
+            padding: 9px 10px;
+            border: 0;
+            border-radius: 5px;
+            color: #eee;
+            background: transparent;
+            text-align: left;
+            cursor: pointer;
+        }
+        #rdp-hotkey-menu button:hover {
+            background: #34363a;
+        }
+        .rdp-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 30;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, .62);
+        }
+        .rdp-modal {
+            width: min(520px, 100%);
+            box-sizing: border-box;
+            padding: 22px;
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 10px;
+            color: #eee;
+            background: #202124;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, .5);
+        }
+        .rdp-modal h2 {
+            margin: 0 0 14px;
+            font-size: 19px;
+        }
+        #rdp-clipboard-text {
+            width: 100%;
+            min-height: 210px;
+            box-sizing: border-box;
+            padding: 10px;
+            resize: vertical;
+            border: 1px solid #555;
+            border-radius: 5px;
+            outline: none;
+            color: #fff;
+            background: #121212;
+            font: 14px/1.45 monospace;
+        }
+        #rdp-clipboard-message {
+            min-height: 18px;
+            margin: 8px 0 0;
+            color: #9ecfff;
+            font-size: 13px;
+        }
+        .rdp-clipboard-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .rdp-clipboard-actions button {
+            min-height: 38px;
+            padding: 0 13px;
+            border: 0;
+            border-radius: 5px;
+            color: #eee;
+            background: #444;
+            cursor: pointer;
+        }
+        .rdp-clipboard-actions .primary {
+            margin-left: auto;
+            color: #fff;
+            background: #2185d0;
+        }
+        @media (max-width: 640px) {
+            #rdp-toolbar { right: 12px; bottom: 12px; }
+            #rdp-hotkey-menu { right: 62px; bottom: 62px; }
+        }
+        :fullscreen #rdp-toolbar,
+        :-webkit-full-screen #rdp-toolbar {
+            display: none !important;
+        }
+        :fullscreen #rdp-hotkey-menu,
+        :-webkit-full-screen #rdp-hotkey-menu {
+            display: none !important;
+        }
+        :fullscreen #rdp-credential-overlay,
+        :fullscreen #rdp-clipboard-overlay,
+        :-webkit-full-screen #rdp-credential-overlay,
+        :-webkit-full-screen #rdp-clipboard-overlay {
+            z-index: 2147483647;
+        }
+    </style>
+</head>
+<body>
+    <div id="rdp-container">
+        <div id="rdp-display"></div>
+        <div id="rdp-status">等待输入远程桌面凭据…</div>
+    </div>
+
+    <div id="rdp-toolbar" class="collapsed" aria-label="远程桌面工具栏">
+        <button id="rdp-fullscreen" class="rdp-tool-button rdp-secondary-tool" type="button" title="切换全屏" aria-label="切换全屏" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
+        </button>
+        <button id="rdp-clipboard" class="rdp-tool-button rdp-secondary-tool" type="button" title="剪贴板" aria-label="剪贴板" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        </button>
+        <button id="rdp-hotkeys" class="rdp-tool-button rdp-secondary-tool" type="button" title="发送组合键" aria-label="发送组合键" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h.01M11 9h.01M15 9h.01M18 9h.01M7 13h.01M11 13h.01M15 13h3M7 16h10"/></svg>
+        </button>
+        <button id="rdp-tools-toggle" class="rdp-tool-button" type="button" title="展开工具栏" aria-label="展开工具栏" aria-expanded="false" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
+        </button>
+    </div>
+
+    <div id="rdp-hotkey-menu" hidden>
+        <button type="button" data-action="ctrl-alt-delete">Ctrl + Alt + Delete</button>
+        <button type="button" data-action="ctrl-alt-backspace">Ctrl + Alt + Backspace</button>
+        <button type="button" data-action="windows-d">Windows + D</button>
+        <button type="button" data-action="windows-e">Windows + E</button>
+        <button type="button" data-action="windows-r">Windows + R</button>
+        <button type="button" data-action="windows-x">Windows + X</button>
+        <button type="button" data-action="windows">Windows</button>
+    </div>
+
+    <div id="rdp-clipboard-overlay" class="rdp-modal-overlay">
+        <div class="rdp-modal" role="dialog" aria-modal="true" aria-labelledby="rdp-clipboard-title">
+            <h2 id="rdp-clipboard-title">剪贴板</h2>
+            <textarea id="rdp-clipboard-text" placeholder="远程剪贴板文本会显示在这里，也可以输入要发送到远程桌面的文本。"></textarea>
+            <p id="rdp-clipboard-message"></p>
+            <div class="rdp-clipboard-actions">
+                <button id="rdp-clipboard-remote" type="button">读取远端</button>
+                <button id="rdp-clipboard-read" type="button">读取本机</button>
+                <button id="rdp-clipboard-copy" type="button">复制到本机</button>
+                <button id="rdp-clipboard-close" type="button">关闭</button>
+                <button id="rdp-clipboard-send" class="primary" type="button">发送到远程</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="rdp-credential-overlay">
+        <form id="rdp-credential-dialog" autocomplete="off" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
+            <h2>连接远程桌面</h2>
+            <p class="server-name">{{.ServerName}}</p>
+            <input type="hidden" name="ID" value="{{.ServerID}}">
+
+            <label for="rdp-username">用户名</label>
+            <input id="rdp-username" type="text" name="Username" autocomplete="off" autocapitalize="none" spellcheck="false" data-rdp-credential data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" maxlength="256" required readonly>
+
+            <label for="rdp-domain">域（可选）</label>
+            <input id="rdp-domain" type="text" name="Domain" placeholder="例如 MicrosoftAccount 或 AD 域" autocomplete="off" autocapitalize="none" spellcheck="false" data-rdp-credential data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" maxlength="256" readonly>
+            <p class="credential-hint">Outlook、Hotmail、Live、MSN 账号会自动识别；使用其他邮箱注册的微软账号请填写 MicrosoftAccount。</p>
+
+            <label for="rdp-password">密码</label>
+            <input id="rdp-password" type="password" name="Password" autocomplete="off" data-rdp-credential data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" maxlength="1024" required readonly>
+
+            <p id="rdp-credential-error"></p>
+            <div class="rdp-dialog-actions">
+                <button id="rdp-cancel" type="button">取消</button>
+                <button id="rdp-submit" type="submit">连接</button>
+            </div>
+        </form>
+    </div>
+
+    <script type="module">
+        import "/static/cdn/iron-remote-desktop@0.7.0-nezha1/iron-remote-desktop.js";
+        import {Backend, displayControl, init} from "/static/cdn/iron-remote-desktop-rdp@0.7.0-nezha1/iron-remote-desktop-rdp.js";
+
+        (async function () {
+            const displayContainer = document.getElementById('rdp-display');
+            const status = document.getElementById('rdp-status');
+            const overlay = document.getElementById('rdp-credential-overlay');
+            const form = document.getElementById('rdp-credential-dialog');
+            const usernameInput = document.getElementById('rdp-username');
+            const passwordInput = document.getElementById('rdp-password');
+            const domainInput = document.getElementById('rdp-domain');
+            const errorElement = document.getElementById('rdp-credential-error');
+            const submitButton = document.getElementById('rdp-submit');
+            const toolbar = document.getElementById('rdp-toolbar');
+            const toolbarButtons = Array.from(document.querySelectorAll('.rdp-tool-button'));
+            const toolToggleButton = document.getElementById('rdp-tools-toggle');
+            const fullscreenButton = document.getElementById('rdp-fullscreen');
+            const clipboardButton = document.getElementById('rdp-clipboard');
+            const clipboardOverlay = document.getElementById('rdp-clipboard-overlay');
+            const clipboardText = document.getElementById('rdp-clipboard-text');
+            const clipboardMessage = document.getElementById('rdp-clipboard-message');
+            const hotkeyButton = document.getElementById('rdp-hotkeys');
+            const hotkeyMenu = document.getElementById('rdp-hotkey-menu');
+            const scheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const usernameStorageKey = 'nezha-rdp-username:' + form.elements.ID.value;
+            let userInteraction = null;
+            let active = false;
+            let connecting = false;
+            let resizeTimer = 0;
+            let lastRemoteWidth = 0;
+            let lastRemoteHeight = 0;
+            let attemptedUsername = '';
+            let lastSessionError = '';
+            let remoteClipboardAvailable = false;
+            let remoteClipboardText = '';
+            let savedUsername = loadSavedUsername();
+
+            submitButton.disabled = true;
+            submitButton.textContent = '正在初始化…';
+            showStatus('正在初始化 IronRDP…');
+            try {
+                await init('INFO');
+            } catch (error) {
+                const message = 'IronRDP 初始化失败：' + ((error && error.message) || String(error));
+                showStatus(message);
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+                return;
+            }
+            submitButton.disabled = false;
+            submitButton.textContent = '连接';
+            showStatus('等待输入远程桌面凭据…');
+
+            const desktop = document.createElement('iron-remote-desktop');
+            desktop.setAttribute('scale', 'fit');
+            desktop.setAttribute('flexcenter', 'true');
+            desktop.setAttribute('verbose', 'false');
+            desktop.module = Backend;
+            desktop.addEventListener('ready', function (event) {
+                userInteraction = event.detail.irgUserInteraction;
+                userInteraction.setEnableClipboard(true);
+                userInteraction.onRemoteClipboardText(function (text) {
+                    remoteClipboardText = text;
+                    remoteClipboardAvailable = true;
+                    if (clipboardOverlay.style.display === 'flex') readRemoteClipboard();
+                });
+                userInteraction.onSessionEvent(handleSessionEvent);
+            }, {once: true});
+            displayContainer.replaceChildren(desktop);
+
+            function showStatus(message) {
+                status.textContent = message;
+                status.style.display = 'block';
+            }
+
+            function loadSavedUsername() {
+                try {
+                    return localStorage.getItem(usernameStorageKey) || '';
+                } catch (_error) {
+                    return '';
+                }
+            }
+
+            function saveSuccessfulUsername(username) {
+                username = String(username || '').trim();
+                if (!username) return;
+                try {
+                    localStorage.setItem(usernameStorageKey, username);
+                    savedUsername = username;
+                } catch (_error) {
+                    // localStorage can be unavailable in private browser contexts.
+                }
+            }
+
+            function focusCredentialInput() {
+                (savedUsername ? passwordInput : usernameInput).focus({preventScroll: true});
+            }
+
+            function focusRemote() {
+                const canvas = desktop.shadowRoot && desktop.shadowRoot.querySelector('canvas');
+                if (canvas) canvas.focus({preventScroll: true});
+            }
+
+            function setControlsEnabled(enabled) {
+                toolbarButtons.forEach(function (button) {
+                    button.disabled = !enabled;
+                });
+                if (!enabled) {
+                    toolbar.classList.add('collapsed');
+                    toolToggleButton.setAttribute('aria-expanded', 'false');
+                    toolToggleButton.title = '展开工具栏';
+                    hotkeyMenu.hidden = true;
+                    hotkeyButton.classList.remove('active');
+                    clipboardOverlay.style.display = 'none';
+                }
+            }
+
+            function showCredentialDialog(message) {
+                if (message) {
+                    errorElement.textContent = message;
+                    errorElement.style.display = 'block';
+                } else {
+                    errorElement.style.display = 'none';
+                }
+                passwordInput.value = '';
+                submitButton.disabled = false;
+                submitButton.textContent = '连接';
+                setControlsEnabled(false);
+                overlay.style.display = 'flex';
+                focusCredentialInput();
+            }
+
+            function clearDisconnectedDisplay() {
+                active = false;
+                connecting = false;
+                clearTimeout(resizeTimer);
+                resizeTimer = 0;
+                lastRemoteWidth = 0;
+                lastRemoteHeight = 0;
+                if (userInteraction) userInteraction.setVisibility(false);
+                desktop.style.visibility = 'hidden';
+                displayContainer.style.background = '#000';
+                clipboardText.value = '';
+                remoteClipboardAvailable = false;
+                remoteClipboardText = '';
+                setClipboardMessage('', false);
+                setControlsEnabled(false);
+            }
+
+            function handleSessionEvent(event) {
+                if (event.type === 0) {
+                    active = true;
+                    connecting = false;
+                    lastSessionError = '';
+                    saveSuccessfulUsername(attemptedUsername);
+                    desktop.style.visibility = 'visible';
+                    userInteraction.setVisibility(true);
+                    setControlsEnabled(true);
+                    status.style.display = 'none';
+                    resizeRemote();
+                    setTimeout(focusRemote, 0);
+                    return;
+                }
+                if (event.type === 2) {
+                    try {
+                        lastSessionError = event.data && event.data.backtrace ? event.data.backtrace() : '';
+                    } catch (_error) {
+                        lastSessionError = '';
+                    }
+                    return;
+                }
+                if (event.type === 1) {
+                    const hadSession = active;
+                    clearDisconnectedDisplay();
+                    showStatus(hadSession ? '远程桌面连接已断开' : '远程桌面连接未能建立');
+                    showCredentialDialog(hadSession
+                        ? '远程桌面连接已断开，请重新连接。'
+                        : (lastSessionError || '连接未能建立，请检查用户名、密码和域。'));
+                }
+            }
+
+            function normalizeIdentity(username, domain) {
+                username = username.trim();
+                domain = domain.trim();
+                const separator = username.indexOf('\\');
+                if (separator > 0 && separator < username.length - 1) {
+                    const embeddedDomain = username.slice(0, separator).trim();
+                    username = username.slice(separator + 1).trim();
+                    if (!domain) domain = embeddedDomain;
+                }
+                // Consumer Microsoft accounts authenticate as the down-level
+                // MicrosoftAccount domain plus the complete email address. AD
+                // UPNs keep an empty separate domain and are sent unchanged.
+                if (username.includes('@')) {
+                    const microsoftConsumer = /@(outlook|hotmail|live|msn)\.[a-z0-9.-]+$/i.test(username);
+                    if (domain.toLowerCase() === 'microsoftaccount' || (!domain && microsoftConsumer)) {
+                        domain = 'MicrosoftAccount';
+                    } else {
+                        domain = '';
+                    }
+                }
+                return {username, domain};
+            }
+
+            function csrfToken() {
+                const match = document.cookie.match(new RegExp('(^| )nz-csrf=([^;]+)'));
+                return match ? decodeURIComponent(match[2]) : '';
+            }
+
+            function desktopMetrics() {
+                // MS-RDPEDISP requires an even width in the 200-8192 range,
+                // and a height in the same range. Browser pixel density must
+                // not be sent as the remote Windows desktop scale factor.
+                let width = Math.min(8192, Math.max(320, Math.floor(window.innerWidth)));
+                width -= width % 2;
+                const height = Math.min(8192, Math.max(320, Math.floor(window.innerHeight)));
+                return {width, height};
+            }
+
+            async function startRDP(sessionID, username, password, domain) {
+                if (!userInteraction) {
+                    throw new Error('IronRDP 客户端尚未初始化，请稍后重试');
+                }
+                const identity = normalizeIdentity(username, domain);
+                const metrics = desktopMetrics();
+                const config = userInteraction.configBuilder()
+                    .withUsername(identity.username)
+                    .withPassword(password)
+                    .withDestination('localhost')
+                    .withProxyAddress(scheme + window.location.host + '/rdp/ws/' + encodeURIComponent(sessionID))
+                    .withServerDomain(identity.domain)
+                    .withAuthToken(sessionID)
+                    .withDesktopSize({width: metrics.width, height: metrics.height})
+                    .withExtension(displayControl(true))
+                    .build();
+                password = '';
+                passwordInput.value = '';
+                lastSessionError = '';
+                connecting = true;
+                lastRemoteWidth = metrics.width;
+                lastRemoteHeight = metrics.height;
+                desktop.style.visibility = 'hidden';
+                displayContainer.style.background = '#000';
+                await userInteraction.connect(config);
+            }
+
+            function resizeRemote() {
+                if (!active || !userInteraction) return;
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function () {
+                    if (!active || !userInteraction) return;
+                    const metrics = desktopMetrics();
+                    if (metrics.width === lastRemoteWidth &&
+                        metrics.height === lastRemoteHeight) return;
+                    try {
+                        userInteraction.resize(metrics.width, metrics.height);
+                        lastRemoteWidth = metrics.width;
+                        lastRemoteHeight = metrics.height;
+                    } catch (error) {
+                        console.error('IronRDP resize failed', error);
+                    }
+                }, 200);
+            }
+
+            function setClipboardMessage(message, isError) {
+                clipboardMessage.textContent = message || '';
+                clipboardMessage.style.color = isError ? '#ff8a80' : '#9ecfff';
+            }
+
+            function readRemoteClipboard() {
+                if (!active || !userInteraction) return;
+                try {
+                    if (!remoteClipboardAvailable) throw new Error('远端剪贴板中没有可读取的文本。');
+                    clipboardText.value = remoteClipboardText;
+                    remoteClipboardAvailable = false;
+                    setClipboardMessage('已读取远端剪贴板。', false);
+                } catch (error) {
+                    setClipboardMessage((error && error.backtrace && error.backtrace()) ||
+                        (error && error.message) || '远端剪贴板中没有可读取的文本。', true);
+                }
+            }
+
+            function dispatchKey(code, key, down, modifiers) {
+                focusRemote();
+                window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', {
+                    bubbles: true,
+                    cancelable: true,
+                    code,
+                    key,
+                    ctrlKey: Boolean(modifiers && modifiers.ctrl),
+                    altKey: Boolean(modifiers && modifiers.alt),
+                    metaKey: Boolean(modifiers && modifiers.meta)
+                }));
+            }
+
+            function sendCombination(action) {
+                if (!active || !userInteraction) return;
+                if (action === 'ctrl-alt-delete') {
+                    userInteraction.ctrlAltDel();
+                } else if (action === 'windows') {
+                    userInteraction.metaKey();
+                } else if (action === 'ctrl-alt-backspace') {
+                    dispatchKey('ControlLeft', 'Control', true, {ctrl: true});
+                    dispatchKey('AltLeft', 'Alt', true, {ctrl: true, alt: true});
+                    dispatchKey('Backspace', 'Backspace', true, {ctrl: true, alt: true});
+                    dispatchKey('Backspace', 'Backspace', false, {ctrl: true, alt: true});
+                    dispatchKey('AltLeft', 'Alt', false, {ctrl: true});
+                    dispatchKey('ControlLeft', 'Control', false, {});
+                } else if (action.startsWith('windows-')) {
+                    const key = action.slice('windows-'.length).toUpperCase();
+                    dispatchKey('MetaLeft', 'Meta', true, {meta: true});
+                    dispatchKey('Key' + key, key.toLowerCase(), true, {meta: true});
+                    dispatchKey('Key' + key, key.toLowerCase(), false, {meta: true});
+                    dispatchKey('MetaLeft', 'Meta', false, {});
+                }
+                focusRemote();
+            }
+
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                if (connecting) return;
+                errorElement.style.display = 'none';
+                submitButton.disabled = true;
+                submitButton.textContent = '正在连接…';
+                attemptedUsername = usernameInput.value.trim();
+                const password = passwordInput.value;
+                const domain = domainInput.value;
+
+                try {
+                    const token = csrfToken();
+                    const response = await fetch('/rdp/connect', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                            ...(token ? {'X-CSRF-Token': token} : {})
+                        },
+                        body: new URLSearchParams({ID: form.elements.ID.value}).toString()
+                    });
+                    const result = await response.json().catch(function () { return {}; });
+                    if (!response.ok || !result.session_id) {
+                        throw new Error(result.error || '无法创建远程桌面会话');
+                    }
+                    overlay.style.display = 'none';
+                    showStatus('正在通过 IronRDP 连接 {{.ServerName}}…');
+                    await startRDP(result.session_id, attemptedUsername, password, domain);
+                } catch (error) {
+                    clearDisconnectedDisplay();
+                    showCredentialDialog(lastSessionError || (error && error.message) || '无法建立远程桌面连接');
+                }
+            });
+
+            form.querySelectorAll('[data-rdp-credential]').forEach(function (input) {
+                input.addEventListener('focus', function () {
+                    setTimeout(function () { input.readOnly = false; }, 0);
+                });
+                input.addEventListener('blur', function () {
+                    input.readOnly = true;
+                });
+            });
+
+            fullscreenButton.addEventListener('click', async function () {
+                try {
+                    if (document.fullscreenElement) await document.exitFullscreen();
+                    else await document.body.requestFullscreen();
+                } catch (error) {
+                    showStatus('浏览器无法切换全屏：' + ((error && error.message) || '权限不足'));
+                }
+                focusRemote();
+            });
+            document.addEventListener('fullscreenchange', function () {
+                fullscreenButton.classList.toggle('active', Boolean(document.fullscreenElement));
+                fullscreenButton.title = document.fullscreenElement ? '退出全屏' : '切换全屏';
+                hotkeyMenu.hidden = true;
+                hotkeyButton.classList.remove('active');
+                resizeRemote();
+            });
+
+            clipboardButton.addEventListener('click', async function () {
+                if (!active) return;
+                setClipboardMessage('', false);
+                clipboardOverlay.style.display = 'flex';
+                if (remoteClipboardAvailable) {
+                    readRemoteClipboard();
+                    clipboardText.focus();
+                    return;
+                }
+                try {
+                    if (navigator.clipboard && navigator.clipboard.readText) {
+                        clipboardText.value = await navigator.clipboard.readText();
+                    }
+                } catch (_error) {
+                    // Clipboard permission can be granted by the explicit buttons below.
+                }
+                clipboardText.focus();
+            });
+            document.getElementById('rdp-clipboard-remote').addEventListener('click', function () {
+                readRemoteClipboard();
+                clipboardText.focus();
+            });
+            document.getElementById('rdp-clipboard-read').addEventListener('click', async function () {
+                try {
+                    if (!navigator.clipboard || !navigator.clipboard.readText) {
+                        throw new Error('浏览器不支持读取剪贴板，请使用 HTTPS 或手动粘贴。');
+                    }
+                    clipboardText.value = await navigator.clipboard.readText();
+                    setClipboardMessage('已读取本机剪贴板。', false);
+                } catch (error) {
+                    setClipboardMessage((error && error.message) || '无法读取本机剪贴板。', true);
+                }
+            });
+            document.getElementById('rdp-clipboard-copy').addEventListener('click', async function () {
+                try {
+                    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+                        throw new Error('浏览器不支持写入剪贴板，请手动复制文本。');
+                    }
+                    await navigator.clipboard.writeText(clipboardText.value);
+                    setClipboardMessage('已复制到本机剪贴板。', false);
+                } catch (error) {
+                    setClipboardMessage((error && error.message) || '无法写入本机剪贴板。', true);
+                }
+            });
+            document.getElementById('rdp-clipboard-send').addEventListener('click', async function () {
+                try {
+                    if (!active || !userInteraction) throw new Error('远程桌面尚未连接。');
+                    await userInteraction.sendClipboardText(clipboardText.value);
+                    setClipboardMessage('已发送到远端剪贴板。', false);
+                    focusRemote();
+                } catch (error) {
+                    setClipboardMessage((error && error.message) || '无法发送剪贴板。', true);
+                }
+            });
+            document.getElementById('rdp-clipboard-close').addEventListener('click', function () {
+                clipboardOverlay.style.display = 'none';
+                focusRemote();
+            });
+            clipboardOverlay.addEventListener('click', function (event) {
+                if (event.target === clipboardOverlay) {
+                    clipboardOverlay.style.display = 'none';
+                    focusRemote();
+                }
+            });
+
+            hotkeyButton.addEventListener('click', function () {
+                if (!active) return;
+                hotkeyMenu.hidden = !hotkeyMenu.hidden;
+                hotkeyButton.classList.toggle('active', !hotkeyMenu.hidden);
+            });
+            hotkeyMenu.addEventListener('click', function (event) {
+                const button = event.target.closest('button[data-action]');
+                if (!button) return;
+                sendCombination(button.dataset.action);
+                hotkeyMenu.hidden = true;
+                hotkeyButton.classList.remove('active');
+            });
+            document.addEventListener('click', function (event) {
+                if (!hotkeyMenu.hidden && !hotkeyMenu.contains(event.target) && !hotkeyButton.contains(event.target)) {
+                    hotkeyMenu.hidden = true;
+                    hotkeyButton.classList.remove('active');
+                }
+            });
+
+            toolToggleButton.addEventListener('click', function () {
+                const collapsed = toolbar.classList.toggle('collapsed');
+                toolToggleButton.setAttribute('aria-expanded', String(!collapsed));
+                toolToggleButton.title = collapsed ? '展开工具栏' : '收起工具栏';
+                hotkeyMenu.hidden = true;
+                hotkeyButton.classList.remove('active');
+                focusRemote();
+            });
+
+            document.getElementById('rdp-cancel').addEventListener('click', function () {
+                window.close();
+            });
+            window.addEventListener('resize', resizeRemote);
+            window.addEventListener('beforeunload', function () {
+                if (userInteraction && (active || connecting)) userInteraction.shutdown();
+            });
+            if (savedUsername) usernameInput.value = savedUsername;
+            focusCredentialInput();
+        })();
+    </script>
+
+</body>
+</html>
+{{end}}

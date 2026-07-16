@@ -47,3 +47,24 @@ func TestLookupIP(t *testing.T) {
 		t.Errorf("ResolveIPAddr failed: %v", err)
 	}
 }
+
+func TestRDPFeatureEnabled(t *testing.T) {
+	tests := []struct {
+		name    string
+		goos    string
+		enabled bool
+		want    bool
+	}{
+		{name: "Windows defaults off", goos: "windows", enabled: false, want: false},
+		{name: "Windows explicitly enabled", goos: "windows", enabled: true, want: true},
+		{name: "non-Windows remains off", goos: "linux", enabled: true, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := rdpFeatureEnabled(tt.goos, tt.enabled); got != tt.want {
+				t.Fatalf("rdpFeatureEnabled(%q, %t) = %t, want %t", tt.goos, tt.enabled, got, tt.want)
+			}
+		})
+	}
+}

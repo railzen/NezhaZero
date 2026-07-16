@@ -23,6 +23,7 @@ import (
 	"github.com/railzen/nezha-zero/pkg/utils"
 	"github.com/railzen/nezha-zero/proto"
 	"github.com/railzen/nezha-zero/resource"
+	rdpservice "github.com/railzen/nezha-zero/service/rdp"
 	"github.com/railzen/nezha-zero/service/rpc"
 	"github.com/railzen/nezha-zero/service/singleton"
 )
@@ -99,7 +100,7 @@ func ServeWeb(port uint) *http.Server {
 
 func routers(r *gin.Engine) {
 	// 通用页面
-	cp := commonPage{r: r}
+	cp := commonPage{r: r, rdp: rdpservice.NewManager()}
 	cp.serve()
 	// 游客页面
 	gp := guestPage{r}
@@ -225,6 +226,7 @@ func loadTemplates(tmpl *template.Template, themeDir string) *template.Template 
 }
 
 var funcMap = template.FuncMap{
+	"isWindows": rdpservice.IsWindowsPlatform,
 	"tr": func(id string, dataAndCount ...interface{}) string {
 		conf := i18n.LocalizeConfig{
 			MessageID: id,

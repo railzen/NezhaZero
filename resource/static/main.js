@@ -426,6 +426,10 @@ function connectToServer(id) {
   post('/terminal', { Host: window.location.host, Protocol: window.location.protocol, ID: id })
 }
 
+function connectRDP(id) {
+  post('/rdp', { ID: id })
+}
+
 function post(path, params, method = 'post') {
   const form = document.createElement('form');
   form.method = method;

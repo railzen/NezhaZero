@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"fmt"
+	stdnet "net"
 	"os/exec"
 	"runtime"
 	"sort"
@@ -71,7 +72,60 @@ var (
 
 var (
 	updateTempStatus = new(atomic.Bool)
+	rdpProbeMu       sync.Mutex
+	rdpProbeAt       time.Time
+	rdpAvailable     bool
+	rdpEnabled       bool
+	rdpLocalAddress  = func() (string, error) {
+		return "", fmt.Errorf("Windows remote desktop is not supported on this platform")
+	}
 )
+
+const rdpProbeInterval = 30 * time.Second
+
+// SetRDPEnabled controls Windows RDP availability probing and reporting.
+func SetRDPEnabled(enabled bool) {
+	rdpProbeMu.Lock()
+	if rdpEnabled != enabled {
+		rdpProbeAt = time.Time{}
+	}
+	rdpEnabled = enabled
+	if !enabled {
+		rdpAvailable = false
+	}
+	rdpProbeMu.Unlock()
+}
+
+// RDPLocalAddress returns the configured loopback endpoint for the Windows RDP service.
+func RDPLocalAddress() (string, error) {
+	return rdpLocalAddress()
+}
+
+func getRDPAvailable() bool {
+	rdpProbeMu.Lock()
+	defer rdpProbeMu.Unlock()
+	if !rdpEnabled {
+		return false
+	}
+	if time.Since(rdpProbeAt) < rdpProbeInterval {
+		return rdpAvailable
+	}
+	rdpProbeAt = time.Now()
+
+	address, err := RDPLocalAddress()
+	if err != nil {
+		rdpAvailable = false
+		return false
+	}
+	conn, err := stdnet.DialTimeout("tcp", address, 500*time.Millisecond)
+	if err != nil {
+		rdpAvailable = false
+		return false
+	}
+	_ = conn.Close()
+	rdpAvailable = true
+	return true
+}
 
 func InitConfig(cfg *model.AgentConfig) {
 	agentConfig = cfg
@@ -175,6 +229,7 @@ func GetHost() *model.Host {
 
 func GetState(skipConnectionCount bool, skipProcsCount bool) *model.HostState {
 	var ret model.HostState
+	ret.RDPAvailable = getRDPAvailable()
 
 	statDataMu.Lock()
 	shouldFetchCPU := statDataFetchAttempts["CPU"] < maxDeviceDataFetchAttempts

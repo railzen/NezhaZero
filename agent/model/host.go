@@ -27,6 +27,7 @@ type HostState struct {
 	ProcessCount   uint64
 	Temperatures   []SensorTemperature
 	GPU            float64
+	RDPAvailable   bool `json:"-"`
 }
 
 func (s *HostState) PB() *pb.State {
@@ -56,6 +57,7 @@ func (s *HostState) PB() *pb.State {
 		ProcessCount:   s.ProcessCount,
 		Temperatures:   ts,
 		Gpu:            s.GPU,
+		RdpAvailable:   s.RDPAvailable,
 	}
 }
 

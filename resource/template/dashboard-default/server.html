@@ -123,6 +123,13 @@ table.ui.basic.table th:nth-child(5) {
                             <button class="ui button" onclick="connectToServer({{$server.ID}})">
                                 <i class="terminal icon"></i>
                             </button>
+                            {{if and $server.Host $server.State}}
+                                {{if and (isWindows $server.Host.Platform) $server.State.RDPAvailable}}
+                                <button class="ui button" onclick="connectRDP({{$server.ID}})" title="Remote Desktop">
+                                    <i class="desktop icon"></i>
+                                </button>
+                                {{end}}
+                            {{end}}
                             <button class="ui button" onclick="addOrEditServer({{$server.MarshalForDashboard}})">
                                 <i class="edit icon"></i>
                             </button>

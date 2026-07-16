@@ -284,6 +284,7 @@ type State struct {
 	ProcessCount   uint64                     `protobuf:"varint,16,opt,name=process_count,json=processCount,proto3" json:"process_count,omitempty"`
 	Temperatures   []*State_SensorTemperature `protobuf:"bytes,17,rep,name=temperatures,proto3" json:"temperatures,omitempty"`
 	Gpu            float64                    `protobuf:"fixed64,18,opt,name=gpu,proto3" json:"gpu,omitempty"`
+	RdpAvailable   bool                       `protobuf:"varint,19,opt,name=rdp_available,json=rdpAvailable,proto3" json:"rdp_available,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -435,6 +436,13 @@ func (x *State) GetGpu() float64 {
 		return x.Gpu
 	}
 	return 0
+}
+
+func (x *State) GetRdpAvailable() bool {
+	if x != nil {
+		return x.RdpAvailable
+	}
+	return false
 }
 
 type State_SensorTemperature struct {
@@ -792,7 +800,7 @@ const file_proto_nezha_proto_rawDesc = "" +
 	" \x01(\tR\x02ip\x12!\n" +
 	"\fcountry_code\x18\v \x01(\tR\vcountryCode\x12\x18\n" +
 	"\aversion\x18\f \x01(\tR\aversion\x12\x10\n" +
-	"\x03gpu\x18\r \x03(\tR\x03gpu\"\xa9\x04\n" +
+	"\x03gpu\x18\r \x03(\tR\x03gpu\"\xce\x04\n" +
 	"\x05State\x12\x10\n" +
 	"\x03cpu\x18\x01 \x01(\x01R\x03cpu\x12\x19\n" +
 	"\bmem_used\x18\x03 \x01(\x04R\amemUsed\x12\x1b\n" +
@@ -812,7 +820,8 @@ const file_proto_nezha_proto_rawDesc = "" +
 	"\x0eudp_conn_count\x18\x0f \x01(\x04R\fudpConnCount\x12#\n" +
 	"\rprocess_count\x18\x10 \x01(\x04R\fprocessCount\x12B\n" +
 	"\ftemperatures\x18\x11 \x03(\v2\x1e.proto.State_SensorTemperatureR\ftemperatures\x12\x10\n" +
-	"\x03gpu\x18\x12 \x01(\x01R\x03gpu\"O\n" +
+	"\x03gpu\x18\x12 \x01(\x01R\x03gpu\x12#\n" +
+	"\rrdp_available\x18\x13 \x01(\bR\frdpAvailable\"O\n" +
 	"\x17State_SensorTemperature\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vtemperature\x18\x02 \x01(\x01R\vtemperature\">\n" +

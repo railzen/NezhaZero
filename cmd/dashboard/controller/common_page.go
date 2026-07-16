@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,6 +22,7 @@ import (
 	"github.com/railzen/nezha-zero/pkg/utils"
 	"github.com/railzen/nezha-zero/pkg/websocketx"
 	"github.com/railzen/nezha-zero/proto"
+	rdpservice "github.com/railzen/nezha-zero/service/rdp"
 	"github.com/railzen/nezha-zero/service/rpc"
 	"github.com/railzen/nezha-zero/service/singleton"
 )
@@ -28,6 +30,7 @@ import (
 type commonPage struct {
 	r            *gin.Engine
 	requestGroup singleflight.Group
+	rdp          *rdpservice.Manager
 }
 
 func (cp *commonPage) serve() {
@@ -63,7 +66,86 @@ func (cp *commonPage) serve() {
 	cr.POST("/terminal", cp.createTerminal)
 	cr.POST("/file", cp.createFM)
 	cr.GET("/file/:id", cp.fm)
+	cr.POST("/rdp", cp.rdpPage)
+	cr.POST("/rdp/connect", cp.createRDP)
+	cr.GET("/rdp/ws/:id", cp.rdpWebsocket)
 	cr.GET("/dashboard", cp.v1Dashboard)
+}
+
+type rdpPageForm struct {
+	ID uint64 `form:"ID" binding:"required"`
+}
+
+type rdpConnectForm struct {
+	ID uint64 `form:"ID" binding:"required"`
+}
+
+func (cp *commonPage) rdpPage(c *gin.Context) {
+	if mygin.BlockIfNotSuperAdmin(c, true) {
+		return
+	}
+	var form rdpPageForm
+	if err := c.ShouldBind(&form); err != nil {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{Code: http.StatusBadRequest, Title: "Remote desktop", Msg: "Invalid server ID", Link: "/server", Btn: "Back"}, true)
+		return
+	}
+	server, err := rdpservice.ValidateServer(form.ID)
+	if err != nil {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{Code: http.StatusServiceUnavailable, Title: "Remote desktop unavailable", Msg: err.Error(), Link: "/server", Btn: "Back"}, true)
+		return
+	}
+	c.HTML(http.StatusOK, "dashboard-default/rdp", mygin.CommonEnvironment(c, gin.H{
+		"Title":      "Remote Desktop",
+		"ServerID":   form.ID,
+		"ServerName": server.Name,
+	}))
+}
+
+func (cp *commonPage) createRDP(c *gin.Context) {
+	if mygin.BlockIfNotSuperAdmin(c, true) {
+		return
+	}
+	var form rdpConnectForm
+	if err := c.ShouldBind(&form); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid server ID"})
+		return
+	}
+	server, err := rdpservice.ValidateServer(form.ID)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
+		return
+	}
+	sessionID, err := cp.rdp.Create(form.ID)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
+		return
+	}
+	audit.Record(c, audit.TypeSecurity, "Remote desktop requested", fmt.Sprintf("server: %d/%s", form.ID, server.Name))
+	c.JSON(http.StatusOK, gin.H{"session_id": sessionID})
+}
+
+func (cp *commonPage) rdpWebsocket(c *gin.Context) {
+	if mygin.BlockIfNotSuperAdmin(c, false) {
+		return
+	}
+	if !validRDPOrigin(c.Request) {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+	cp.rdp.Handler().ServeHTTP(c.Writer, c.Request)
+	c.Abort()
+}
+
+func validRDPOrigin(request *http.Request) bool {
+	origin := request.Header.Get("Origin")
+	u, err := url.Parse(origin)
+	expectedScheme := "http"
+	if request.TLS != nil || strings.EqualFold(request.Header.Get("X-Forwarded-Proto"), "https") {
+		expectedScheme = "https"
+	}
+	return origin != "" && err == nil &&
+		strings.EqualFold(u.Host, request.Host) &&
+		strings.EqualFold(u.Scheme, expectedScheme)
 }
 
 type viewPasswordForm struct {

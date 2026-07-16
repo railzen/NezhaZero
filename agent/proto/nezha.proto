@@ -57,6 +57,7 @@ message State {
     uint64 process_count = 16;
     repeated State_SensorTemperature temperatures = 17;
     double gpu = 18;
+    bool rdp_available = 19;
 }
 
 message State_SensorTemperature {

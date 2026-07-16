@@ -65,6 +65,7 @@ type AgentCliParam struct {
 	UseIPv6CountryCode    bool   // 默认优先展示IPv6旗帜
 	UseGiteeToUpgrade     bool   // 强制从Gitee获取更新
 	DisableNat            bool   // 关闭内网穿透
+	EnableRDP             bool   // 开启 Windows 远程桌面隧道
 	DisableSendQuery      bool   // 关闭发送TCP/ICMP/HTTP请求
 	DiscoverServerSecret  string // 自动发现服务器密钥
 }
@@ -170,6 +171,7 @@ func init() {
 	agentCmd.PersistentFlags().BoolVar(&agentCliParam.SkipProcsCount, "skip-procs", false, "不监控进程数")
 	agentCmd.PersistentFlags().BoolVar(&agentCliParam.DisableCommandExecute, "disable-command-execute", false, "禁止在此机器上执行命令")
 	agentCmd.PersistentFlags().BoolVar(&agentCliParam.DisableNat, "disable-nat", false, "禁止此机器内网穿透")
+	agentCmd.PersistentFlags().BoolVar(&agentCliParam.EnableRDP, "enable-rdp", false, "启用此 Windows 机器的远程桌面功能")
 	agentCmd.PersistentFlags().BoolVar(&agentCliParam.DisableSendQuery, "disable-send-query", false, "禁止此机器发送TCP/ICMP/HTTP请求")
 	agentCmd.PersistentFlags().BoolVar(&agentCliParam.DisableAutoUpdate, "disable-auto-update", false, "禁用自动升级")
 	agentCmd.PersistentFlags().BoolVar(&agentCliParam.DisableForceUpdate, "disable-force-update", false, "禁用强制升级")
@@ -433,6 +435,8 @@ func preRun(cmd *cobra.Command, args []string) {
 }
 
 func run() {
+	monitor.SetRDPEnabled(rdpFeatureEnabled(runtime.GOOS, agentCliParam.EnableRDP))
+
 	auth := model.AuthHandler{
 		ClientSecret: agentCliParam.ClientSecret,
 	}
@@ -628,6 +632,8 @@ func doTask(task *pb.Task) {
 		return
 	case model.TaskTypeFM:
 		handleFMTask(task)
+	case model.TaskTypeRDP:
+		handleRDPTask(task)
 		return
 	case model.TaskTypeKeepalive:
 		return
@@ -1512,6 +1518,83 @@ func handleNATTask(task *pb.Task) {
 		}
 		conn.Write(remoteData.Data)
 	}
+}
+
+func handleRDPTask(task *pb.Task) {
+	if !rdpFeatureEnabled(runtime.GOOS, agentCliParam.EnableRDP) {
+		println("RDP is unavailable on this Agent")
+		return
+	}
+
+	var rdpTask model.TaskRDP
+	if err := util.Json.Unmarshal([]byte(task.GetData()), &rdpTask); err != nil {
+		printf("RDP task parse failed: %v", err)
+		return
+	}
+	if rdpTask.StreamID == "" {
+		println("RDP task has an empty stream ID")
+		return
+	}
+
+	rdpAddress, err := monitor.RDPLocalAddress()
+	if err != nil {
+		printf("RDP is unavailable: %v", err)
+		return
+	}
+	conn, err := net.DialTimeout("tcp", rdpAddress, 3*time.Second)
+	if err != nil {
+		printf("RDP dial failed: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	remoteIO, err := client.IOStream(context.Background())
+	if err != nil {
+		printf("RDP IOStream failed: %v", err)
+		return
+	}
+	defer remoteIO.CloseSend()
+
+	if err := remoteIO.Send(&pb.IOStreamData{Data: append([]byte{
+		0xff, 0x05, 0xff, 0x05,
+	}, []byte(rdpTask.StreamID)...)}); err != nil {
+		printf("RDP stream registration failed: %v", err)
+		return
+	}
+
+	println("RDP init", rdpTask.StreamID)
+	defer println("RDP exit", rdpTask.StreamID)
+
+	go func() {
+		buf := make([]byte, 32*1024)
+		for {
+			read, readErr := conn.Read(buf)
+			if readErr != nil {
+				_ = remoteIO.CloseSend()
+				return
+			}
+			if sendErr := remoteIO.Send(&pb.IOStreamData{Data: buf[:read]}); sendErr != nil {
+				return
+			}
+		}
+	}()
+
+	for {
+		remoteData, recvErr := remoteIO.Recv()
+		if recvErr != nil {
+			return
+		}
+		if len(remoteData.Data) == 0 {
+			return
+		}
+		if _, err := conn.Write(remoteData.Data); err != nil {
+			return
+		}
+	}
+}
+
+func rdpFeatureEnabled(goos string, enabled bool) bool {
+	return goos == "windows" && enabled
 }
 
 func handleFMTask(task *pb.Task) {
