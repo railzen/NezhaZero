@@ -16,6 +16,10 @@ import (
 
 const (
 	_CurrentStatusSize = 30 // 统计 15 分钟内的数据为当前状态
+
+	// ping 监控历史批量落盘参数：满 200 条或每分钟落盘一次。
+	monitorHistoryBatchFlushSize     = 200
+	monitorHistoryBatchFlushInterval = time.Minute
 )
 
 var ServiceSentinelShared *ServiceSentinel
@@ -23,6 +27,11 @@ var ServiceSentinelShared *ServiceSentinel
 type ReportData struct {
 	Data     *pb.TaskResult
 	Reporter uint64
+}
+
+type serviceReportMessage struct {
+	report ReportData
+	stop   chan struct{}
 }
 
 // _TodayStatsOfMonitor 今日监控记录
@@ -35,7 +44,7 @@ type _TodayStatsOfMonitor struct {
 // NewServiceSentinel 创建服务监控器
 func NewServiceSentinel(serviceSentinelDispatchBus chan<- model.Monitor) {
 	ServiceSentinelShared = &ServiceSentinel{
-		serviceReportChannel:                    make(chan ReportData, 200),
+		serviceReportChannel:                    make(chan serviceReportMessage, 200),
 		serviceStatusToday:                      make(map[uint64]*_TodayStatsOfMonitor),
 		serviceCurrentStatusIndex:               make(map[uint64]*indexStore),
 		serviceCurrentStatusData:                make(map[uint64][]*pb.TaskResult),
@@ -46,6 +55,9 @@ func NewServiceSentinel(serviceSentinelDispatchBus chan<- model.Monitor) {
 		serviceResponsePing:                     make(map[uint64]map[uint64]*pingStore),
 		monitors:                                make(map[uint64]*model.Monitor),
 		sslCertCache:                            make(map[uint64]string),
+		monitorHistoryFlushCh:                   make(chan struct{}, 1),
+		monitorHistoryStopCh:                    make(chan struct{}),
+		monitorHistoryDoneCh:                    make(chan struct{}),
 		// 30天数据缓存
 		monthlyStatus: make(map[uint64]*model.ServiceItemResponse),
 		dispatchBus:   serviceSentinelDispatchBus,
@@ -76,6 +88,9 @@ func NewServiceSentinel(serviceSentinelDispatchBus chan<- model.Monitor) {
 	// 启动服务监控器
 	go ServiceSentinelShared.worker()
 
+	// 启动 ping 监控历史批量落盘器。只有该 goroutine 会执行批量写库。
+	go ServiceSentinelShared.monitorHistoryFlusher()
+
 	// 每日将游标往后推一天
 	_, err := Cron.AddFunc("0 0 0 * * *", ServiceSentinelShared.refreshMonthlyServiceStatus)
 	if err != nil {
@@ -91,7 +106,9 @@ func NewServiceSentinel(serviceSentinelDispatchBus chan<- model.Monitor) {
 */
 type ServiceSentinel struct {
 	// 服务监控任务上报通道
-	serviceReportChannel chan ReportData // 服务状态汇报管道
+	serviceReportChannel chan serviceReportMessage // 服务状态汇报管道
+	serviceLifecycleLock sync.RWMutex
+	serviceStopped       bool
 	// 服务监控任务调度通道
 	dispatchBus chan<- model.Monitor
 
@@ -108,6 +125,17 @@ type ServiceSentinel struct {
 
 	monitorsLock sync.RWMutex
 	monitors     map[uint64]*model.Monitor // [monitor_id] -> model.Monitor
+
+	// ping 监控历史批量写入缓冲。worker 只追加并发信号，不直接写库。
+	monitorHistoryBatchLock sync.Mutex
+	monitorHistoryBatch     []model.MonitorHistory
+	monitorHistoryInFlight  []model.MonitorHistory
+	monitorHistoryFlushCh   chan struct{}
+	monitorHistoryStopCh    chan struct{}
+	monitorHistoryDoneCh    chan struct{}
+	monitorHistoryFlushErr  error
+	shutdownOnce            sync.Once
+	shutdownErr             error
 
 	// 30天数据缓存
 	monthlyStatusLock sync.Mutex
@@ -156,10 +184,123 @@ func (ss *ServiceSentinel) refreshMonthlyServiceStatus() {
 
 // Dispatch 将传入的 ReportData 传给 服务状态汇报管道
 func (ss *ServiceSentinel) Dispatch(r ReportData) {
+	ss.serviceLifecycleLock.RLock()
+	defer ss.serviceLifecycleLock.RUnlock()
+	if ss.serviceStopped {
+		return
+	}
 	select {
-	case ss.serviceReportChannel <- r:
+	case ss.serviceReportChannel <- serviceReportMessage{report: r}:
 	default:
 		log.Printf("NEZHA>> Service report channel full, dropped monitor report: monitor=%d reporter=%d type=%d", r.Data.GetId(), r.Reporter, r.Data.GetType())
+	}
+}
+
+// enqueueMonitorHistory 把一条 ping 监控历史追加到内存缓冲，凑满一批后通知落盘器。
+func (ss *ServiceSentinel) enqueueMonitorHistory(mh model.MonitorHistory) {
+	if mh.CreatedAt.IsZero() {
+		mh.CreatedAt = time.Now()
+	}
+	ss.monitorHistoryBatchLock.Lock()
+	ss.monitorHistoryBatch = append(ss.monitorHistoryBatch, mh)
+	full := len(ss.monitorHistoryBatch) == monitorHistoryBatchFlushSize
+	ss.monitorHistoryBatchLock.Unlock()
+	if full {
+		select {
+		case ss.monitorHistoryFlushCh <- struct{}{}:
+		default:
+		}
+	}
+}
+
+// pendingMonitorHistories 返回尚未确认落库的历史快照，供查询与 SQLite 结果合并。
+// in-flight 使用独立副本，避免 GORM 写入 ID 等字段时与查询发生数据竞争。
+func (ss *ServiceSentinel) pendingMonitorHistories(serverID uint64, since time.Time) []*model.MonitorHistory {
+	ss.monitorHistoryBatchLock.Lock()
+	defer ss.monitorHistoryBatchLock.Unlock()
+
+	result := make([]*model.MonitorHistory, 0, len(ss.monitorHistoryInFlight)+len(ss.monitorHistoryBatch))
+	appendMatching := func(histories []model.MonitorHistory) {
+		for i := range histories {
+			if histories[i].ServerID != serverID || histories[i].CreatedAt.Before(since) {
+				continue
+			}
+			history := histories[i]
+			result = append(result, &history)
+		}
+	}
+	appendMatching(ss.monitorHistoryInFlight)
+	appendMatching(ss.monitorHistoryBatch)
+	return result
+}
+
+// monitorHistoryFlusher 周期性地把内存里攒下的 ping 监控历史批量写入数据库。
+func (ss *ServiceSentinel) monitorHistoryFlusher() {
+	ticker := time.NewTicker(monitorHistoryBatchFlushInterval)
+	defer ticker.Stop()
+	defer close(ss.monitorHistoryDoneCh)
+	for {
+		select {
+		case <-ticker.C:
+			ss.monitorHistoryFlushErr = ss.flushMonitorHistory(true)
+		case <-ss.monitorHistoryFlushCh:
+			ss.monitorHistoryFlushErr = ss.flushMonitorHistory(false)
+		case <-ss.monitorHistoryStopCh:
+			ss.monitorHistoryFlushErr = ss.flushMonitorHistory(true)
+			return
+		}
+	}
+}
+
+// Shutdown 停止接收新报告，等待 worker 排空已接收报告，再完成最后一次批量落库。
+func (ss *ServiceSentinel) Shutdown() error {
+	ss.shutdownOnce.Do(func() {
+		ss.serviceLifecycleLock.Lock()
+		ss.serviceStopped = true
+		workerDone := make(chan struct{})
+		ss.serviceReportChannel <- serviceReportMessage{stop: workerDone}
+		ss.serviceLifecycleLock.Unlock()
+		<-workerDone
+
+		close(ss.monitorHistoryStopCh)
+		<-ss.monitorHistoryDoneCh
+		ss.shutdownErr = ss.monitorHistoryFlushErr
+	})
+	return ss.shutdownErr
+}
+
+// flushMonitorHistory 每次最多写 200 条。force 为 true 时同时写出不足 200 条的尾批。
+// 写入失败的批次会放回队首，留待下一次 tick 重试。
+func (ss *ServiceSentinel) flushMonitorHistory(force bool) error {
+	for {
+		ss.monitorHistoryBatchLock.Lock()
+		if len(ss.monitorHistoryBatch) == 0 || (!force && len(ss.monitorHistoryBatch) < monitorHistoryBatchFlushSize) {
+			ss.monitorHistoryBatchLock.Unlock()
+			return nil
+		}
+		batchSize := min(len(ss.monitorHistoryBatch), monitorHistoryBatchFlushSize)
+		batch := append([]model.MonitorHistory(nil), ss.monitorHistoryBatch[:batchSize]...)
+		ss.monitorHistoryInFlight = append([]model.MonitorHistory(nil), batch...)
+		ss.monitorHistoryBatch = ss.monitorHistoryBatch[batchSize:]
+		if len(ss.monitorHistoryBatch) == 0 {
+			ss.monitorHistoryBatch = nil
+		}
+		ss.monitorHistoryBatchLock.Unlock()
+
+		if err := DB.Create(&batch).Error; err != nil {
+			ss.monitorHistoryBatchLock.Lock()
+			pending := make([]model.MonitorHistory, 0, len(ss.monitorHistoryInFlight)+len(ss.monitorHistoryBatch))
+			pending = append(pending, ss.monitorHistoryInFlight...)
+			pending = append(pending, ss.monitorHistoryBatch...)
+			ss.monitorHistoryBatch = pending
+			ss.monitorHistoryInFlight = nil
+			ss.monitorHistoryBatchLock.Unlock()
+			log.Println("NEZHA>> 服务监控数据批量持久化失败：", err)
+			return err
+		}
+		ss.monitorHistoryBatchLock.Lock()
+		ss.monitorHistoryInFlight = nil
+		ss.monitorHistoryBatchLock.Unlock()
 	}
 }
 
@@ -365,7 +506,12 @@ func (ss *ServiceSentinel) LoadStats() map[uint64]*model.ServiceItemResponse {
 // worker 服务监控的实际工作流程
 func (ss *ServiceSentinel) worker() {
 	// 从服务状态汇报管道获取汇报的服务数据
-	for r := range ss.serviceReportChannel {
+	for message := range ss.serviceReportChannel {
+		if message.stop != nil {
+			close(message.stop)
+			return
+		}
+		r := message.report
 		mh := r.Data
 		monitorID := mh.GetId()
 
@@ -399,14 +545,13 @@ func (ss *ServiceSentinel) worker() {
 					ts.ping = float32(Conf.MaxTCPPingValue)
 				}
 				ts.count = 0
-				if err := DB.Create(&model.MonitorHistory{
+				// 不立即写库，先入内存缓冲，由 flusher 批量落盘
+				ss.enqueueMonitorHistory(model.MonitorHistory{
 					MonitorID: mh.GetId(),
 					AvgDelay:  ts.ping,
 					Data:      mh.Data,
 					ServerID:  r.Reporter,
-				}).Error; err != nil {
-					log.Println("NEZHA>> 服务监控数据持久化失败：", err)
-				}
+				})
 			}
 			monitorTcpMap[r.Reporter] = ts
 		}

@@ -1,6 +1,7 @@
 package singleton
 
 import (
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -319,14 +320,33 @@ func (m *MonitorAPIService) GetMonitorHistories(query map[string]any) *MonitorIn
 			Message: "success",
 		},
 	}
+	since := time.Now().Add(-24 * time.Hour)
+	var pendingHistories []*model.MonitorHistory
+	if serverID, ok := query["server_id"].(uint64); ok && ServiceSentinelShared != nil {
+		// 先取内存快照再查 SQLite；即使期间恰好完成落库，后面也会按采集时间去重。
+		pendingHistories = ServiceSentinelShared.pendingMonitorHistories(serverID, since)
+	}
 	if err := DB.Model(&model.MonitorHistory{}).Select("monitor_id, created_at, server_id, avg_delay").
-		Where(query).Where("created_at >= ?", time.Now().Add(-24*time.Hour)).Order("monitor_id, created_at").
+		Where(query).Where("created_at >= ?", since).Order("monitor_id, created_at").
 		Scan(&monitorHistories).Error; err != nil {
 		res.CommonResponse = CommonResponse{
 			Code:    500,
 			Message: err.Error(),
 		}
 	} else {
+		monitorHistories = append(monitorHistories, pendingHistories...)
+		sort.Slice(monitorHistories, func(i, j int) bool {
+			if monitorHistories[i].MonitorID == monitorHistories[j].MonitorID {
+				return monitorHistories[i].CreatedAt.Before(monitorHistories[j].CreatedAt)
+			}
+			return monitorHistories[i].MonitorID < monitorHistories[j].MonitorID
+		})
+		type historyKey struct {
+			monitorID uint64
+			serverID  uint64
+			createdAt int64
+		}
+		seen := make(map[historyKey]struct{}, len(monitorHistories))
 		ServiceSentinelShared.monitorsLock.RLock()
 		defer ServiceSentinelShared.monitorsLock.RUnlock()
 		ServerLock.RLock()
@@ -335,6 +355,11 @@ func (m *MonitorAPIService) GetMonitorHistories(query map[string]any) *MonitorIn
 			if ServiceSentinelShared.monitors[history.MonitorID] == nil || ServerList[history.ServerID] == nil {
 				continue
 			}
+			key := historyKey{monitorID: history.MonitorID, serverID: history.ServerID, createdAt: history.CreatedAt.UnixNano()}
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
 			infos, ok := resultMap[history.MonitorID]
 			if !ok {
 				infos = &MonitorInfo{

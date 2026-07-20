@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"golang.org/x/net/http2"
@@ -20,8 +21,10 @@ import (
 )
 
 var (
-	multiplexHTTPServer *http.Server
-	multiplexGRPCServer *grpc.Server
+	multiplexHTTPServer  *http.Server
+	multiplexGRPCServer  *grpc.Server
+	standaloneGRPCServer *grpc.Server
+	grpcServerLock       sync.Mutex
 )
 
 // ShutdownMultiplex 优雅停止端口复用模式下的 HTTP/gRPC 服务。
@@ -60,11 +63,35 @@ func ServeRPC(port uint) {
 	)
 	rpcService.NezhaHandlerSingleton = rpcService.NewNezhaHandler()
 	pb.RegisterNezhaServiceServer(server, rpcService.NezhaHandlerSingleton)
+	grpcServerLock.Lock()
+	standaloneGRPCServer = server
+	grpcServerLock.Unlock()
 	listen, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		panic(err)
 	}
 	server.Serve(listen)
+}
+
+// ShutdownRPC 优雅停止独立端口模式下的 gRPC 服务。
+func ShutdownRPC(ctx context.Context) {
+	grpcServerLock.Lock()
+	server := standaloneGRPCServer
+	standaloneGRPCServer = nil
+	grpcServerLock.Unlock()
+	if server == nil {
+		return
+	}
+	done := make(chan struct{})
+	go func() {
+		server.GracefulStop()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-ctx.Done():
+		server.Stop()
+	}
 }
 
 func ServeMultiplex(port uint, httpHandler http.Handler) error {

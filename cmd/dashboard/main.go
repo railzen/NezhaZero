@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -95,8 +96,10 @@ func main() {
 			log.Println("NEZHA>> Graceful::START")
 			audit.Record(nil, audit.TypeEvent, "Dashboard stopped", "Graceful shutdown")
 			singleton.RecordTransferHourlyUsage()
+			serverErr := rpc.ShutdownMultiplex(c)
+			historyErr := singleton.ServiceSentinelShared.Shutdown()
 			log.Println("NEZHA>> Graceful::END")
-			return rpc.ShutdownMultiplex(c)
+			return errors.Join(serverErr, historyErr)
 		}); err != nil {
 			log.Printf("NEZHA>> ERROR: %v", err)
 		}
@@ -111,9 +114,11 @@ func main() {
 			log.Println("NEZHA>> Graceful::START")
 			audit.Record(nil, audit.TypeEvent, "Dashboard stopped", "Graceful shutdown")
 			singleton.RecordTransferHourlyUsage()
+			httpErr := srv.Shutdown(c)
+			rpc.ShutdownRPC(c)
+			historyErr := singleton.ServiceSentinelShared.Shutdown()
 			log.Println("NEZHA>> Graceful::END")
-			srv.Shutdown(c)
-			return nil
+			return errors.Join(httpErr, historyErr)
 		}); err != nil {
 			log.Printf("NEZHA>> ERROR: %v", err)
 		}
