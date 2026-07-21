@@ -15,6 +15,8 @@ import (
 
 var Version = "debug"
 
+const legacyMonitorHistoryIndex = "idx_server_id_created_at_monitor_id_avg_delay"
+
 var (
 	Conf        *model.Config
 	Cache       *cache.Cache
@@ -74,6 +76,18 @@ func InitDBFromPath(path string) {
 	if err != nil {
 		panic(err)
 	}
+	if err = dropLegacyMonitorHistoryIndex(DB); err != nil {
+		panic(err)
+	}
+}
+
+func dropLegacyMonitorHistoryIndex(db *gorm.DB) error {
+	// AutoMigrate creates the replacement first, so an upgrade never drops the
+	// only usable monitor-history composite index before the new one exists.
+	if !db.Migrator().HasIndex(&model.MonitorHistory{}, legacyMonitorHistoryIndex) {
+		return nil
+	}
+	return db.Migrator().DropIndex(&model.MonitorHistory{}, legacyMonitorHistoryIndex)
 }
 
 // RecordTransferHourlyUsage 对流量记录进行打点
