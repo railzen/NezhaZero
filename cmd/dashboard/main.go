@@ -98,8 +98,9 @@ func main() {
 			singleton.RecordTransferHourlyUsage()
 			serverErr := rpc.ShutdownMultiplex(c)
 			historyErr := singleton.ServiceSentinelShared.Shutdown()
+			dbErr := singleton.CloseDB()
 			log.Println("NEZHA>> Graceful::END")
-			return errors.Join(serverErr, historyErr)
+			return errors.Join(serverErr, historyErr, dbErr)
 		}); err != nil {
 			log.Printf("NEZHA>> ERROR: %v", err)
 		}
@@ -117,8 +118,9 @@ func main() {
 			httpErr := srv.Shutdown(c)
 			rpc.ShutdownRPC(c)
 			historyErr := singleton.ServiceSentinelShared.Shutdown()
+			dbErr := singleton.CloseDB()
 			log.Println("NEZHA>> Graceful::END")
-			return errors.Join(httpErr, historyErr)
+			return errors.Join(httpErr, historyErr, dbErr)
 		}); err != nil {
 			log.Printf("NEZHA>> ERROR: %v", err)
 		}

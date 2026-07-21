@@ -84,6 +84,19 @@ func InitDBFromPath(path string) {
 	}
 }
 
+// CloseDB 关闭底层 SQLite 连接。应在所有依赖 DB 的落盘完成后再调用。
+func CloseDB() error {
+	if DB == nil {
+		return nil
+	}
+	sqlDB, err := DB.DB()
+	if err != nil {
+		return err
+	}
+	DB = nil
+	return sqlDB.Close()
+}
+
 // createTransferCycleIndex 周期流量报警按 datetime(created_at) 过滤 transfers，
 // 函数包列导致普通列索引失效，只能靠表达式索引命中，否则每轮检查都是全表扫描。
 func createTransferCycleIndex(db *gorm.DB) error {
