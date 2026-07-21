@@ -169,15 +169,12 @@ func (cv *compatV1) showService(c *gin.Context) {
 }
 
 func (cv *compatV1) listServerWithServices(c *gin.Context) {
-	var serverIdsWithService []uint64
 	if singleton.Conf.CompatAPIDisable {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-	if err := singleton.DB.Model(&model.MonitorHistory{}).
-		Select("distinct(server_id)").
-		Where("server_id != 0").
-		Find(&serverIdsWithService).Error; err != nil {
+	serverIdsWithService, err := serverIDsWithMonitorHistory()
+	if err != nil {
 		c.JSON(500, V1Response[any]{
 			Success: false,
 			Error:   err.Error(),

@@ -179,6 +179,23 @@ func (p *commonPage) service(c *gin.Context) {
 	}))
 }
 
+func serverIDsWithMonitorHistory() ([]uint64, error) {
+	var ids []uint64
+	err := singleton.DB.Raw(`
+		SELECT s.id
+		FROM servers AS s
+		WHERE s.deleted_at IS NULL
+		  AND EXISTS (
+			  SELECT 1
+			  FROM monitor_histories AS mh
+			  WHERE mh.deleted_at IS NULL
+			    AND mh.server_id = s.id
+			  LIMIT 1
+		  )
+	`).Scan(&ids).Error
+	return ids, err
+}
+
 func (cp *commonPage) network(c *gin.Context) {
 	var (
 		monitorHistory       *model.MonitorHistory
@@ -281,11 +298,8 @@ func (cp *commonPage) network(c *gin.Context) {
 	monitorHistories := singleton.MonitorAPI.GetMonitorHistories(map[string]any{"server_id": id})
 	monitorInfos, _ = utils.Json.Marshal(monitorHistories)
 
-	if err := singleton.DB.Model(&model.MonitorHistory{}).
-		Select("distinct(server_id)").
-		Where("server_id != 0").
-		Find(&serverIdsWithMonitor).
-		Error; err != nil {
+	serverIdsWithMonitor, err := serverIDsWithMonitorHistory()
+	if err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusForbidden,
 			Title: "请求失败",
