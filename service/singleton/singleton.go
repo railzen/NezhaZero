@@ -79,6 +79,18 @@ func InitDBFromPath(path string) {
 	if err = dropLegacyMonitorHistoryIndex(DB); err != nil {
 		panic(err)
 	}
+	if err = createTransferCycleIndex(DB); err != nil {
+		panic(err)
+	}
+}
+
+// createTransferCycleIndex 周期流量报警按 datetime(created_at) 过滤 transfers，
+// 函数包列导致普通列索引失效，只能靠表达式索引命中，否则每轮检查都是全表扫描。
+func createTransferCycleIndex(db *gorm.DB) error {
+	return db.Exec(
+		"CREATE INDEX IF NOT EXISTS idx_transfers_server_id_datetime_created_at " +
+			"ON transfers(server_id, datetime(created_at))",
+	).Error
 }
 
 func dropLegacyMonitorHistoryIndex(db *gorm.DB) error {
