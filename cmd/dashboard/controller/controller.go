@@ -73,6 +73,13 @@ func ServeWeb(port uint) *http.Server {
 	}
 	tmpl = loadThirdPartyTemplates(tmpl)
 	r.SetHTMLTemplate(tmpl)
+	r.Use(func(c *gin.Context) {
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "SAMEORIGIN")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Header("X-XSS-Protection", "0")
+		c.Next()
+	})
 	r.Use(mygin.RecordPath)
 	r.Use(mygin.CSRFMiddleware())
 	r.StaticFS("/static", http.FS(resource.StaticFS))
