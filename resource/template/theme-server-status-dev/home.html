@@ -136,11 +136,25 @@
                     cancelAnimationFrame(this._responsiveTableLayoutFrame);
                 }
                 this._responsiveTableLayoutFrame = requestAnimationFrame(() => {
-                    this.applyResponsiveTableLayout();
+                    const displayModeChanged = this.applyResponsiveTableLayout();
+                    if (displayModeChanged) {
+                        this.reloadCharts();
+                    } else {
+                        this.resizeVisibleCharts();
+                    }
+                });
+            },
+            resizeVisibleCharts() {
+                document.querySelectorAll('.chartbox[chartbox-show="1"]').forEach(chartContainer => {
+                    const chart = echarts.getInstanceByDom(chartContainer);
+                    if (chart) {
+                        chart.resize();
+                    }
                 });
             },
             applyResponsiveTableLayout() {
                 const currentIsMobile = this.checkIsMobile();
+                const displayModeChanged = currentIsMobile !== this.isMobile;
                 this._responsiveTableLayoutFrame = null;
                 this.isMobile = currentIsMobile;
                 const containers = document.querySelectorAll(".table-responsive.content");
@@ -166,6 +180,7 @@
                         container.classList.add("table-responsive-compact");
                     }
                 });
+                return displayModeChanged;
             },
             initAdditional(servers) {
                 let nodes = {};
