@@ -582,6 +582,16 @@ footer p {
     .accordian-body {
         margin: 5px 0px 5px 10px;        
     }
+    .expandRow .node-detail-list {
+        min-width: 0;
+        max-width: calc(100vw - 20px);
+    }
+    .expandRow .node-detail-list .cpu-info {
+        display: block;
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
     table.monitor-detail {
         margin:0px 0px 2px 0px;
     }
