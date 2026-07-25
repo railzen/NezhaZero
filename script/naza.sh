@@ -12,8 +12,8 @@ yellow='\033[0;33m'
 plain='\033[0m'
 export PATH="$PATH:/usr/local/bin"
 
-NZ_MAIN_DEFAULT_VERSION="v0.20.24"
-NZ_AGENT_DEFAULT_VERSION="v0.20.24"
+NZ_MAIN_DEFAULT_VERSION="v0.20.27"
+NZ_AGENT_DEFAULT_VERSION="v0.20.27"
 
 os_arch=""
 [ -e /etc/os-release ] && grep -i "PRETTY_NAME" /etc/os-release | grep -qi "alpine" && os_alpine='1'
@@ -153,11 +153,11 @@ pre_check() {
             Get_Docker_Argu=" "
             Docker_IMG="railzen\/nezha-zero-dashboard:${_version}"
         else
-            GITHUB_RAW_URL="git-api.bjde.com/https://raw.githubusercontent.com/railzen/nezha-zero/main/script"
-            GITHUB_URL="git-api.bjde.com/https://github.com"
-            Get_Docker_URL="git-api.bjde.com"
+            GITHUB_RAW_URL="git-api.oauz.com/https://raw.githubusercontent.com/railzen/nezha-zero/main/script"
+            GITHUB_URL="git-api.oauz.com/https://github.com"
+            Get_Docker_URL="git-api.oauz.com"
             Get_Docker_Argu=" "
-            Docker_IMG="git-api.bjde.com\/railzen\/nezha-zero-dashboard:${_version}"
+            Docker_IMG="git-api.oauz.com\/railzen\/nezha-zero-dashboard:${_version}"
         fi
     fi
 }
