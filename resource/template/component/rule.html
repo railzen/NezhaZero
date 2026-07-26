@@ -5,47 +5,83 @@
         <form id="ruleForm" class="ui form">
             <input type="hidden" name="ID">
             <div class="field">
+                <label>{{tr "AlertType"}}</label>
+                <select name="AlertType" class="ui fluid dropdown" onchange="alertRuleTypeChanged()">
+                    <option value="0">{{tr "StandardAlert"}}</option>
+                    <option value="1">{{tr "ExpirationAlert"}}</option>
+                </select>
+            </div>
+            <div class="field">
                 <label>{{tr "Name"}}</label>
                 <input type="text" name="Name">
-            </div>
-            <div class="secret field">
-                <label>{{tr "Rules"}}</label>
-                <textarea name="RulesRaw" placeholder="[{&#34;type&#34;:&#34;cpu&#34;,&#34;max&#34;:90,&#34;duration&#34;:300},{&#34;type&#34;:&#34;memory&#34;,&#34;max&#34;:90,&#34;duration&#34;:300},{&#34;type&#34;:&#34;offline&#34;,&#34;duration&#34;:30}]"></textarea>
             </div>
             <div class="field">
                 <label>{{tr "NotificationMethodGroup"}}</label>
                 <input type="text" name="NotificationTag" placeholder="default">
             </div>
-            <div class="field">
-                <label>{{tr "NotificationTriggerMode"}}</label>
-                <select name="TriggerMode" class="ui fluid dropdown">
-                    <option value="0">{{tr "ModeAlwaysTrigger"}}</option>
-                    <option value="1">{{tr "ModeOnetimeTrigger"}}</option>
-                </select>
-            </div>
-            <div class="field">
-                <label>{{tr "FailTriggerTasks"}}</label>
-                <div class="ui fluid multiple tasks search selection dropdown">
-                    <input type="hidden" name="FailTriggerTasksRaw">
-                    <i class="dropdown icon 1"></i>
-                    <div class="default text">{{tr "EnterIdAndNameToSearch"}}</div>
-                    <div class="menu"></div>
+            <div class="standard-alert-fields">
+                <div class="secret field">
+                    <label>{{tr "Rules"}}</label>
+                    <textarea name="RulesRaw" placeholder="[{&#34;type&#34;:&#34;cpu&#34;,&#34;max&#34;:90,&#34;duration&#34;:300},{&#34;type&#34;:&#34;memory&#34;,&#34;max&#34;:90,&#34;duration&#34;:300},{&#34;type&#34;:&#34;offline&#34;,&#34;duration&#34;:30}]"></textarea>
+                </div>
+                <div class="field">
+                    <label>{{tr "NotificationTriggerMode"}}</label>
+                    <select name="TriggerMode" class="ui fluid dropdown">
+                        <option value="0">{{tr "ModeAlwaysTrigger"}}</option>
+                        <option value="1">{{tr "ModeOnetimeTrigger"}}</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>{{tr "FailTriggerTasks"}}</label>
+                    <div class="ui fluid multiple tasks search selection dropdown">
+                        <input type="hidden" name="FailTriggerTasksRaw">
+                        <i class="dropdown icon 1"></i>
+                        <div class="default text">{{tr "EnterIdAndNameToSearch"}}</div>
+                        <div class="menu"></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>{{tr "RecoverTriggerTasks"}}</label>
+                    <div class="ui fluid multiple tasks search selection dropdown">
+                        <input type="hidden" name="RecoverTriggerTasksRaw">
+                        <i class="dropdown icon 2"></i>
+                        <div class="default text">{{tr "EnterIdAndNameToSearch"}}</div>
+                        <div class="menu"></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui rule-enable checkbox">
+                        <input name="Enable" type="checkbox" tabindex="0" class="hidden">
+                        <label>{{tr "Enable"}}</label>
+                    </div>
                 </div>
             </div>
-            <div class="field">
-                <label>{{tr "RecoverTriggerTasks"}}</label>
-                <div class="ui fluid multiple tasks search selection dropdown">
-                    <input type="hidden" name="RecoverTriggerTasksRaw">
-                    <i class="dropdown icon 2"></i>
-                    <div class="default text">{{tr "EnterIdAndNameToSearch"}}</div>
-                    <div class="menu"></div>
+            <div class="expiration-alert-fields" style="display:none">
+                <div class="field">
+                    <label>{{tr "AdvanceReminderDays"}}</label>
+                    <input type="number" name="AdvanceDays" min="0" max="365" value="1">
                 </div>
-            </div>
-
-            <div class="field">
-                <div class="ui rule-enable checkbox">
-                    <input name="Enable" type="checkbox" tabindex="0" class="hidden">
-                    <label>{{tr "Enable"}}</label>
+                <div class="field">
+                    <div class="ui toggle checkbox expiration-daily-reminder">
+                        <input type="checkbox" name="DailyReminder">
+                        <label>{{tr "DailyExpirationReminder"}}</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>{{tr "Coverage"}}</label>
+                    <select name="Cover" class="ui fluid dropdown">
+                        <option value="0">{{tr "AllIncludedOnlySpecificServersAreNotRequest"}}</option>
+                        <option value="1">{{tr "IgnoreAllRequestOnlyThroughSpecificServers"}}</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>{{tr "SpecificServers"}}</label>
+                    <div class="ui fluid multiple servers search selection dropdown expiration-servers">
+                        <input type="hidden" name="SkipServersRaw">
+                        <i class="dropdown icon expirationSpecificServer"></i>
+                        <div class="default text">{{tr "EnterIdAndNameToSearch"}}</div>
+                        <div class="menu"></div>
+                    </div>
                 </div>
             </div>
         </form>

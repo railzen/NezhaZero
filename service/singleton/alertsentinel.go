@@ -64,10 +64,16 @@ func AlertSentinelStart() {
 	alertsPrevState = make(map[uint64]map[uint64]uint)
 	AlertsCycleTransferStatsStore = make(map[uint64]*model.CycleTransferStats)
 	AlertsLock.Lock()
-	if err := DB.Find(&Alerts).Error; err != nil {
+	var loadedAlerts []*model.AlertRule
+	if err := DB.Find(&loadedAlerts).Error; err != nil {
 		panic(err)
 	}
-	for _, alert := range Alerts {
+	Alerts = Alerts[:0]
+	for _, alert := range loadedAlerts {
+		if alert.IsExpirationRule() {
+			continue
+		}
+		Alerts = append(Alerts, alert)
 		// 旧版本可能不存在通知组 为其添加默认值
 		if alert.NotificationTag == "" {
 			alert.NotificationTag = "default"
@@ -102,25 +108,35 @@ func OnRefreshOrAddAlert(alert model.AlertRule) {
 	defer AlertsLock.Unlock()
 	delete(alertsStore, alert.ID)
 	delete(alertsPrevState, alert.ID)
+	delete(AlertsCycleTransferStatsStore, alert.ID)
 	var isEdit bool
 	for i := 0; i < len(Alerts); i++ {
 		if Alerts[i].ID == alert.ID {
-			Alerts[i] = &alert
+			if alert.IsExpirationRule() {
+				Alerts = append(Alerts[:i], Alerts[i+1:]...)
+			} else {
+				Alerts[i] = &alert
+			}
 			isEdit = true
+			break
 		}
+	}
+	if alert.IsExpirationRule() {
+		forgetExpirationReminderRule(alert.ID)
+		return
 	}
 	if !isEdit {
 		Alerts = append(Alerts, &alert)
 	}
 	alertsStore[alert.ID] = make(map[uint64][][]interface{})
 	alertsPrevState[alert.ID] = make(map[uint64]uint)
-	delete(AlertsCycleTransferStatsStore, alert.ID)
 	addCycleTransferStatsInfo(&alert)
 }
 
 func OnDeleteAlert(id uint64) {
 	AlertsLock.Lock()
 	defer AlertsLock.Unlock()
+	forgetExpirationReminderRule(id)
 	delete(alertsStore, id)
 	delete(alertsPrevState, id)
 	for i := 0; i < len(Alerts); i++ {

@@ -63,8 +63,7 @@ func (ma *memberAPI) serve() {
 	wr.POST("/nat", ma.addOrEditNAT)
 	wr.POST("/alert-rule", ma.addOrEditAlertRule)
 	wr.POST("/notification", ma.addOrEditNotification)
-	wr.POST("/expiration-reminder", ma.updateExpirationReminder)
-	wr.POST("/expiration-reminder/verify", ma.testExpirationReminder)
+	wr.POST("/notification/verify", ma.testNotification)
 	wr.POST("/ddns", ma.addOrEditDDNS)
 	wr.POST("/setting", ma.updateSetting)
 	wr.POST("/totp", ma.totp)
@@ -230,11 +229,6 @@ func (ma *memberAPI) delete(c *gin.Context) {
 		err = singleton.DB.Unscoped().Delete(&model.Notification{}, "id = ?", id).Error
 		if err == nil {
 			singleton.OnDeleteNotification(id)
-		}
-	case "expiration-reminder":
-		err = singleton.DB.Unscoped().Delete(&model.ExpirationReminderRule{}, "id = ?", id).Error
-		if err == nil {
-			singleton.ForgetExpirationReminderRule(id)
 		}
 	case "ddns":
 		err = singleton.DB.Unscoped().Delete(&model.DDNSProfile{}, "id = ?", id).Error
@@ -773,40 +767,41 @@ func (ma *memberAPI) forceUpdate(c *gin.Context) {
 }
 
 type notificationForm struct {
-	ID            uint64
-	Name          string
-	Tag           string // 分组名
-	URL           string
-	RequestMethod int
-	RequestType   int
-	RequestHeader string
-	RequestBody   string
-	VerifySSL     string
-	SkipCheck     string
+	ID             uint64
+	Name           string
+	Tag            string // 分组名
+	Type           uint8
+	URL            string
+	RequestMethod  int
+	RequestType    int
+	RequestHeader  string
+	RequestBody    string
+	VerifySSL      string
+	SkipCheck      string
+	TelegramToken  string
+	TelegramChatID string
+	SMTPHost       string
+	SMTPPort       int
+	SMTPTLS        string
+	SMTPUsername   string
+	SMTPPassword   string
+	EmailTo        string
 }
 
 func (ma *memberAPI) addOrEditNotification(c *gin.Context) {
 	var nf notificationForm
-	var n model.Notification
-	err := c.ShouldBindJSON(&nf)
+	if err := c.ShouldBindJSON(&nf); err != nil {
+		c.JSON(http.StatusOK, model.Response{Code: http.StatusBadRequest, Message: fmt.Sprintf("请求错误：%s", err)})
+		return
+	}
+	n, err := notificationFromForm(nf)
 	if err == nil {
-		n.Name = nf.Name
-		n.Tag = nf.Tag
-		n.RequestMethod = nf.RequestMethod
-		n.RequestType = nf.RequestType
-		n.RequestHeader = nf.RequestHeader
-		n.RequestBody = nf.RequestBody
-		n.URL = nf.URL
-		verifySSL := nf.VerifySSL == "on"
-		n.VerifySSL = &verifySSL
-		n.ID = nf.ID
 		ns := model.NotificationServerBundle{
 			Notification: &n,
 			Server:       nil,
 			Loc:          singleton.Loc,
 		}
-		// 勾选了跳过检查
-		if nf.SkipCheck != "on" {
+		if n.Type == model.NotificationTypeWebhook && nf.SkipCheck != "on" {
 			err = ns.Send("这是测试消息")
 		}
 	}
@@ -832,6 +827,92 @@ func (ma *memberAPI) addOrEditNotification(c *gin.Context) {
 	c.JSON(http.StatusOK, model.Response{
 		Code: http.StatusOK,
 	})
+}
+
+func (ma *memberAPI) testNotification(c *gin.Context) {
+	var nf notificationForm
+	if err := c.ShouldBindJSON(&nf); err != nil {
+		c.JSON(http.StatusOK, model.Response{Code: http.StatusBadRequest, Message: fmt.Sprintf("请求错误：%s", err)})
+		return
+	}
+	n, err := notificationFromForm(nf)
+	if err == nil {
+		err = (&model.NotificationServerBundle{Notification: &n, Loc: singleton.Loc}).Send("这是测试消息")
+	}
+	if err != nil {
+		c.JSON(http.StatusOK, model.Response{Code: http.StatusBadRequest, Message: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, model.Response{Code: http.StatusOK})
+}
+
+func notificationFromForm(nf notificationForm) (model.Notification, error) {
+	n := model.Notification{
+		Name:           strings.TrimSpace(nf.Name),
+		Tag:            strings.TrimSpace(nf.Tag),
+		Type:           nf.Type,
+		URL:            strings.TrimSpace(nf.URL),
+		RequestMethod:  nf.RequestMethod,
+		RequestType:    nf.RequestType,
+		RequestHeader:  nf.RequestHeader,
+		RequestBody:    nf.RequestBody,
+		TelegramToken:  strings.TrimSpace(nf.TelegramToken),
+		TelegramChatID: strings.TrimSpace(nf.TelegramChatID),
+		SMTPHost:       strings.TrimSpace(nf.SMTPHost),
+		SMTPPort:       nf.SMTPPort,
+		SMTPTLS:        nf.SMTPTLS == "on",
+		SMTPUsername:   strings.TrimSpace(nf.SMTPUsername),
+		SMTPPassword:   nf.SMTPPassword,
+		EmailTo:        strings.TrimSpace(nf.EmailTo),
+	}
+	n.ID = nf.ID
+	verifySSL := nf.VerifySSL == "on"
+	n.VerifySSL = &verifySSL
+	if n.Tag == "" {
+		n.Tag = "default"
+	}
+	if n.Type > model.NotificationTypeEmail {
+		return n, errors.New("通知方式类型无效")
+	}
+	if n.ID != 0 && (n.TelegramToken == "********" || n.SMTPPassword == "********") {
+		var old model.Notification
+		if err := singleton.DB.First(&old, n.ID).Error; err != nil {
+			return n, err
+		}
+		if n.TelegramToken == "********" {
+			n.TelegramToken = old.TelegramToken
+		}
+		if n.SMTPPassword == "********" {
+			n.SMTPPassword = old.SMTPPassword
+		}
+	}
+	if n.SMTPPort == 0 {
+		if n.SMTPTLS {
+			n.SMTPPort = 465
+		} else {
+			n.SMTPPort = 25
+		}
+	}
+	switch n.Type {
+	case model.NotificationTypeWebhook:
+		n.TelegramToken, n.TelegramChatID = "", ""
+		n.SMTPHost, n.SMTPUsername, n.SMTPPassword, n.EmailTo = "", "", "", ""
+		n.SMTPPort = 0
+		n.SMTPTLS = false
+	case model.NotificationTypeTelegram:
+		if n.TelegramToken == "" || n.TelegramChatID == "" {
+			return n, errors.New("Telegram Token 和会话 ID 不能为空")
+		}
+		n.SMTPHost, n.SMTPUsername, n.SMTPPassword, n.EmailTo = "", "", "", ""
+		n.SMTPPort = 0
+		n.SMTPTLS = false
+	case model.NotificationTypeEmail:
+		if n.SMTPHost == "" || n.SMTPUsername == "" || n.SMTPPassword == "" || n.EmailTo == "" {
+			return n, errors.New("邮件通知配置不完整")
+		}
+		n.TelegramToken, n.TelegramChatID = "", ""
+	}
+	return n, nil
 }
 
 type ddnsForm struct {
@@ -950,6 +1031,7 @@ func (ma *memberAPI) addOrEditNAT(c *gin.Context) {
 
 type alertRuleForm struct {
 	ID                     uint64
+	AlertType              uint8
 	Name                   string
 	RulesRaw               string
 	FailTriggerTasksRaw    string // 失败时触发的任务id
@@ -957,12 +1039,67 @@ type alertRuleForm struct {
 	NotificationTag        string
 	TriggerMode            int
 	Enable                 string
+	AdvanceDays            int
+	DailyReminder          string
+	Cover                  uint8
+	SkipServersRaw         string
 }
 
 func (ma *memberAPI) addOrEditAlertRule(c *gin.Context) {
 	var arf alertRuleForm
 	var r model.AlertRule
 	err := c.ShouldBindJSON(&arf)
+	if err == nil && arf.AlertType == 1 {
+		var serverIDs []uint64
+		if strings.TrimSpace(arf.Name) == "" {
+			err = errors.New("规则名称不能为空")
+		} else if arf.AdvanceDays < 0 || arf.AdvanceDays > 365 {
+			err = errors.New("提前天数必须在 0 到 365 之间")
+		} else if arf.Cover > model.RuleCoverIgnoreAll {
+			err = errors.New("覆盖范围无效")
+		} else {
+			err = utils.Json.Unmarshal([]byte(arf.SkipServersRaw), &serverIDs)
+		}
+		if err == nil {
+			selected := make(map[uint64]bool, len(serverIDs))
+			for _, id := range serverIDs {
+				selected[id] = true
+			}
+			enable := true
+			r.ID = arf.ID
+			r.Name = strings.TrimSpace(arf.Name)
+			r.NotificationTag = strings.TrimSpace(arf.NotificationTag)
+			if r.NotificationTag == "" {
+				r.NotificationTag = "default"
+			}
+			r.Enable = &enable
+			r.FailTriggerTasks = []uint64{}
+			r.RecoverTriggerTasks = []uint64{}
+			r.Rules = []model.Rule{{
+				Type:          model.RuleTypeExpiration,
+				AdvanceDays:   arf.AdvanceDays,
+				DailyReminder: arf.DailyReminder == "on",
+				Cover:         uint64(arf.Cover),
+				Ignore:        selected,
+			}}
+			if r.ID == 0 {
+				err = singleton.DB.Create(&r).Error
+			} else {
+				err = singleton.DB.Save(&r).Error
+			}
+		}
+		if err != nil {
+			c.JSON(http.StatusOK, model.Response{Code: http.StatusBadRequest, Message: fmt.Sprintf("请求错误：%s", err)})
+			return
+		}
+		c.JSON(http.StatusOK, model.Response{Code: http.StatusOK})
+		singleton.OnRefreshOrAddAlert(r)
+		go singleton.CheckExpirationReminders()
+		return
+	}
+	if err == nil && arf.AlertType > 1 {
+		err = errors.New("告警类型无效")
+	}
 	if err == nil {
 		err = utils.Json.Unmarshal([]byte(arf.RulesRaw), &r.Rules)
 	}

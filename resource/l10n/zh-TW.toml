@@ -133,6 +133,21 @@ other = "輸入ID/名稱以搜尋"
 [NotificationMethodGroup]
 other = "通知群組"
 
+[NotificationMethodType]
+other = "通知方式類型"
+
+[NotificationTarget]
+other = "通知目標"
+
+[TestNotificationMethod]
+other = "測試通知方式"
+
+[NotificationTestSuccess]
+other = "測試通知傳送成功"
+
+[NotificationTestFailed]
+other = "測試通知傳送失敗"
+
 [PushSuccessMessages]
 other = "推送成功的訊息"
 
@@ -222,6 +237,15 @@ other = "驗證SSL"
 
 [AddNotificationRule]
 other = "新增告警規則"
+
+[AlertType]
+other = "告警類型"
+
+[StandardAlert]
+other = "一般告警"
+
+[ExpirationAlert]
+other = "到期告警"
 
 [AddExpirationReminderRule]
 other = "新增到期告警規則"

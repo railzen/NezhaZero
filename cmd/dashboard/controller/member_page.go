@@ -31,7 +31,6 @@ func (mp *memberPage) serve() {
 	mr.GET("/monitor", mp.monitor)
 	mr.GET("/cron", mp.cron)
 	mr.GET("/notification", mp.notification)
-	mr.GET("/expiration-reminder", mp.getExpirationReminder)
 	mr.GET("/ddns", mp.ddns)
 	mr.GET("/nat", mp.nat)
 	mr.GET("/setting", mp.setting)
@@ -76,12 +75,30 @@ func (mp *memberPage) cron(c *gin.Context) {
 func (mp *memberPage) notification(c *gin.Context) {
 	var nf []model.Notification
 	singleton.DB.Find(&nf)
+	for i := range nf {
+		if nf[i].TelegramToken != "" {
+			nf[i].TelegramToken = "********"
+		}
+		if nf[i].SMTPPassword != "" {
+			nf[i].SMTPPassword = "********"
+		}
+	}
 	var ar []model.AlertRule
 	singleton.DB.Find(&ar)
+	standardRules := make([]model.AlertRule, 0, len(ar))
+	expirationRules := make([]model.AlertRule, 0)
+	for _, rule := range ar {
+		if rule.IsExpirationRule() {
+			expirationRules = append(expirationRules, rule)
+		} else {
+			standardRules = append(standardRules, rule)
+		}
+	}
 	c.HTML(http.StatusOK, "dashboard-"+singleton.Conf.Site.DashboardTheme+"/notification", mygin.CommonEnvironment(c, gin.H{
-		"Title":         singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Notification"}),
-		"Notifications": nf,
-		"AlertRules":    ar,
+		"Title":           singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Notification"}),
+		"Notifications":   nf,
+		"AlertRules":      standardRules,
+		"ExpirationRules": expirationRules,
 	}))
 }
 

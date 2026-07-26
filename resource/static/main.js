@@ -161,6 +161,7 @@ function showFormModal(modelSelector, formID, URL, getData) {
                 item.name === "ServerID" ||
                 item.name === "RequestType" ||
                 item.name === "RequestMethod" ||
+                item.name === "SMTPPort" ||
                 item.name === "TriggerMode" ||
                 item.name === "TaskType" ||
                 item.name === "DisplayIndex" ||
@@ -252,68 +253,114 @@ function trimCommandTrailingBlankLines(command) {
   return command.replace(/[\t ]*(?:\r?\n)+$/g, "");
 }
 
-function addOrEditAlertRule(rule) {
-  const modal = $(".rule.modal");
-  modal.children(".header").text((rule ? LANG.Edit : LANG.Add) + ' ' + LANG.AlarmRule);
-  modal
-    .find(".nezha-primary-btn.button")
-    .html(
-      rule ? LANG.Edit + '<i class="edit icon"></i>' : LANG.Add + '<i class="add icon"></i>'
+function alertRuleTypeChanged() {
+  const type = parseInt($("#ruleForm [name=AlertType]").val(), 10) || 0;
+  $(".standard-alert-fields").toggle(type === 0);
+  $(".expiration-alert-fields").toggle(type === 1);
+}
+
+function alertRuleData() {
+  const form = $("#ruleForm");
+  const alertType = parseInt(form.find("[name=AlertType]").val(), 10) || 0;
+  const data = {
+    AlertType: alertType,
+    ID: parseInt(form.find("[name=ID]").val(), 10) || 0,
+    Name: form.find("[name=Name]").val().trim(),
+    NotificationTag: form.find("[name=NotificationTag]").val().trim(),
+  };
+  if (alertType === 1) {
+    const value = form.find("[name=SkipServersRaw]").val() || "";
+    data.AdvanceDays = parseInt(form.find("[name=AdvanceDays]").val(), 10) || 0;
+    data.DailyReminder = form.find("[name=DailyReminder]").is(":checked") ? "on" : "";
+    data.Cover = parseInt(form.find("[name=Cover]").val(), 10) || 0;
+    data.SkipServersRaw = JSON.stringify(
+      [...String(value).matchAll(/\d+/g)].map(function (match) {
+        return parseInt(match[0], 10);
+      })
     );
-  modal.find("input[name=ID]").val(rule ? rule.ID : null);
-  modal.find("input[name=Name]").val(rule ? rule.Name : null);
-  modal.find("textarea[name=RulesRaw]").val(rule ? rule.RulesRaw : null);
-  modal.find("select[name=TriggerMode]").val(rule ? rule.TriggerMode : 0);
-  modal.find("input[name=NotificationTag]").val(rule ? rule.NotificationTag : null);
-  if (rule && rule.Enable) {
-    modal.find(".ui.rule-enable.checkbox").checkbox("set checked");
-  } else {
-    modal.find(".ui.rule-enable.checkbox").checkbox("set unchecked");
+    return data;
   }
-  modal.find("a.ui.label.visible").each((i, el) => {
-    el.remove();
-  });
-  var failTriggerTasks;
-  var recoverTriggerTasks;
-  if (rule) {
-    failTriggerTasks = rule.FailTriggerTasksRaw;
-    recoverTriggerTasks = rule.RecoverTriggerTasksRaw;
-    const failTriggerTasksList = JSON.parse(failTriggerTasks || "[]");
-    const recoverTriggerTasksList = JSON.parse(recoverTriggerTasks || "[]");
+  data.RulesRaw = form.find("[name=RulesRaw]").val();
+  data.TriggerMode = parseInt(form.find("[name=TriggerMode]").val(), 10) || 0;
+  data.FailTriggerTasksRaw = JSON.stringify(
+    [...String(form.find("[name=FailTriggerTasksRaw]").val() || "").matchAll(/\d+/g)]
+      .map(function (match) { return parseInt(match[0], 10); })
+  );
+  data.RecoverTriggerTasksRaw = JSON.stringify(
+    [...String(form.find("[name=RecoverTriggerTasksRaw]").val() || "").matchAll(/\d+/g)]
+      .map(function (match) { return parseInt(match[0], 10); })
+  );
+  data.Enable = form.find("[name=Enable]").is(":checked") ? "on" : "";
+  return data;
+}
+
+function addOrEditAlertRule(rule, alertType) {
+  const modal = $(".rule.modal");
+  const form = $("#ruleForm");
+  const type = alertType || 0;
+  modal.children(".header").text((rule ? LANG.Edit : LANG.Add) + ' ' + LANG.AlarmRule);
+  modal.find(".nezha-primary-btn.button").html(
+    rule ? LANG.Edit + '<i class="edit icon"></i>' : LANG.Add + '<i class="add icon"></i>'
+  );
+  const alertTypeDropdown = form.find("[name=AlertType]");
+  alertTypeDropdown.prop("disabled", !!rule);
+  alertTypeDropdown.dropdown("set selected", String(type));
+  alertTypeDropdown.dropdown(rule ? "set disabled" : "set enabled");
+  form.find("[name=ID]").val(rule ? rule.ID : 0);
+  form.find("[name=Name]").val(rule ? rule.Name : "");
+  form.find("[name=NotificationTag]").val(rule ? rule.NotificationTag : "default");
+  modal.find("a.ui.label.visible").remove();
+
+  if (type === 0) {
+    form.find("[name=RulesRaw]").val(rule ? rule.RulesRaw : "");
+    form.find("[name=TriggerMode]").dropdown("set selected", String(rule ? rule.TriggerMode : 0));
+    modal.find(".ui.rule-enable.checkbox").checkbox(
+      rule && rule.Enable ? "set checked" : "set unchecked"
+    );
+    const failRaw = rule ? rule.FailTriggerTasksRaw || "[]" : "[]";
+    const recoverRaw = rule ? rule.RecoverTriggerTasksRaw || "[]" : "[]";
+    form.find("[name=FailTriggerTasksRaw]").val(failRaw);
+    form.find("[name=RecoverTriggerTasksRaw]").val(recoverRaw);
     const node1 = modal.find("i.dropdown.icon.1");
     const node2 = modal.find("i.dropdown.icon.2");
-    for (let i = 0; i < failTriggerTasksList.length; i++) {
-      node1.after(
-        '<a class="ui label transition visible" data-value="' +
-        failTriggerTasksList[i] +
-        '" style="display: inline-block !important;">ID:' +
-        failTriggerTasksList[i] +
-        '<i class="delete icon"></i></a>'
-      );
-    }
-    for (let i = 0; i < recoverTriggerTasksList.length; i++) {
-      node2.after(
-        '<a class="ui label transition visible" data-value="' +
-        recoverTriggerTasksList[i] +
-        '" style="display: inline-block !important;">ID:' +
-        recoverTriggerTasksList[i] +
-        '<i class="delete icon"></i></a>'
-      );
-    }
+    JSON.parse(failRaw).forEach(function (id) {
+      node1.after('<a class="ui label transition visible" data-value="' + id +
+        '" style="display: inline-block !important;">ID:' + id + '<i class="delete icon"></i></a>');
+    });
+    JSON.parse(recoverRaw).forEach(function (id) {
+      node2.after('<a class="ui label transition visible" data-value="' + id +
+        '" style="display: inline-block !important;">ID:' + id + '<i class="delete icon"></i></a>');
+    });
+  } else {
+    const expirationRule = rule ? JSON.parse(rule.RulesRaw || "[]")[0] || {} : {};
+    form.find("[name=AdvanceDays]").val(rule ? expirationRule.advance_days : 1);
+    form.find("[name=Cover]").dropdown(
+      "set selected",
+      String(rule ? expirationRule.cover || 0 : 0)
+    );
+    modal.find(".expiration-daily-reminder").checkbox(
+      rule && expirationRule.daily_reminder ? "set checked" : "set unchecked"
+    );
+    const serverIDs = Object.keys(expirationRule.ignore || {}).map(function (id) {
+      return parseInt(id, 10);
+    });
+    form.find("[name=SkipServersRaw]").val(serverIDs.join(","));
+    const serverIcon = form.find("i.dropdown.icon.expirationSpecificServer");
+    serverIDs.forEach(function (id) {
+      serverIcon.after('<a class="ui label transition visible" data-value="' + id +
+        '" style="display: inline-block !important;">ID:' + id + '<i class="delete icon"></i></a>');
+    });
   }
-  // 需要在 showFormModal 进一步拼接数组
-  modal
-    .find("input[name=FailTriggerTasksRaw]")
-    .val(rule ? "[]," + failTriggerTasks.substr(1, failTriggerTasks.length - 2) : "[]");
-  modal
-    .find("input[name=RecoverTriggerTasksRaw]")
-    .val(rule ? "[]," + recoverTriggerTasks.substr(1, recoverTriggerTasks.length - 2) : "[]");
-
-  showFormModal(".rule.modal", "#ruleForm", "/api/alert-rule");
+  alertRuleTypeChanged();
+  showFormModal(".rule.modal", "#ruleForm", "/api/alert-rule", alertRuleData);
+  setTimeout(function () {
+    form.find("[name=AlertType]").dropdown("hide");
+  }, 0);
 }
 
 function addOrEditNotification(notification) {
   const modal = $(".notification.modal");
+  const current = notification || {};
   modal.children(".header").text((notification ? LANG.Edit : LANG.Add) + ' ' + LANG.Notification);
   modal
     .find(".nezha-primary-btn.button")
@@ -325,6 +372,7 @@ function addOrEditNotification(notification) {
   modal.find("input[name=ID]").val(notification ? notification.ID : null);
   modal.find("input[name=Name]").val(notification ? notification.Name : null);
   modal.find("input[name=Tag]").val(notification ? notification.Tag : null);
+  modal.find("select[name=Type]").dropdown("set selected", String(current.Type || 0));
   modal.find("input[name=URL]").val(notification ? notification.URL : null);
   modal
     .find("textarea[name=RequestHeader]")
@@ -338,191 +386,80 @@ function addOrEditNotification(notification) {
   modal
     .find("select[name=RequestType]")
     .val(notification ? notification.RequestType : 1);
+  modal.find("input[name=TelegramToken]").val(current.TelegramToken || "");
+  modal.find("input[name=TelegramChatID]").val(current.TelegramChatID || "");
+  modal.find("input[name=SMTPHost]").val(current.SMTPHost || "");
+  modal.find("input[name=SMTPPort]").val(current.SMTPPort || 465);
+  modal.find("input[name=SMTPUsername]").val(current.SMTPUsername || "");
+  modal.find("input[name=SMTPPassword]").val(current.SMTPPassword || "");
+  modal.find("input[name=EmailTo]").val(current.EmailTo || "");
   if (notification && notification.VerifySSL) {
     modal.find(".ui.nf-ssl.checkbox").checkbox("set checked");
   } else {
     modal.find(".ui.nf-ssl.checkbox").checkbox("set unchecked");
   }
+  modal.find(".ui.nf-smtp-tls.checkbox").checkbox(
+    notification && !current.SMTPTLS ? "set unchecked" : "set checked"
+  );
   modal.find(".ui.nf-skip-check.checkbox").checkbox("set unchecked");
+  notificationTypeChanged();
   showFormModal(
     ".notification.modal",
     "#notificationForm",
     "/api/notification"
   );
+  setTimeout(function () {
+    modal.find("select[name=Type]").dropdown("hide");
+  }, 0);
 }
 
-function expirationReminderData() {
-  const form = $("#expirationReminderForm");
-  const value = form.find("[name=SkipServersRaw]").val() || "";
-  const serverIDs = [...String(value).matchAll(/\d+/g)].map(function (match) {
-    return parseInt(match[0], 10);
-  });
-  return {
-    id: parseInt(form.find("[name=ID]").val(), 10) || 0,
-    name: form.find("[name=Name]").val().trim(),
-    advance_days: parseInt(form.find("[name=AdvanceDays]").val(), 10) || 0,
-    daily_reminder: form.find("[name=DailyReminder]").is(":checked"),
-    cover: parseInt(form.find("[name=Cover]").val(), 10) || 0,
-    skip_servers_raw: JSON.stringify(serverIDs),
-    telegram_enabled: form.find("[name=TelegramEnabled]").is(":checked"),
-    telegram_token: form.find("[name=TelegramToken]").val().trim(),
-    telegram_chat_id: form.find("[name=TelegramChatID]").val().trim(),
-    email_enabled: form.find("[name=EmailEnabled]").is(":checked"),
-    smtp_host: form.find("[name=SMTPHost]").val().trim(),
-    smtp_port: parseInt(form.find("[name=SMTPPort]").val(), 10) || 0,
-    smtp_tls: form.find("[name=SMTPTLS]").is(":checked"),
-    smtp_username: form.find("[name=SMTPUsername]").val().trim(),
-    smtp_password: form.find("[name=SMTPPassword]").val(),
-    email_to: form.find("[name=EmailTo]").val().trim(),
-  };
+function notificationTypeChanged() {
+  const type = parseInt($("#notificationForm [name=Type]").val(), 10) || 0;
+  $(".notification-webhook-fields").toggle(type === 0);
+  $(".notification-telegram-fields").toggle(type === 1);
+  $(".notification-email-fields").toggle(type === 2);
+  $(".notification-test-button").toggle(type !== 0);
 }
 
-function loadExpirationReminders() {
-  const rows = $("#expirationReminderRows");
-  if (!rows.length) {
-    return;
-  }
-  const modal = $(".expiration-reminder.modal");
-  $.get("/expiration-reminder")
-    .done(function (resp) {
-      if (resp.code !== 200 || !Array.isArray(resp.result)) {
-        alert(modal.attr("data-load-failed") + ": " + (resp.message || resp.code));
-        return;
-      }
-      rows.empty();
-      resp.result.forEach(function (rule) {
-        const actions = $('<div class="ui mini icon buttons">');
-        $('<button type="button" class="ui button"><i class="edit icon"></i></button>')
-          .on("click", function () {
-            addOrEditExpirationReminder(rule);
-          })
-          .appendTo(actions);
-        $('<button type="button" class="ui button"><i class="trash alternate outline icon"></i></button>')
-          .on("click", function () {
-            showConfirm(
-              modal.attr("data-delete-title"),
-              modal.attr("data-delete-confirm"),
-              deleteRequest,
-              "/api/expiration-reminder/" + rule.id
-            );
-          })
-          .appendTo(actions);
-        $("<tr>")
-          .append($("<td>").text(rule.id))
-          .append($("<td>").text(rule.name))
-          .append($("<td>").text(rule.advance_days))
-          .append($("<td>").text(
-            modal.attr(rule.daily_reminder ? "data-daily-reminder" : "data-exact-reminder")
-          ))
-          .append($("<td>").text(
-            modal.attr(rule.cover === 1 ? "data-ignore-all" : "data-cover-all")
-          ))
-          .append($("<td>").text(rule.skip_servers_raw || "[]"))
-          .append($("<td>").text(
-            modal.attr(rule.telegram_enabled ? "data-enabled" : "data-disabled")
-          ))
-          .append($("<td>").text(
-            rule.email_enabled
-              ? modal.attr("data-enabled") + ": " + rule.email_to
-              : modal.attr("data-disabled")
-          ))
-          .append($("<td>").append(actions))
-          .appendTo(rows);
-      });
-    })
-    .fail(function (err) {
-      alert(modal.attr("data-network-error") + ": " + err.responseText);
-    });
+function notificationFormData() {
+  return $("#notificationForm")
+    .serializeArray()
+    .reduce(function (data, item) {
+      data[item.name] = item.name === "ID" || item.name === "Type" ||
+        item.name === "RequestMethod" || item.name === "RequestType" ||
+        item.name === "SMTPPort"
+        ? parseInt(item.value, 10) || 0
+        : item.value;
+      return data;
+    }, {});
 }
 
-function addOrEditExpirationReminder(rule) {
-  const modal = $(".expiration-reminder.modal");
-  const form = $("#expirationReminderForm");
-  const current = rule || {};
-  modal.children(".header").text(
-    modal.attr(rule ? "data-edit-title" : "data-add-title")
-  );
-  modal.find(".nezha-primary-btn.button").html(
-    rule ? LANG.Edit + '<i class="edit icon"></i>' : LANG.Add + '<i class="add icon"></i>'
-  );
-  form.find("[name=ID]").val(current.id || 0);
-  form.find("[name=Name]").val(current.name || "");
-  form.find("[name=AdvanceDays]").val(rule ? current.advance_days : 1);
-  form.find("[name=Cover]").dropdown("set selected", String(rule ? current.cover : 0));
-
-  const serverIDs = JSON.parse(current.skip_servers_raw || "[]");
-  const serverDropdown = form.find(".expiration-servers");
-  serverDropdown.find("a.ui.label").remove();
-  form.find("[name=SkipServersRaw]").val(serverIDs.join(","));
-  const serverIcon = serverDropdown.find("i.dropdown.icon.expirationSpecificServer");
-  serverIDs.forEach(function (serverID) {
-    serverIcon.after(
-      '<a class="ui label transition visible" data-value="' +
-      serverID +
-      '" style="display: inline-block !important;">ID:' +
-      serverID +
-      '<i class="delete icon"></i></a>'
-    );
-  });
-
-  form.find("[name=TelegramToken]").val(current.telegram_token || "");
-  form.find("[name=TelegramChatID]").val(current.telegram_chat_id || "");
-  form.find("[name=SMTPHost]").val(current.smtp_host || "");
-  form.find("[name=SMTPPort]").val(current.smtp_port || 465);
-  form.find("[name=SMTPUsername]").val(current.smtp_username || "");
-  form.find("[name=SMTPPassword]").val(current.smtp_password || "");
-  form.find("[name=EmailTo]").val(current.email_to || "");
-  modal.find(".expiration-telegram-enabled").checkbox(
-    current.telegram_enabled ? "set checked" : "set unchecked"
-  );
-  modal.find(".expiration-daily-reminder").checkbox(
-    current.daily_reminder ? "set checked" : "set unchecked"
-  );
-  modal.find(".expiration-email-enabled").checkbox(
-    current.email_enabled ? "set checked" : "set unchecked"
-  );
-  modal.find(".expiration-smtp-tls").checkbox(
-    rule && !current.smtp_tls ? "set unchecked" : "set checked"
-  );
-
-  showFormModal(
-    ".expiration-reminder.modal",
-    "#expirationReminderForm",
-    "/api/expiration-reminder",
-    expirationReminderData
-  );
-}
-
-function testExpirationReminder(channel, button) {
+function testNotificationMethod(button) {
   if (button.hasClass("loading")) {
     return;
   }
-  const data = expirationReminderData();
-  const modal = $(".expiration-reminder.modal");
-  data.channel = channel;
   button.addClass("loading");
+  const modal = $(".notification.modal");
   $.ajax({
-    url: "/api/expiration-reminder/verify",
+    url: "/api/notification/verify",
     type: "POST",
     contentType: "application/json",
-    data: JSON.stringify(data),
+    data: JSON.stringify(notificationFormData()),
   })
     .done(function (resp) {
-      if (resp.code === 200) {
-        alert(modal.attr("data-test-success"));
-      } else {
-        alert(modal.attr("data-test-failed") + ": " + resp.message);
-      }
+      alert(
+        resp.code === 200
+          ? modal.attr("data-test-success")
+          : modal.attr("data-test-failed") + ": " + resp.message
+      );
     })
     .fail(function (err) {
-      alert(modal.attr("data-network-error") + ": " + err.responseText);
+      alert(err.responseText);
     })
     .always(function () {
       button.removeClass("loading");
     });
 }
-
-$(document).ready(loadExpirationReminders);
 
 function addOrEditDDNS(ddns) {
   const modal = $(".ddns.modal");

@@ -133,6 +133,21 @@ other = "Enter ID/Name to search"
 [NotificationMethodGroup]
 other = "Notification Method Group"
 
+[NotificationMethodType]
+other = "Notification Method Type"
+
+[NotificationTarget]
+other = "Target"
+
+[TestNotificationMethod]
+other = "Test Notification Method"
+
+[NotificationTestSuccess]
+other = "Test notification sent successfully"
+
+[NotificationTestFailed]
+other = "Failed to send test notification"
+
 [PushSuccessMessages]
 other = "Send Success Messages"
 
@@ -222,6 +237,15 @@ other = "Verify SSL"
 
 [AddNotificationRule]
 other = "Add Notification Rule"
+
+[AlertType]
+other = "Alert Type"
+
+[StandardAlert]
+other = "Standard Alert"
+
+[ExpirationAlert]
+other = "Expiration Alert"
 
 [AddExpirationReminderRule]
 other = "Add Expiration Reminder Rule"

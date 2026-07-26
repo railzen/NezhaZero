@@ -1,9 +1,19 @@
 {{define "component/notification"}}
-<div class="ui tiny notification modal transition hidden">
+<div class="ui tiny notification modal transition hidden"
+    data-test-success="{{tr "NotificationTestSuccess"}}"
+    data-test-failed="{{tr "NotificationTestFailed"}}">
     <div class="header">{{tr "AddNotificationMethod"}}</div>
     <div class="content">
         <form id="notificationForm" class="ui form">
             <input type="hidden" name="ID">
+            <div class="field">
+                <label>{{tr "NotificationMethodType"}}</label>
+                <select name="Type" class="ui fluid dropdown" onchange="notificationTypeChanged()">
+                    <option value="0">Webhook</option>
+                    <option value="1">Telegram</option>
+                    <option value="2">{{tr "EmailNotification"}}</option>
+                </select>
+            </div>
             <div class="field">
                 <label>{{tr "Name"}}</label>
                 <input type="text" name="Name">
@@ -12,44 +22,90 @@
                 <label>{{tr "Tag"}}</label>
                 <input type="text" name="Tag" placeholder="default">
             </div>
-            <div class="field">
-                <label>URL</label>
-                <input type="text" name="URL">
-            </div>
-            <div class="field">
-                <label>{{tr "RequestMethod"}}</label>
-                <select name="RequestMethod" class="ui fluid dropdown">
-                    <option value="1">GET</option>
-                    <option value="2">POST</option>
-                </select>
-            </div>
-            <div class="field">
-                <label>{{tr "RequestType"}}</label>
-                <select name="RequestType" class="ui fluid dropdown">
-                    <option value="1">JSON</option>
-                    <option value="2">FORM</option>
-                </select>
-            </div>
-            <div class="secret field">
-                <label>Header</label>
-                <textarea name="RequestHeader" placeholder='{"User-Agent":"Nezha-Agent"}'></textarea>
-            </div>
-            <div class="secret field">
-                <label>Body</label>
-                <textarea name="RequestBody" placeholder='{&#13;&#10;  "content":"#NEZHA#",&#13;&#10;  "ServerName":"#SERVER.NAME#",&#13;&#10;  "ServerIP":"#SERVER.IP#",&#13;&#10;  "ServerIPV4":"#SERVER.IPV4#",&#13;&#10;  "ServerIPV6":"#SERVER.IPV6#",&#13;&#10;  "CPU":"#SERVER.CPU#",&#13;&#10;  "MEM":"#SERVER.MEM#",&#13;&#10;  "SWAP":"#SERVER.SWAP#",&#13;&#10;  "DISK":"#SERVER.DISK#",&#13;&#10;  "NetInSpeed":"#SERVER.NETINSPEED#",&#13;&#10;  "NetOutSpeed":"#SERVER.NETOUTSPEED#",&#13;&#10;  "TransferIn":"#SERVER.TRANSFERIN#",&#13;&#10;  "TranferOut":"#SERVER.TRANSFEROUT#",&#13;&#10;  "Load1":"#SERVER.LOAD1#",&#13;&#10;  "Load5":"#SERVER.LOAD5#",&#13;&#10;  "Load15":"#SERVER.LOAD15#",&#13;&#10;  "TCP_CONN_COUNT":"#SERVER.TCPCONNCOUNT",&#13;&#10;  "UDP_CONN_COUNT":"#SERVER.UDPCONNCOUNT"&#13;&#10;}'></textarea>
-            </div>
-            <div class="field">
-                <div class="ui nf-ssl checkbox">
-                    <input name="VerifySSL" type="checkbox" tabindex="0" class="hidden">
-                    <label>{{tr "VerifySSL"}}</label>
+            <div class="notification-webhook-fields">
+                <div class="field">
+                    <label>URL</label>
+                    <input type="text" name="URL">
+                </div>
+                <div class="field">
+                    <label>{{tr "RequestMethod"}}</label>
+                    <select name="RequestMethod" class="ui fluid dropdown">
+                        <option value="1">GET</option>
+                        <option value="2">POST</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>{{tr "RequestType"}}</label>
+                    <select name="RequestType" class="ui fluid dropdown">
+                        <option value="1">JSON</option>
+                        <option value="2">FORM</option>
+                    </select>
+                </div>
+                <div class="secret field">
+                    <label>Header</label>
+                    <textarea name="RequestHeader" placeholder='{"User-Agent":"Nezha-Agent"}'></textarea>
+                </div>
+                <div class="secret field">
+                    <label>Body</label>
+                    <textarea name="RequestBody" placeholder='{&#13;&#10;  "content":"#NEZHA#",&#13;&#10;  "ServerName":"#SERVER.NAME#",&#13;&#10;  "ServerIP":"#SERVER.IP#",&#13;&#10;  "ServerIPV4":"#SERVER.IPV4#",&#13;&#10;  "ServerIPV6":"#SERVER.IPV6#",&#13;&#10;  "CPU":"#SERVER.CPU#",&#13;&#10;  "MEM":"#SERVER.MEM#",&#13;&#10;  "SWAP":"#SERVER.SWAP#",&#13;&#10;  "DISK":"#SERVER.DISK#",&#13;&#10;  "NetInSpeed":"#SERVER.NETINSPEED#",&#13;&#10;  "NetOutSpeed":"#SERVER.NETOUTSPEED#",&#13;&#10;  "TransferIn":"#SERVER.TRANSFERIN#",&#13;&#10;  "TranferOut":"#SERVER.TRANSFEROUT#",&#13;&#10;  "Load1":"#SERVER.LOAD1#",&#13;&#10;  "Load5":"#SERVER.LOAD5#",&#13;&#10;  "Load15":"#SERVER.LOAD15#",&#13;&#10;  "TCP_CONN_COUNT":"#SERVER.TCPCONNCOUNT",&#13;&#10;  "UDP_CONN_COUNT":"#SERVER.UDPCONNCOUNT"&#13;&#10;}'></textarea>
+                </div>
+                <div class="field">
+                    <div class="ui nf-ssl checkbox">
+                        <input name="VerifySSL" type="checkbox" tabindex="0" class="hidden">
+                        <label>{{tr "VerifySSL"}}</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui nf-skip-check checkbox">
+                        <input name="SkipCheck" type="checkbox" tabindex="0" class="hidden">
+                        <label>{{tr "DoNotSendTestMessages"}}</label>
+                    </div>
                 </div>
             </div>
-            <div class="field">
-                <div class="ui nf-skip-check checkbox">
-                    <input name="SkipCheck" type="checkbox" tabindex="0" class="hidden">
-                    <label>{{tr "DoNotSendTestMessages"}}</label>
+            <div class="notification-telegram-fields" style="display:none">
+                <div class="field">
+                    <label>Token</label>
+                    <input type="password" name="TelegramToken" autocomplete="off">
+                </div>
+                <div class="field">
+                    <label>{{tr "TelegramChatID"}}</label>
+                    <input type="text" name="TelegramChatID">
                 </div>
             </div>
+            <div class="notification-email-fields" style="display:none">
+                <div class="two fields">
+                    <div class="twelve wide field">
+                        <label>{{tr "SMTPAddress"}}</label>
+                        <input type="text" name="SMTPHost" placeholder="smtp.example.com">
+                    </div>
+                    <div class="four wide field">
+                        <label>{{tr "SMTPPort"}}</label>
+                        <input type="number" name="SMTPPort" min="1" max="65535" value="465">
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui nf-smtp-tls checkbox">
+                        <input name="SMTPTLS" type="checkbox" tabindex="0" class="hidden">
+                        <label>{{tr "EnableSMTPTLS"}}</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>{{tr "SMTPUsernameSender"}}</label>
+                    <input type="email" name="SMTPUsername" autocomplete="username">
+                </div>
+                <div class="field">
+                    <label>{{tr "SMTPPassword"}}</label>
+                    <input type="password" name="SMTPPassword" autocomplete="new-password">
+                </div>
+                <div class="field">
+                    <label>{{tr "TargetEmailAddress"}}</label>
+                    <input type="email" name="EmailTo">
+                </div>
+            </div>
+            <button type="button" class="ui button notification-test-button" style="display:none; margin-top: 1em;"
+                onclick="testNotificationMethod($(this))">
+                <i class="paper plane outline icon"></i>{{tr "TestNotificationMethod"}}
+            </button>
         </form>
     </div>
     <div class="actions">

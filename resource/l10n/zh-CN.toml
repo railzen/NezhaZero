@@ -133,6 +133,21 @@ other = "输入ID/名称以搜索"
 [NotificationMethodGroup]
 other = "通知方式组"
 
+[NotificationMethodType]
+other = "通知方式类型"
+
+[NotificationTarget]
+other = "通知目标"
+
+[TestNotificationMethod]
+other = "测试通知方式"
+
+[NotificationTestSuccess]
+other = "测试通知发送成功"
+
+[NotificationTestFailed]
+other = "测试通知发送失败"
+
 [PushSuccessMessages]
 other = "推送成功的消息"
 
@@ -222,6 +237,15 @@ other = "验证SSL"
 
 [AddNotificationRule]
 other = "新增告警规则"
+
+[AlertType]
+other = "告警类型"
+
+[StandardAlert]
+other = "普通告警"
+
+[ExpirationAlert]
+other = "到期告警"
 
 [AddExpirationReminderRule]
 other = "新增到期告警规则"

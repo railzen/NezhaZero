@@ -133,6 +133,21 @@ other = "Ingrese ID/Nombre para buscar"
 [NotificationMethodGroup]
 other = "Grupo de Métodos de Notificación"
 
+[NotificationMethodType]
+other = "Tipo de método de notificación"
+
+[NotificationTarget]
+other = "Destino"
+
+[TestNotificationMethod]
+other = "Probar método de notificación"
+
+[NotificationTestSuccess]
+other = "Notificación de prueba enviada correctamente"
+
+[NotificationTestFailed]
+other = "No se pudo enviar la notificación de prueba"
+
 [PushSuccessMessages]
 other = "Enviar el mensaje de éxito"
 
@@ -222,6 +237,15 @@ other = "Validar SSL"
 
 [AddNotificationRule]
 other = "Agregar Regla de Notificación"
+
+[AlertType]
+other = "Tipo de alerta"
+
+[StandardAlert]
+other = "Alerta estándar"
+
+[ExpirationAlert]
+other = "Alerta de vencimiento"
 
 [AddExpirationReminderRule]
 other = "Agregar regla de aviso de vencimiento"

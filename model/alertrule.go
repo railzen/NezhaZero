@@ -1,6 +1,8 @@
 package model
 
 import (
+	"encoding/json"
+	"sort"
 	"time"
 
 	"github.com/railzen/nezha-zero/pkg/utils"
@@ -79,6 +81,41 @@ func (r *AlertRule) AfterFind(tx *gorm.DB) error {
 
 func (r *AlertRule) Enabled() bool {
 	return r.Enable != nil && *r.Enable
+}
+
+func (r *AlertRule) IsExpirationRule() bool {
+	return len(r.Rules) == 1 && r.Rules[0].Type == RuleTypeExpiration
+}
+
+func (r *AlertRule) ExpirationAdvanceDays() int {
+	if !r.IsExpirationRule() {
+		return 0
+	}
+	return r.Rules[0].AdvanceDays
+}
+
+func (r *AlertRule) ExpirationDailyReminder() bool {
+	return r.IsExpirationRule() && r.Rules[0].DailyReminder
+}
+
+func (r *AlertRule) ExpirationCover() uint64 {
+	if !r.IsExpirationRule() {
+		return RuleCoverAll
+	}
+	return r.Rules[0].Cover
+}
+
+func (r *AlertRule) ExpirationServerIDs() string {
+	if !r.IsExpirationRule() {
+		return "[]"
+	}
+	ids := make([]uint64, 0, len(r.Rules[0].Ignore))
+	for id := range r.Rules[0].Ignore {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	data, _ := json.Marshal(ids)
+	return string(data)
 }
 
 // Snapshot 对传入的Server进行该报警规则下所有type的检查 返回包含每项检查结果的空接口。

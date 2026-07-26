@@ -13,6 +13,8 @@ const (
 	RuleCoverIgnoreAll
 )
 
+const RuleTypeExpiration = "expiration"
+
 type NResult struct {
 	N uint64
 }
@@ -30,6 +32,8 @@ type Rule struct {
 	Duration      uint64          `json:"duration,omitempty"`       // 持续时间 (秒)
 	Cover         uint64          `json:"cover,omitempty"`          // 覆盖范围 RuleCoverAll/IgnoreAll
 	Ignore        map[uint64]bool `json:"ignore,omitempty"`         // 覆盖范围的排除
+	AdvanceDays   int             `json:"advance_days,omitempty"`
+	DailyReminder bool            `json:"daily_reminder,omitempty"`
 
 	// 只作为缓存使用，记录下次该检测的时间
 	NextTransferAt  map[uint64]time.Time   `json:"-"`
