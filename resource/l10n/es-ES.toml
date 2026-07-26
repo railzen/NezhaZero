@@ -286,6 +286,9 @@ other = "Habilitar notificaciones de Telegram"
 [TelegramChatID]
 other = "ID de chat"
 
+[TelegramChatIDHint]
+other = "Primero envía cualquier mensaje a tu bot en Telegram, por ejemplo /start, luego abre https://api.telegram.org/bot<TuToken>/getUpdates en el navegador. Busca chat - id en el JSON devuelto. Ese es el ID de chat, negativo para grupos."
+
 [TestTelegram]
 other = "Probar Telegram"
 

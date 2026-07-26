@@ -286,6 +286,9 @@ other = "启用 Telegram 通知"
 [TelegramChatID]
 other = "会话 ID"
 
+[TelegramChatIDHint]
+other = "先在 Telegram 里给你的机器人发一条消息，例如 /start，然后浏览器访问 https://api.telegram.org/bot<你的Token>/getUpdates ，从返回的 JSON 中找到 chat - id 即为会话 ID，群聊为负数。"
+
 [TestTelegram]
 other = "测试 Telegram"
 
