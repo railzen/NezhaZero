@@ -321,6 +321,9 @@ function addOrEditAlertRule(rule, alertType) {
     modal.find(".ui.rule-enable.checkbox").checkbox(
       rule && rule.Enable ? "set checked" : "set unchecked"
     );
+    if (!rule) {
+      modal.find(".expiration-rule-enable").checkbox("set checked");
+    }
     const failRaw = rule ? rule.FailTriggerTasksRaw || "[]" : "[]";
     const recoverRaw = rule ? rule.RecoverTriggerTasksRaw || "[]" : "[]";
     form.find("[name=FailTriggerTasksRaw]").val(failRaw);
