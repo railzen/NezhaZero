@@ -106,6 +106,7 @@ function showFormModal(modelSelector, formID, URL, getData) {
       keyboard: true,
       transition: "scale",
       duration: 300,
+      autofocus: !$modal.hasClass("notification") && !$modal.hasClass("rule"),
 
       onShow: function () {
         $(document).on("keydown.modalEsc", function (e) {
@@ -272,6 +273,7 @@ function alertRuleData() {
     const value = form.find("[name=SkipServersRaw]").val() || "";
     data.AdvanceDays = parseInt(form.find("[name=AdvanceDays]").val(), 10) || 0;
     data.DailyReminder = form.find("[name=DailyReminder]").is(":checked") ? "on" : "";
+    data.Enable = form.find("[name=ExpirationEnable]").is(":checked") ? "on" : "";
     data.Cover = parseInt(form.find("[name=Cover]").val(), 10) || 0;
     data.SkipServersRaw = JSON.stringify(
       [...String(value).matchAll(/\d+/g)].map(function (match) {
@@ -302,10 +304,12 @@ function addOrEditAlertRule(rule, alertType) {
   modal.find(".nezha-primary-btn.button").html(
     rule ? LANG.Edit + '<i class="edit icon"></i>' : LANG.Add + '<i class="add icon"></i>'
   );
-  const alertTypeDropdown = form.find("[name=AlertType]");
-  alertTypeDropdown.prop("disabled", !!rule);
-  alertTypeDropdown.dropdown("set selected", String(type));
-  alertTypeDropdown.dropdown(rule ? "set disabled" : "set enabled");
+  const alertTypeSelect = form.find("select[name=AlertType]");
+  alertTypeSelect.closest(".ui.dropdown").dropdown("set selected", String(type));
+  const alertTypeDropdown = alertTypeSelect.closest(".ui.dropdown");
+  alertTypeSelect.prop("disabled", !!rule);
+  alertTypeDropdown.toggleClass("disabled", !!rule);
+  alertTypeDropdown.attr("aria-disabled", rule ? "true" : "false");
   form.find("[name=ID]").val(rule ? rule.ID : 0);
   form.find("[name=Name]").val(rule ? rule.Name : "");
   form.find("[name=NotificationTag]").val(rule ? rule.NotificationTag : "default");
@@ -341,6 +345,9 @@ function addOrEditAlertRule(rule, alertType) {
     modal.find(".expiration-daily-reminder").checkbox(
       rule && expirationRule.daily_reminder ? "set checked" : "set unchecked"
     );
+    modal.find(".expiration-rule-enable").checkbox(
+      !rule || rule.Enable ? "set checked" : "set unchecked"
+    );
     const serverIDs = Object.keys(expirationRule.ignore || {}).map(function (id) {
       return parseInt(id, 10);
     });
@@ -353,9 +360,6 @@ function addOrEditAlertRule(rule, alertType) {
   }
   alertRuleTypeChanged();
   showFormModal(".rule.modal", "#ruleForm", "/api/alert-rule", alertRuleData);
-  setTimeout(function () {
-    form.find("[name=AlertType]").dropdown("hide");
-  }, 0);
 }
 
 function addOrEditNotification(notification) {
@@ -408,9 +412,6 @@ function addOrEditNotification(notification) {
     "#notificationForm",
     "/api/notification"
   );
-  setTimeout(function () {
-    modal.find("select[name=Type]").dropdown("hide");
-  }, 0);
 }
 
 function notificationTypeChanged() {

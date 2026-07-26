@@ -1065,7 +1065,7 @@ func (ma *memberAPI) addOrEditAlertRule(c *gin.Context) {
 			for _, id := range serverIDs {
 				selected[id] = true
 			}
-			enable := true
+			enable := arf.Enable == "on"
 			r.ID = arf.ID
 			r.Name = strings.TrimSpace(arf.Name)
 			r.NotificationTag = strings.TrimSpace(arf.NotificationTag)

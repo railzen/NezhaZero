@@ -104,7 +104,7 @@
                     <td>{{tr "AdvanceReminderDays"}}: {{$rule.ExpirationAdvanceDays}}; {{if eq $rule.ExpirationCover 1}}{{tr "IgnoreAll"}}{{else}}{{tr "CoverAll"}}{{end}}; {{$rule.ExpirationServerIDs}}</td>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
+                    <td>{{$rule.Enable}}</td>
                     <td>
                         <div class="ui mini icon buttons">
                             <button class="ui button" onclick="addOrEditAlertRule({{$rule}}, 1)">
