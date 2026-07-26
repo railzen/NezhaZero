@@ -163,10 +163,35 @@ func SendNotification(notificationTag string, desc string, muteLabel *string, ex
 		}
 		if err := ns.Send(desc); err != nil {
 			log.Println("NEZHA>> 向 ", n.Name, " 发送通知失败：", err)
+			recordNotificationFailureAudit(n, err)
 		} else {
 			log.Println("NEZHA>> 向 ", n.Name, " 发送通知成功：")
 		}
 	}
+}
+
+func recordNotificationFailureAudit(notification *model.Notification, sendErr error) {
+	if DB == nil || notification == nil || sendErr == nil {
+		return
+	}
+
+	var notificationType string
+	switch notification.Type {
+	case model.NotificationTypeTelegram:
+		notificationType = "Telegram"
+	case model.NotificationTypeEmail:
+		notificationType = "Email"
+	default:
+		return
+	}
+
+	detail := fmt.Sprintf("Method: %s, Notification: %q (ID %d), Error: %s",
+		notificationType, notification.Name, notification.ID, sendErr)
+	_ = DB.Create(&model.AuditLog{
+		Type:   "event",
+		Action: "Notification delivery failed",
+		Detail: truncateAuditText(detail, 1024),
+	}).Error
 }
 
 type _NotificationMuteLabel struct{}
