@@ -24,6 +24,8 @@ const (
 	NotificationTypeEmail
 )
 
+const notificationSendTimeout = 10 * time.Second
+
 const (
 	_ = iota
 	NotificationRequestTypeJSON
@@ -259,12 +261,16 @@ func (ns *NotificationServerBundle) sendTelegram(message string) error {
 		return errors.New("Telegram Token 和会话 ID 不能为空")
 	}
 	endpoint := "https://api.telegram.org/bot" + url.PathEscape(n.TelegramToken) + "/sendMessage"
-	response, err := utils.HttpClient.PostForm(endpoint, url.Values{
+	client := *utils.HttpClient
+	client.Timeout = notificationSendTimeout
+	response, err := client.PostForm(endpoint, url.Values{
 		"chat_id": {n.TelegramChatID},
 		"text":    {message},
 	})
 	if err != nil {
-		return err
+		errMessage := strings.ReplaceAll(err.Error(), n.TelegramToken, "***")
+		errMessage = strings.ReplaceAll(errMessage, url.PathEscape(n.TelegramToken), "***")
+		return errors.New(errMessage)
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -289,22 +295,22 @@ func (ns *NotificationServerBundle) sendEmail(message string) error {
 	}
 
 	address := net.JoinHostPort(n.SMTPHost, strconv.Itoa(n.SMTPPort))
-	var client *smtp.Client
+	connection, err := (&net.Dialer{Timeout: notificationSendTimeout}).Dial("tcp", address)
+	if err != nil {
+		return err
+	}
+	if err = connection.SetDeadline(time.Now().Add(notificationSendTimeout)); err != nil {
+		connection.Close()
+		return err
+	}
+
 	if n.SMTPTLS && n.SMTPPort == 465 {
-		connection, err := tls.Dial("tcp", address, &tls.Config{MinVersion: tls.VersionTLS12, ServerName: n.SMTPHost})
-		if err != nil {
-			return err
-		}
-		client, err = smtp.NewClient(connection, n.SMTPHost)
-		if err != nil {
-			connection.Close()
-			return err
-		}
-	} else {
-		client, err = smtp.Dial(address)
-		if err != nil {
-			return err
-		}
+		connection = tls.Client(connection, &tls.Config{MinVersion: tls.VersionTLS12, ServerName: n.SMTPHost})
+	}
+	client, err := smtp.NewClient(connection, n.SMTPHost)
+	if err != nil {
+		connection.Close()
+		return err
 	}
 	defer client.Close()
 	if n.SMTPTLS && n.SMTPPort != 465 {
