@@ -63,6 +63,7 @@ func (ma *memberAPI) updateExpirationReminder(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, model.Response{Code: http.StatusOK, Message: "到期告警规则已保存"})
+	go singleton.CheckExpirationReminders()
 }
 
 func (ma *memberAPI) testExpirationReminder(c *gin.Context) {

@@ -35,11 +35,10 @@ func loadExpirationReminders() {
 		log.Printf("NEZHA>> migrate expiration reminder rules failed: %v", err)
 		return
 	}
-	if _, err := Cron.AddFunc("0 0 9 * * *", checkExpirationReminders); err != nil {
+	if _, err := Cron.AddFunc("0 0 9 * * *", CheckExpirationReminders); err != nil {
 		log.Printf("NEZHA>> register expiration reminder failed: %v", err)
 		return
 	}
-	go checkExpirationReminders()
 }
 
 func ForgetExpirationReminderRule(id uint64) {
@@ -49,7 +48,7 @@ func ForgetExpirationReminderRule(id uint64) {
 	expirationReminderSent.Unlock()
 }
 
-func checkExpirationReminders() {
+func CheckExpirationReminders() {
 	var rules []model.ExpirationReminderRule
 	if err := DB.Order("id").Find(&rules).Error; err != nil {
 		log.Printf("NEZHA>> load expiration reminder rules failed: %v", err)
