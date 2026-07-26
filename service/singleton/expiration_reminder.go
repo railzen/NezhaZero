@@ -2,12 +2,13 @@ package singleton
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 
 	"github.com/railzen/nezha-zero/model"
 )
@@ -78,12 +79,22 @@ func CheckExpirationReminders() {
 		}
 		sort.Slice(due, func(i, j int) bool { return due[i].id < due[j].id })
 		var message strings.Builder
-		message.WriteString("【服务器到期提醒】\n")
-		message.WriteString("以下服务器即将到期，请您关注：")
+		message.WriteString(Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ExpirationReminderTitle"}))
+		message.WriteByte('\n')
+		message.WriteString(Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ExpirationReminderIntro"}))
 		for _, item := range due {
 			days := calendarDaysBetween(now.In(item.expiration.Location()), item.expiration)
-			fmt.Fprintf(&message, "\n- %s（ID: %d）将于 %s 到期，剩余 %d 天",
-				item.name, item.id, item.expiration.Format("2006-01-02"), days)
+			message.WriteByte('\n')
+			message.WriteString(Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID:   "ExpirationReminderItem",
+				PluralCount: days,
+				TemplateData: map[string]interface{}{
+					"Name": item.name,
+					"ID":   item.id,
+					"Date": item.expiration.Format("2006-01-02"),
+					"Days": days,
+				},
+			}))
 		}
 		if claimExpirationReminder(rule.ID, dateKey) {
 			SendNotification(rule.NotificationTag, message.String(), nil)

@@ -1161,3 +1161,12 @@ other = "儲存失敗"
 
 [PNEUnknownError]
 other = "未知錯誤"
+
+[ExpirationReminderTitle]
+other = "【伺服器到期提醒】"
+
+[ExpirationReminderIntro]
+other = "以下伺服器即將到期，請您留意："
+
+[ExpirationReminderItem]
+other = "- {{.Name}}（ID: {{.ID}}）將於 {{.Date}} 到期，剩餘 {{.Days}} 天"

@@ -1152,3 +1152,13 @@ other = "Error al guardar"
 
 [PNEUnknownError]
 other = "Error desconocido"
+
+[ExpirationReminderTitle]
+other = "[Recordatorio de vencimiento de servidores]"
+
+[ExpirationReminderIntro]
+other = "Los siguientes servidores están a punto de vencer. Por favor, revíselos:"
+
+[ExpirationReminderItem]
+one = "- {{.Name}} (ID: {{.ID}}) vencerá el {{.Date}}, queda {{.Days}} día"
+other = "- {{.Name}} (ID: {{.ID}}) vencerá el {{.Date}}, quedan {{.Days}} días"

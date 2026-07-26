@@ -1161,3 +1161,13 @@ other = "Save failed"
 
 [PNEUnknownError]
 other = "Unknown error"
+
+[ExpirationReminderTitle]
+other = "[Server Expiration Reminder]"
+
+[ExpirationReminderIntro]
+other = "The following servers are about to expire. Please take action:"
+
+[ExpirationReminderItem]
+one = "- {{.Name}} (ID: {{.ID}}) will expire on {{.Date}}, {{.Days}} day remaining"
+other = "- {{.Name}} (ID: {{.ID}}) will expire on {{.Date}}, {{.Days}} days remaining"
