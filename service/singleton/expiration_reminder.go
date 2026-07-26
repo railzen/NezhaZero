@@ -5,7 +5,6 @@ import (
 	"log"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
@@ -13,24 +12,11 @@ import (
 	"github.com/railzen/nezha-zero/model"
 )
 
-var expirationReminderSent = struct {
-	sync.Mutex
-	rules map[uint64]string
-}{
-	rules: make(map[uint64]string),
-}
-
 func loadExpirationReminders() {
 	if _, err := Cron.AddFunc("0 0 9 * * *", CheckExpirationReminders); err != nil {
 		log.Printf("NEZHA>> register expiration reminder failed: %v", err)
 		return
 	}
-}
-
-func forgetExpirationReminderRule(id uint64) {
-	expirationReminderSent.Lock()
-	delete(expirationReminderSent.rules, id)
-	expirationReminderSent.Unlock()
 }
 
 func CheckExpirationReminders() {
@@ -58,7 +44,6 @@ func CheckExpirationReminders() {
 	}
 	ServerLock.RUnlock()
 
-	dateKey := now.In(Loc).Format("2006-01-02")
 	for _, rule := range rules {
 		if !rule.Enabled() || !rule.IsExpirationRule() {
 			continue
@@ -96,9 +81,7 @@ func CheckExpirationReminders() {
 				},
 			}))
 		}
-		if claimExpirationReminder(rule.ID, dateKey) {
-			SendNotification(rule.NotificationTag, message.String(), nil)
-		}
+		SendNotification(rule.NotificationTag, message.String(), nil)
 	}
 }
 
@@ -107,16 +90,6 @@ func expirationReminderCoversServer(cover uint64, selected map[uint64]bool, id u
 		return selected[id]
 	}
 	return !selected[id]
-}
-
-func claimExpirationReminder(id uint64, date string) bool {
-	expirationReminderSent.Lock()
-	defer expirationReminderSent.Unlock()
-	if expirationReminderSent.rules[id] == date {
-		return false
-	}
-	expirationReminderSent.rules[id] = date
-	return true
 }
 
 func calendarDaysBetween(from, to time.Time) int {

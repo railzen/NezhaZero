@@ -122,7 +122,6 @@ func OnRefreshOrAddAlert(alert model.AlertRule) {
 		}
 	}
 	if alert.IsExpirationRule() {
-		forgetExpirationReminderRule(alert.ID)
 		return
 	}
 	if !isEdit {
@@ -136,7 +135,6 @@ func OnRefreshOrAddAlert(alert model.AlertRule) {
 func OnDeleteAlert(id uint64) {
 	AlertsLock.Lock()
 	defer AlertsLock.Unlock()
-	forgetExpirationReminderRule(id)
 	delete(alertsStore, id)
 	delete(alertsPrevState, id)
 	for i := 0; i < len(Alerts); i++ {
