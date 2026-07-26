@@ -274,9 +274,6 @@ other = "僅提醒當天"
 [ExpirationReminderDaily]
 other = "提醒期內每天"
 
-[EmailNotification]
-other = "電子郵件"
-
 [Enabled]
 other = "已啟用"
 
@@ -291,9 +288,6 @@ other = "會話 ID"
 
 [TestTelegram]
 other = "測試 Telegram"
-
-[EnableEmailNotification]
-other = "啟用郵件通知"
 
 [SMTPAddress]
 other = "SMTP 地址"

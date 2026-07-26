@@ -274,9 +274,6 @@ other = "Solo el día del aviso"
 [ExpirationReminderDaily]
 other = "Cada día durante el período de aviso"
 
-[EmailNotification]
-other = "Correo electrónico"
-
 [Enabled]
 other = "Habilitado"
 
@@ -291,9 +288,6 @@ other = "ID de chat"
 
 [TestTelegram]
 other = "Probar Telegram"
-
-[EnableEmailNotification]
-other = "Habilitar notificaciones por correo"
 
 [SMTPAddress]
 other = "Servidor SMTP"

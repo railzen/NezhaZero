@@ -28,7 +28,7 @@
                     <td>{{$notification.ID}}</td>
                     <td>{{$notification.Name}}</td>
                     <td>{{$notification.Tag}}</td>
-                    <td>{{if eq $notification.Type 1}}Telegram{{else if eq $notification.Type 2}}{{tr "EmailNotification"}}{{else}}Webhook{{end}}</td>
+                    <td>{{if eq $notification.Type 1}}Telegram{{else if eq $notification.Type 2}}Email{{else}}Webhook{{end}}</td>
                     <td>{{if eq $notification.Type 1}}{{$notification.TelegramChatID}}{{else if eq $notification.Type 2}}{{$notification.EmailTo}}{{else}}{{$notification.URL}}{{end}}</td>
                     <td>{{if eq $notification.Type 0}}{{$notification.VerifySSL}}{{else}}-{{end}}</td>
                     <td>

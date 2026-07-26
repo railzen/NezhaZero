@@ -274,9 +274,6 @@ other = "Reminder Day Only"
 [ExpirationReminderDaily]
 other = "Daily During Reminder Period"
 
-[EmailNotification]
-other = "Email"
-
 [Enabled]
 other = "Enabled"
 
@@ -291,9 +288,6 @@ other = "Chat ID"
 
 [TestTelegram]
 other = "Test Telegram"
-
-[EnableEmailNotification]
-other = "Enable Email Notifications"
 
 [SMTPAddress]
 other = "SMTP Server"
