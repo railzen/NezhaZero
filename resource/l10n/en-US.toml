@@ -223,6 +223,72 @@ other = "Verify SSL"
 [AddNotificationRule]
 other = "Add Notification Rule"
 
+[AddExpirationReminderRule]
+other = "Add Expiration Reminder Rule"
+
+[EditExpirationReminderRule]
+other = "Edit Expiration Reminder Rule"
+
+[DeleteExpirationReminderRule]
+other = "Delete Expiration Reminder Rule"
+
+[ConfirmDeleteExpirationReminderRule]
+other = "Are you sure you want to delete this expiration reminder rule?"
+
+[AdvanceReminderDays]
+other = "Advance Reminder Days"
+
+[EmailNotification]
+other = "Email"
+
+[Enabled]
+other = "Enabled"
+
+[Disabled]
+other = "Disabled"
+
+[EnableTelegramNotification]
+other = "Enable Telegram Notifications"
+
+[TelegramChatID]
+other = "Chat ID"
+
+[TestTelegram]
+other = "Test Telegram"
+
+[EnableEmailNotification]
+other = "Enable Email Notifications"
+
+[SMTPAddress]
+other = "SMTP Server"
+
+[SMTPPort]
+other = "Port"
+
+[EnableSMTPTLS]
+other = "Enable TLS"
+
+[SMTPUsernameSender]
+other = "SMTP Username (Sender Email)"
+
+[SMTPPassword]
+other = "SMTP Password"
+
+[TargetEmailAddress]
+other = "Recipient Email Address"
+
+[TestEmail]
+other = "Test Email"
+
+[ExpirationReminderTestSuccess]
+other = "Test notification sent successfully"
+
+[ExpirationReminderTestFailed]
+other = "Failed to send test notification"
+
+[ExpirationReminderLoadFailed]
+other = "Failed to load expiration reminder rules"
+
 [Rules]
 other = "Rules"
 

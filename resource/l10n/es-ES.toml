@@ -223,6 +223,72 @@ other = "Validar SSL"
 [AddNotificationRule]
 other = "Agregar Regla de Notificación"
 
+[AddExpirationReminderRule]
+other = "Agregar regla de aviso de vencimiento"
+
+[EditExpirationReminderRule]
+other = "Editar regla de aviso de vencimiento"
+
+[DeleteExpirationReminderRule]
+other = "Eliminar regla de aviso de vencimiento"
+
+[ConfirmDeleteExpirationReminderRule]
+other = "¿Confirma que desea eliminar esta regla de aviso de vencimiento?"
+
+[AdvanceReminderDays]
+other = "Días de aviso previo"
+
+[EmailNotification]
+other = "Correo electrónico"
+
+[Enabled]
+other = "Habilitado"
+
+[Disabled]
+other = "Deshabilitado"
+
+[EnableTelegramNotification]
+other = "Habilitar notificaciones de Telegram"
+
+[TelegramChatID]
+other = "ID de chat"
+
+[TestTelegram]
+other = "Probar Telegram"
+
+[EnableEmailNotification]
+other = "Habilitar notificaciones por correo"
+
+[SMTPAddress]
+other = "Servidor SMTP"
+
+[SMTPPort]
+other = "Puerto"
+
+[EnableSMTPTLS]
+other = "Habilitar TLS"
+
+[SMTPUsernameSender]
+other = "Usuario SMTP (correo del remitente)"
+
+[SMTPPassword]
+other = "Contraseña SMTP"
+
+[TargetEmailAddress]
+other = "Correo electrónico del destinatario"
+
+[TestEmail]
+other = "Probar correo"
+
+[ExpirationReminderTestSuccess]
+other = "Notificación de prueba enviada correctamente"
+
+[ExpirationReminderTestFailed]
+other = "No se pudo enviar la notificación de prueba"
+
+[ExpirationReminderLoadFailed]
+other = "No se pudieron cargar las reglas de aviso de vencimiento"
+
 [Rules]
 other = "Reglas"
 

@@ -31,6 +31,7 @@ func (mp *memberPage) serve() {
 	mr.GET("/monitor", mp.monitor)
 	mr.GET("/cron", mp.cron)
 	mr.GET("/notification", mp.notification)
+	mr.GET("/expiration-reminder", mp.getExpirationReminder)
 	mr.GET("/ddns", mp.ddns)
 	mr.GET("/nat", mp.nat)
 	mr.GET("/setting", mp.setting)

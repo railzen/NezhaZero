@@ -63,6 +63,8 @@ func (ma *memberAPI) serve() {
 	wr.POST("/nat", ma.addOrEditNAT)
 	wr.POST("/alert-rule", ma.addOrEditAlertRule)
 	wr.POST("/notification", ma.addOrEditNotification)
+	wr.POST("/expiration-reminder", ma.updateExpirationReminder)
+	wr.POST("/expiration-reminder/verify", ma.testExpirationReminder)
 	wr.POST("/ddns", ma.addOrEditDDNS)
 	wr.POST("/setting", ma.updateSetting)
 	wr.POST("/totp", ma.totp)
@@ -228,6 +230,11 @@ func (ma *memberAPI) delete(c *gin.Context) {
 		err = singleton.DB.Unscoped().Delete(&model.Notification{}, "id = ?", id).Error
 		if err == nil {
 			singleton.OnDeleteNotification(id)
+		}
+	case "expiration-reminder":
+		err = singleton.DB.Unscoped().Delete(&model.ExpirationReminderRule{}, "id = ?", id).Error
+		if err == nil {
+			singleton.ForgetExpirationReminderRule(id)
 		}
 	case "ddns":
 		err = singleton.DB.Unscoped().Delete(&model.DDNSProfile{}, "id = ?", id).Error

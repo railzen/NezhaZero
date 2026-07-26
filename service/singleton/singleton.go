@@ -40,6 +40,7 @@ func LoadSingleton() {
 	loadNotifications() // 加载通知服务
 	loadServers()       // 加载服务器列表
 	loadCronTasks()     // 加载定时任务
+	loadExpirationReminders()
 	loadAPI()
 	initNAT()
 	initDDNS()

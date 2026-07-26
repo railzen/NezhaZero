@@ -92,10 +92,34 @@
                 {{end}}
             </tbody>
         </table>
+        <div class="ui grid">
+            <div class="right floated right aligned twelve wide column">
+                <button class="ui right labeled nezha-primary-btn icon button"
+                    onclick="addOrEditExpirationReminder()">
+                    <i class="add icon"></i>{{tr "AddExpirationReminderRule"}}
+                </button>
+            </div>
+        </div>
+        <table class="ui basic table selectable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>{{tr "Name"}}</th>
+                    <th>{{tr "AdvanceReminderDays"}}</th>
+                    <th>{{tr "Coverage"}}</th>
+                    <th>{{tr "SpecificServers"}}</th>
+                    <th>Telegram</th>
+                    <th>{{tr "EmailNotification"}}</th>
+                    <th>{{tr "Administration"}}</th>
+                </tr>
+            </thead>
+            <tbody id="expirationReminderRows"></tbody>
+        </table>
     </div>
 </div>
 {{template "component/notification"}}
 {{template "component/rule"}}
+{{template "component/expiration-reminder"}}
 {{template "common/footer" .}}
 <script>
     $('.checkbox').checkbox()

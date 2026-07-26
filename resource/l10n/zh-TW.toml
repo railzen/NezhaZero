@@ -223,6 +223,72 @@ other = "驗證SSL"
 [AddNotificationRule]
 other = "新增告警規則"
 
+[AddExpirationReminderRule]
+other = "新增到期告警規則"
+
+[EditExpirationReminderRule]
+other = "編輯到期告警規則"
+
+[DeleteExpirationReminderRule]
+other = "刪除到期告警規則"
+
+[ConfirmDeleteExpirationReminderRule]
+other = "確認刪除這條到期告警規則？"
+
+[AdvanceReminderDays]
+other = "提前提醒天數"
+
+[EmailNotification]
+other = "電子郵件"
+
+[Enabled]
+other = "已啟用"
+
+[Disabled]
+other = "未啟用"
+
+[EnableTelegramNotification]
+other = "啟用 Telegram 通知"
+
+[TelegramChatID]
+other = "會話 ID"
+
+[TestTelegram]
+other = "測試 Telegram"
+
+[EnableEmailNotification]
+other = "啟用郵件通知"
+
+[SMTPAddress]
+other = "SMTP 地址"
+
+[SMTPPort]
+other = "連接埠"
+
+[EnableSMTPTLS]
+other = "啟用 TLS"
+
+[SMTPUsernameSender]
+other = "SMTP 使用者名稱（寄件信箱）"
+
+[SMTPPassword]
+other = "SMTP 密碼"
+
+[TargetEmailAddress]
+other = "目標郵件地址"
+
+[TestEmail]
+other = "測試郵件"
+
+[ExpirationReminderTestSuccess]
+other = "測試通知傳送成功"
+
+[ExpirationReminderTestFailed]
+other = "測試通知傳送失敗"
+
+[ExpirationReminderLoadFailed]
+other = "載入到期告警規則失敗"
+
 [Rules]
 other = "規則"
 

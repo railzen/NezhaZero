@@ -1,0 +1,109 @@
+{{define "component/expiration-reminder"}}
+<div class="ui tiny expiration-reminder modal transition hidden"
+    data-add-title="{{tr "AddExpirationReminderRule"}}"
+    data-edit-title="{{tr "EditExpirationReminderRule"}}"
+    data-test-success="{{tr "ExpirationReminderTestSuccess"}}"
+    data-test-failed="{{tr "ExpirationReminderTestFailed"}}"
+    data-network-error="{{tr "NetworkError"}}"
+    data-load-failed="{{tr "ExpirationReminderLoadFailed"}}"
+    data-delete-title="{{tr "DeleteExpirationReminderRule"}}"
+    data-delete-confirm="{{tr "ConfirmDeleteExpirationReminderRule"}}"
+    data-enabled="{{tr "Enabled"}}"
+    data-disabled="{{tr "Disabled"}}"
+    data-cover-all="{{tr "CoverAll"}}"
+    data-ignore-all="{{tr "IgnoreAll"}}">
+    <div class="header">{{tr "AddExpirationReminderRule"}}</div>
+    <div class="content">
+        <form id="expirationReminderForm" class="ui form">
+            <input type="hidden" name="ID">
+            <div class="field">
+                <label>{{tr "Name"}}</label>
+                <input type="text" name="Name">
+            </div>
+            <div class="field">
+                <label>{{tr "AdvanceReminderDays"}}</label>
+                <input type="number" name="AdvanceDays" min="0" max="365" value="1">
+            </div>
+            <div class="field">
+                <label>{{tr "Coverage"}}</label>
+                <select name="Cover" class="ui fluid dropdown">
+                    <option value="0">{{tr "AllIncludedOnlySpecificServersAreNotRequest"}}</option>
+                    <option value="1">{{tr "IgnoreAllRequestOnlyThroughSpecificServers"}}</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>{{tr "SpecificServers"}}</label>
+                <div class="ui fluid multiple servers search selection dropdown expiration-servers">
+                    <input type="hidden" name="SkipServersRaw">
+                    <i class="dropdown icon expirationSpecificServer"></i>
+                    <div class="default text">{{tr "EnterIdAndNameToSearch"}}</div>
+                    <div class="menu"></div>
+                </div>
+            </div>
+            <h4 class="ui dividing header">Telegram</h4>
+            <div class="field">
+                <div class="ui toggle checkbox expiration-telegram-enabled">
+                    <input type="checkbox" name="TelegramEnabled">
+                    <label>{{tr "EnableTelegramNotification"}}</label>
+                </div>
+            </div>
+            <div class="field">
+                <label>Token</label>
+                <input type="password" name="TelegramToken" autocomplete="off">
+            </div>
+            <div class="field">
+                <label>{{tr "TelegramChatID"}}</label>
+                <input type="text" name="TelegramChatID">
+            </div>
+            <button type="button" class="ui button" onclick="testExpirationReminder('telegram', $(this))">
+                <i class="paper plane outline icon"></i>{{tr "TestTelegram"}}
+            </button>
+
+            <h4 class="ui dividing header">{{tr "EmailNotification"}}</h4>
+            <div class="field">
+                <div class="ui toggle checkbox expiration-email-enabled">
+                    <input type="checkbox" name="EmailEnabled">
+                    <label>{{tr "EnableEmailNotification"}}</label>
+                </div>
+            </div>
+            <div class="two fields">
+                <div class="twelve wide field">
+                    <label>{{tr "SMTPAddress"}}</label>
+                    <input type="text" name="SMTPHost" placeholder="smtp.example.com">
+                </div>
+                <div class="four wide field">
+                    <label>{{tr "SMTPPort"}}</label>
+                    <input type="number" name="SMTPPort" min="1" max="65535" value="465">
+                </div>
+            </div>
+            <div class="field">
+                <div class="ui toggle checkbox expiration-smtp-tls">
+                    <input type="checkbox" name="SMTPTLS" checked>
+                    <label>{{tr "EnableSMTPTLS"}}</label>
+                </div>
+            </div>
+            <div class="field">
+                <label>{{tr "SMTPUsernameSender"}}</label>
+                <input type="email" name="SMTPUsername" autocomplete="username">
+            </div>
+            <div class="field">
+                <label>{{tr "SMTPPassword"}}</label>
+                <input type="password" name="SMTPPassword" autocomplete="new-password">
+            </div>
+            <div class="field">
+                <label>{{tr "TargetEmailAddress"}}</label>
+                <input type="email" name="EmailTo">
+            </div>
+            <button type="button" class="ui button" onclick="testExpirationReminder('email', $(this))">
+                <i class="mail outline icon"></i>{{tr "TestEmail"}}
+            </button>
+        </form>
+    </div>
+    <div class="actions">
+        <div class="ui negative button">{{tr "Cancel"}}</div>
+        <button class="ui positive nezha-primary-btn right labeled icon button">
+            {{tr "Confirm"}}<i class="checkmark icon"></i>
+        </button>
+    </div>
+</div>
+{{end}}
