@@ -307,9 +307,9 @@ function addOrEditAlertRule(rule, alertType) {
   const alertTypeSelect = form.find("select[name=AlertType]");
   alertTypeSelect.closest(".ui.dropdown").dropdown("set selected", String(type));
   const alertTypeDropdown = alertTypeSelect.closest(".ui.dropdown");
-  alertTypeSelect.prop("disabled", !!rule);
-  alertTypeDropdown.toggleClass("disabled", !!rule);
-  alertTypeDropdown.attr("aria-disabled", rule ? "true" : "false");
+  alertTypeSelect.prop("disabled", false);
+  alertTypeDropdown.removeClass("disabled");
+  alertTypeDropdown.attr("aria-disabled", "false");
   form.find("[name=ID]").val(rule ? rule.ID : 0);
   form.find("[name=Name]").val(rule ? rule.Name : "");
   form.find("[name=NotificationTag]").val(rule ? rule.NotificationTag : "default");
@@ -321,9 +321,13 @@ function addOrEditAlertRule(rule, alertType) {
     modal.find(".ui.rule-enable.checkbox").checkbox(
       rule && rule.Enable ? "set checked" : "set unchecked"
     );
-    if (!rule) {
-      modal.find(".expiration-rule-enable").checkbox("set checked");
-    }
+    form.find("[name=AdvanceDays]").val(1);
+    form.find("[name=Cover]").dropdown("set selected", "0");
+    form.find("[name=SkipServersRaw]").val("");
+    modal.find(".expiration-daily-reminder").checkbox("set unchecked");
+    modal.find(".expiration-rule-enable").checkbox(
+      !rule || rule.Enable ? "set checked" : "set unchecked"
+    );
     const failRaw = rule ? rule.FailTriggerTasksRaw || "[]" : "[]";
     const recoverRaw = rule ? rule.RecoverTriggerTasksRaw || "[]" : "[]";
     form.find("[name=FailTriggerTasksRaw]").val(failRaw);
@@ -339,6 +343,13 @@ function addOrEditAlertRule(rule, alertType) {
         '" style="display: inline-block !important;">ID:' + id + '<i class="delete icon"></i></a>');
     });
   } else {
+    form.find("[name=RulesRaw]").val("");
+    form.find("[name=TriggerMode]").dropdown("set selected", "0");
+    form.find("[name=FailTriggerTasksRaw]").val("[]");
+    form.find("[name=RecoverTriggerTasksRaw]").val("[]");
+    modal.find(".ui.rule-enable.checkbox").checkbox(
+      rule && rule.Enable ? "set checked" : "set unchecked"
+    );
     const expirationRule = rule ? JSON.parse(rule.RulesRaw || "[]")[0] || {} : {};
     form.find("[name=AdvanceDays]").val(rule ? expirationRule.advance_days : 1);
     form.find("[name=Cover]").dropdown(
