@@ -238,6 +238,18 @@ other = "確認刪除這條到期告警規則？"
 [AdvanceReminderDays]
 other = "提前提醒天數"
 
+[ExpirationReminderMode]
+other = "提醒模式"
+
+[DailyExpirationReminder]
+other = "提醒期內每天傳送"
+
+[ExpirationReminderExactDay]
+other = "僅提醒當天"
+
+[ExpirationReminderDaily]
+other = "提醒期內每天"
+
 [EmailNotification]
 other = "電子郵件"
 

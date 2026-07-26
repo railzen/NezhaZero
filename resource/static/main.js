@@ -361,6 +361,7 @@ function expirationReminderData() {
     id: parseInt(form.find("[name=ID]").val(), 10) || 0,
     name: form.find("[name=Name]").val().trim(),
     advance_days: parseInt(form.find("[name=AdvanceDays]").val(), 10) || 0,
+    daily_reminder: form.find("[name=DailyReminder]").is(":checked"),
     cover: parseInt(form.find("[name=Cover]").val(), 10) || 0,
     skip_servers_raw: JSON.stringify(serverIDs),
     telegram_enabled: form.find("[name=TelegramEnabled]").is(":checked"),
@@ -410,6 +411,9 @@ function loadExpirationReminders() {
           .append($("<td>").text(rule.id))
           .append($("<td>").text(rule.name))
           .append($("<td>").text(rule.advance_days))
+          .append($("<td>").text(
+            modal.attr(rule.daily_reminder ? "data-daily-reminder" : "data-exact-reminder")
+          ))
           .append($("<td>").text(
             modal.attr(rule.cover === 1 ? "data-ignore-all" : "data-cover-all")
           ))
@@ -470,6 +474,9 @@ function addOrEditExpirationReminder(rule) {
   form.find("[name=EmailTo]").val(current.email_to || "");
   modal.find(".expiration-telegram-enabled").checkbox(
     current.telegram_enabled ? "set checked" : "set unchecked"
+  );
+  modal.find(".expiration-daily-reminder").checkbox(
+    current.daily_reminder ? "set checked" : "set unchecked"
   );
   modal.find(".expiration-email-enabled").checkbox(
     current.email_enabled ? "set checked" : "set unchecked"

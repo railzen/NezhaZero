@@ -13,6 +13,7 @@ type ExpirationReminderRule struct {
 	DeletedAt       gorm.DeletedAt `json:"-" gorm:"index"`
 	Name            string         `json:"name"`
 	AdvanceDays     int            `json:"advance_days"`
+	DailyReminder   bool           `json:"daily_reminder" gorm:"default:false"`
 	Cover           uint8          `json:"cover"`
 	SkipServersRaw  string         `json:"skip_servers_raw" gorm:"default:'[]'"`
 	TelegramEnabled bool           `json:"telegram_enabled"`

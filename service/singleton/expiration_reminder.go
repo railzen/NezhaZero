@@ -90,7 +90,7 @@ func checkExpirationReminders() {
 				continue
 			}
 			days := calendarDaysBetween(now.In(item.expiration.Location()), item.expiration)
-			if days == rule.AdvanceDays {
+			if days == rule.AdvanceDays || (rule.DailyReminder && days >= 0 && days < rule.AdvanceDays) {
 				due = append(due, item)
 			}
 		}

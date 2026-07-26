@@ -11,7 +11,9 @@
     data-enabled="{{tr "Enabled"}}"
     data-disabled="{{tr "Disabled"}}"
     data-cover-all="{{tr "CoverAll"}}"
-    data-ignore-all="{{tr "IgnoreAll"}}">
+    data-ignore-all="{{tr "IgnoreAll"}}"
+    data-exact-reminder="{{tr "ExpirationReminderExactDay"}}"
+    data-daily-reminder="{{tr "ExpirationReminderDaily"}}">
     <div class="header">{{tr "AddExpirationReminderRule"}}</div>
     <div class="content">
         <form id="expirationReminderForm" class="ui form">
@@ -23,6 +25,12 @@
             <div class="field">
                 <label>{{tr "AdvanceReminderDays"}}</label>
                 <input type="number" name="AdvanceDays" min="0" max="365" value="1">
+            </div>
+            <div class="field">
+                <div class="ui toggle checkbox expiration-daily-reminder">
+                    <input type="checkbox" name="DailyReminder">
+                    <label>{{tr "DailyExpirationReminder"}}</label>
+                </div>
             </div>
             <div class="field">
                 <label>{{tr "Coverage"}}</label>

@@ -238,6 +238,18 @@ other = "确认删除这条到期告警规则？"
 [AdvanceReminderDays]
 other = "提前提醒天数"
 
+[ExpirationReminderMode]
+other = "提醒模式"
+
+[DailyExpirationReminder]
+other = "提醒期内每天发送"
+
+[ExpirationReminderExactDay]
+other = "仅提醒当天"
+
+[ExpirationReminderDaily]
+other = "提醒期内每天"
+
 [EmailNotification]
 other = "电子邮件"
 

@@ -238,6 +238,18 @@ other = "¿Confirma que desea eliminar esta regla de aviso de vencimiento?"
 [AdvanceReminderDays]
 other = "Días de aviso previo"
 
+[ExpirationReminderMode]
+other = "Modo de aviso"
+
+[DailyExpirationReminder]
+other = "Enviar cada día durante el período de aviso"
+
+[ExpirationReminderExactDay]
+other = "Solo el día del aviso"
+
+[ExpirationReminderDaily]
+other = "Cada día durante el período de aviso"
+
 [EmailNotification]
 other = "Correo electrónico"
 

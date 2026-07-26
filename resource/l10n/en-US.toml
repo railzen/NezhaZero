@@ -238,6 +238,18 @@ other = "Are you sure you want to delete this expiration reminder rule?"
 [AdvanceReminderDays]
 other = "Advance Reminder Days"
 
+[ExpirationReminderMode]
+other = "Reminder Mode"
+
+[DailyExpirationReminder]
+other = "Send Daily During Reminder Period"
+
+[ExpirationReminderExactDay]
+other = "Reminder Day Only"
+
+[ExpirationReminderDaily]
+other = "Daily During Reminder Period"
+
 [EmailNotification]
 other = "Email"
 
