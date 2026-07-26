@@ -1154,8 +1154,8 @@ other = "Error desconocido"
 other = "[Recordatorio de vencimiento de servidores]"
 
 [ExpirationReminderIntro]
-other = "Los siguientes servidores están a punto de vencer. Por favor, revíselos:"
+other = "Los siguientes servidores están a punto de vencer"
 
 [ExpirationReminderItem]
-one = "- {{.Name}} (ID: {{.ID}}) vencerá el {{.Date}}, queda {{.Days}} día"
-other = "- {{.Name}} (ID: {{.ID}}) vencerá el {{.Date}}, quedan {{.Days}} días"
+one = "- {{.Name}} ({{.IP}}) vencerá el {{.Date}}, queda {{.Days}} día"
+other = "- {{.Name}} ({{.IP}}) vencerá el {{.Date}}, quedan {{.Days}} días"

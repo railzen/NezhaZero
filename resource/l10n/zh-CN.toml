@@ -1160,10 +1160,10 @@ other = "保存失败"
 other = "未知错误"
 
 [ExpirationReminderTitle]
-other = "【服务器到期提醒】"
+other = "[服务器到期提醒]"
 
 [ExpirationReminderIntro]
-other = "以下服务器即将到期，请您关注："
+other = "以下服务器即将到期"
 
 [ExpirationReminderItem]
-other = "- {{.Name}}（ID: {{.ID}}）将于 {{.Date}} 到期，剩余 {{.Days}} 天"
+other = "- {{.Name}}({{.IP}}) 将于 {{.Date}} 到期，剩余 {{.Days}} 天"

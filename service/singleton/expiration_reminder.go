@@ -29,6 +29,7 @@ func CheckExpirationReminders() {
 	type serverExpiration struct {
 		id         uint64
 		name       string
+		ip         string
 		expiration time.Time
 	}
 	now := time.Now()
@@ -39,7 +40,11 @@ func CheckExpirationReminders() {
 			continue
 		}
 		if expiration, ok := parsePublicNoteExpiration(server.PublicNote, now); ok {
-			expirations = append(expirations, serverExpiration{id: id, name: server.Name, expiration: expiration})
+			ip := ""
+			if server.Host != nil {
+				ip = IPDesensitize(server.Host.IP)
+			}
+			expirations = append(expirations, serverExpiration{id: id, name: server.Name, ip: ip, expiration: expiration})
 		}
 	}
 	ServerLock.RUnlock()
@@ -65,7 +70,7 @@ func CheckExpirationReminders() {
 		sort.Slice(due, func(i, j int) bool { return due[i].id < due[j].id })
 		var message strings.Builder
 		message.WriteString(Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ExpirationReminderTitle"}))
-		message.WriteByte('\n')
+		message.WriteByte(' ')
 		message.WriteString(Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ExpirationReminderIntro"}))
 		for _, item := range due {
 			days := calendarDaysBetween(now.In(item.expiration.Location()), item.expiration)
@@ -75,7 +80,7 @@ func CheckExpirationReminders() {
 				PluralCount: days,
 				TemplateData: map[string]interface{}{
 					"Name": item.name,
-					"ID":   item.id,
+					"IP":   item.ip,
 					"Date": item.expiration.Format("2006-01-02"),
 					"Days": days,
 				},
