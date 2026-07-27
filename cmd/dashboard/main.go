@@ -70,7 +70,7 @@ func main() {
 	}
 	singleton.InitLocalizer()
 	initSystem()
-	audit.StartWatchdog()
+	singleton.StartAuditWatchdog()
 	audit.Record(nil, audit.TypeEvent, "Dashboard started", fmt.Sprintf(
 		"version %s, HTTP port %d, GRPC port %d",
 		singleton.Version, singleton.Conf.HTTPPort, singleton.Conf.GRPCPort))

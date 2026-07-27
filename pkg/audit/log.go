@@ -1,17 +1,16 @@
 package audit
 
 import (
-	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
+	"sync/atomic"
 	"unicode"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/railzen/nezha-zero/model"
-	"github.com/railzen/nezha-zero/service/singleton"
 )
 
 const (
@@ -22,37 +21,17 @@ const (
 	MaxLogs      = 1000
 	PageSize     = 20
 	maxDetailLen = 1024
-
-	serverOfflineThreshold = 10 * time.Minute
-	highLoadDuration       = 15 * time.Minute
-	highLoadCPUThreshold   = 85.0
-	highMemoryThreshold    = 96.0
-	watchdogInterval       = 30 * time.Second
-
-	TriggerReasonOffline    = "offline"
-	TriggerReasonHighCPU    = "high_cpu"
-	TriggerReasonHighMemory = "high_memory"
 )
 
-var watchdogStartedAt time.Time
+var store atomic.Pointer[gorm.DB]
 
-type serverWatchState struct {
-	wasOnline      bool
-	offlineLogged  bool
-	highLoadSince  time.Time
-	highLoadLogged bool
-	highMemSince   time.Time
-	highMemLogged  bool
+// Init 设置审计日志使用的数据库；传入 nil 可在数据库关闭前停用写入。
+func Init(db *gorm.DB) {
+	store.Store(db)
 }
 
-// serverWatchSnapshot 在锁内拷贝的只读快照，避免 Watchdog 持锁期间写审计库。
-type serverWatchSnapshot struct {
-	id         uint64
-	name       string
-	lastActive time.Time
-	cpu        float64
-	memUsed    uint64
-	memTotal   uint64
+func currentDB() *gorm.DB {
+	return store.Load()
 }
 
 type TypeOption struct {
@@ -172,286 +151,17 @@ func joinChanges(changes []string) string {
 	return strings.Join(changes, "; ")
 }
 
-// StartWatchdog 启动后台巡检：意外关机检测、服务器上下线日志。
-func StartWatchdog() {
-	watchdogStartedAt = time.Now()
-	checkUnexpectedShutdown()
-	go watchdogLoop()
-}
-
-func checkUnexpectedShutdown() {
-	if singleton.DB == nil {
-		return
-	}
-	var lastStart model.AuditLog
-	if err := singleton.DB.Where("type = ? AND action = ?", TypeEvent, "Dashboard started").
-		Order("created_at DESC").First(&lastStart).Error; err != nil {
-		return
-	}
-	var gracefulStop model.AuditLog
-	if err := singleton.DB.Where(
-		"type = ? AND action = ? AND created_at > ? AND detail LIKE ?",
-		TypeEvent, "Dashboard stopped", lastStart.CreatedAt, "%graceful%",
-	).Order("created_at DESC").First(&gracefulStop).Error; err == nil {
-		return
-	}
-	lastActivity := dbLastActivityTime()
-	var detail string
-	if !lastActivity.IsZero() {
-		detail = fmt.Sprintf("last active at %s", formatLogTime(lastActivity))
-	} else {
-		detail = "unexpected shutdown detected"
-	}
-	Record(nil, TypeEvent, "Dashboard stopped", detail)
-}
-
-// dbLastActivityTime 聚合各业务表 updated_at / created_at 的最大值。
-func dbLastActivityTime() time.Time {
-	if singleton.DB == nil {
-		return time.Time{}
-	}
-	var maxTS sql.NullString
-	err := singleton.DB.Raw(`
-SELECT MAX(t) FROM (
-  SELECT MAX(updated_at) AS t FROM servers
-  UNION ALL SELECT MAX(created_at) FROM servers
-  UNION ALL SELECT MAX(updated_at) FROM users
-  UNION ALL SELECT MAX(created_at) FROM users
-  UNION ALL SELECT MAX(updated_at) FROM notifications
-  UNION ALL SELECT MAX(created_at) FROM notifications
-  UNION ALL SELECT MAX(updated_at) FROM alert_rules
-  UNION ALL SELECT MAX(created_at) FROM alert_rules
-  UNION ALL SELECT MAX(updated_at) FROM monitors
-  UNION ALL SELECT MAX(created_at) FROM monitors
-  UNION ALL SELECT MAX(updated_at) FROM monitor_histories
-  UNION ALL SELECT MAX(created_at) FROM monitor_histories
-  UNION ALL SELECT MAX(updated_at) FROM crons
-  UNION ALL SELECT MAX(created_at) FROM crons
-  UNION ALL SELECT MAX(updated_at) FROM transfers
-  UNION ALL SELECT MAX(created_at) FROM transfers
-  UNION ALL SELECT MAX(updated_at) FROM api_tokens
-  UNION ALL SELECT MAX(created_at) FROM api_tokens
-  UNION ALL SELECT MAX(updated_at) FROM nats
-  UNION ALL SELECT MAX(created_at) FROM nats
-  UNION ALL SELECT MAX(updated_at) FROM ddns
-  UNION ALL SELECT MAX(created_at) FROM ddns
-  UNION ALL SELECT MAX(updated_at) FROM audit_logs
-  UNION ALL SELECT MAX(created_at) FROM audit_logs
-)`).Scan(&maxTS).Error
-	if err != nil || !maxTS.Valid {
-		return time.Time{}
-	}
-	return parseSQLiteDateTime(maxTS.String)
-}
-
-func formatLogTime(t time.Time) string {
-	loc := singleton.Loc
-	if loc == nil {
-		loc = time.FixedZone("UTC+8", 8*60*60)
-	}
-	return t.In(loc).Format(time.RFC3339)
-}
-
-func parseSQLiteDateTime(s string) time.Time {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return time.Time{}
-	}
-	for _, layout := range []string{
-		time.RFC3339Nano,
-		time.RFC3339,
-		"2006-01-02 15:04:05.999999999-07:00",
-		"2006-01-02 15:04:05",
-	} {
-		if t, err := time.Parse(layout, s); err == nil {
-			return t
-		}
-	}
-	return time.Time{}
-}
-
-func watchdogLoop() {
-	ticker := time.NewTicker(watchdogInterval)
-	defer ticker.Stop()
-	serverStates := make(map[uint64]*serverWatchState)
-	for {
-		checkServerStates(serverStates)
-		<-ticker.C
-	}
-}
-
-func isServerOnline(lastActive time.Time) bool {
-	if lastActive.IsZero() {
-		return false
-	}
-	return time.Since(lastActive) < serverOfflineThreshold
-}
-
-func snapshotMemoryPercent(snap serverWatchSnapshot) float64 {
-	if snap.memTotal == 0 {
-		return 0
-	}
-	return float64(snap.memUsed) / float64(snap.memTotal) * 100
-}
-
-func snapshotServersForWatch() []serverWatchSnapshot {
-	singleton.ServerLock.RLock()
-	defer singleton.ServerLock.RUnlock()
-
-	snaps := make([]serverWatchSnapshot, 0, len(singleton.ServerList))
-	for id, server := range singleton.ServerList {
-		if server == nil {
-			continue
-		}
-		host, state, lastActive, _, _ := server.RuntimeSnapshot()
-		snap := serverWatchSnapshot{
-			id:         id,
-			name:       server.Name,
-			lastActive: lastActive,
-		}
-		if state != nil {
-			snap.cpu = state.CPU
-			snap.memUsed = state.MemUsed
-		}
-		if host != nil {
-			snap.memTotal = host.MemTotal
-		}
-		snaps = append(snaps, snap)
-	}
-	return snaps
-}
-
-func checkServerStates(states map[uint64]*serverWatchState) {
-	snaps := snapshotServersForWatch()
-	for _, snap := range snaps {
-		id := snap.id
-		online := isServerOnline(snap.lastActive)
-		st, ok := states[id]
-		if !ok {
-			states[id] = &serverWatchState{wasOnline: online}
-			continue
-		}
-		if online && !st.wasOnline {
-			if watchdogStartedAt.IsZero() || time.Since(watchdogStartedAt) >= 3*time.Minute {
-				if st.offlineLogged {
-					recordServerWatchRecovery(id, "Server offline recovered",
-						fmt.Sprintf("server: %s (ID %d)", snap.name, id))
-				} else {
-					Record(nil, TypeEvent, "Server online",
-						fmt.Sprintf("server: %s (ID %d)", snap.name, id))
-				}
-			}
-			st.offlineLogged = false
-			st.highLoadSince = time.Time{}
-			st.highLoadLogged = false
-			st.highMemSince = time.Time{}
-			st.highMemLogged = false
-		}
-		if !online && st.wasOnline && !st.offlineLogged {
-			if snap.lastActive.IsZero() || time.Since(snap.lastActive) >= serverOfflineThreshold {
-				detail := fmt.Sprintf("server: %s (ID %d)", snap.name, id)
-				if !snap.lastActive.IsZero() {
-					detail += fmt.Sprintf(", last active at %s", formatLogTime(snap.lastActive))
-				}
-				recordServerWatchEvent(id, "Server offline", detail, TriggerReasonOffline)
-				st.offlineLogged = true
-			}
-		}
-		if !online {
-			st.highLoadSince = time.Time{}
-			st.highLoadLogged = false
-			st.highMemSince = time.Time{}
-			st.highMemLogged = false
-		} else {
-			checkServerHighLoad(st, snap)
-			checkServerHighMemory(st, snap)
-		}
-		st.wasOnline = online
-	}
-}
-
-func checkServerHighLoad(st *serverWatchState, snap serverWatchSnapshot) {
-	high := snap.cpu >= highLoadCPUThreshold
-	if st.highLoadLogged && !high {
-		recordServerWatchRecovery(snap.id, "Server high load recovered",
-			fmt.Sprintf("server: %s (ID %d), CPU %.1f%%", snap.name, snap.id, snap.cpu))
-		st.highLoadSince = time.Time{}
-		st.highLoadLogged = false
-		return
-	}
-	if !high {
-		st.highLoadSince = time.Time{}
-		return
-	}
-	now := time.Now()
-	if st.highLoadSince.IsZero() {
-		st.highLoadSince = now
-		return
-	}
-	if st.highLoadLogged || time.Since(st.highLoadSince) < highLoadDuration {
-		return
-	}
-	recordServerWatchEvent(snap.id, "Server high load",
-		fmt.Sprintf("server: %s (ID %d), CPU %.1f%%, sustained for %d minutes",
-			snap.name, snap.id, snap.cpu, int(highLoadDuration.Minutes())),
-		TriggerReasonHighCPU)
-	st.highLoadLogged = true
-}
-
-func checkServerHighMemory(st *serverWatchState, snap serverWatchSnapshot) {
-	mem := snapshotMemoryPercent(snap)
-	high := mem >= highMemoryThreshold
-	if st.highMemLogged && !high {
-		recordServerWatchRecovery(snap.id, "Server high memory recovered",
-			fmt.Sprintf("server: %s (ID %d), memory %.1f%%", snap.name, snap.id, mem))
-		st.highMemSince = time.Time{}
-		st.highMemLogged = false
-		return
-	}
-	if !high {
-		st.highMemSince = time.Time{}
-		return
-	}
-	now := time.Now()
-	if st.highMemSince.IsZero() {
-		st.highMemSince = now
-		return
-	}
-	if st.highMemLogged || time.Since(st.highMemSince) < highLoadDuration {
-		return
-	}
-	recordServerWatchEvent(snap.id, "Server high memory",
-		fmt.Sprintf("server: %s (ID %d), memory %.1f%%, sustained for %d minutes",
-			snap.name, snap.id, mem, int(highLoadDuration.Minutes())),
-		TriggerReasonHighMemory)
-	st.highMemLogged = true
-}
-
-func recordServerWatchEvent(serverID uint64, action, detail, reason string) {
-	Record(nil, TypeEvent, action, detail)
-	OnServerWatchTrigger(serverID, reason)
-}
-
-func recordServerWatchRecovery(serverID uint64, action, detail string) {
-	Record(nil, TypeEvent, action, detail)
-}
-
-// OnServerWatchTrigger 服务器离线、持续高 CPU/内存时触发回调，供后续扩展通知/Webhook 等。
-func OnServerWatchTrigger(serverID uint64, reason string) {
-	_ = serverID
-	_ = reason
-}
-
 // Record 写入一条审计日志（忽略写入错误，避免影响主流程）。
 func Record(c *gin.Context, typ, action, detail string) {
-	if singleton.DB == nil {
+	db := currentDB()
+	if db == nil {
 		return
 	}
 	ip := ""
 	if c != nil {
 		ip = c.ClientIP()
 	}
-	if err := singleton.DB.Create(&model.AuditLog{
+	if err := db.Create(&model.AuditLog{
 		Type:   typ,
 		Action: capitalizeLogText(action),
 		Detail: trimDetail(capitalizeLogText(detail)),
@@ -459,19 +169,27 @@ func Record(c *gin.Context, typ, action, detail string) {
 	}).Error; err != nil {
 		return
 	}
-	PruneExcess()
+	pruneExcess(db)
 }
 
 // PruneExcess 删除超出上限的最旧日志。
 func PruneExcess() {
+	db := currentDB()
+	if db == nil {
+		return
+	}
+	pruneExcess(db)
+}
+
+func pruneExcess(db *gorm.DB) {
 	var count int64
-	singleton.DB.Model(&model.AuditLog{}).Count(&count)
+	db.Model(&model.AuditLog{}).Count(&count)
 	if count <= MaxLogs {
 		return
 	}
 	excess := int(count - MaxLogs)
 	var oldest []model.AuditLog
-	singleton.DB.Order("created_at ASC").Limit(excess).Find(&oldest)
+	db.Order("created_at ASC").Limit(excess).Find(&oldest)
 	if len(oldest) == 0 {
 		return
 	}
@@ -479,7 +197,7 @@ func PruneExcess() {
 	for i, entry := range oldest {
 		ids[i] = entry.ID
 	}
-	_ = singleton.DB.Unscoped().Delete(&model.AuditLog{}, ids).Error
+	_ = db.Unscoped().Delete(&model.AuditLog{}, ids).Error
 }
 
 func appendStrChange(changes *[]string, name, oldVal, newVal string) {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 )
 
 const firstNotificationDelay = time.Minute * 15
@@ -171,7 +172,7 @@ func SendNotification(notificationTag string, desc string, muteLabel *string, ex
 }
 
 func recordNotificationFailureAudit(notification *model.Notification, sendErr error) {
-	if DB == nil || notification == nil || sendErr == nil {
+	if notification == nil || sendErr == nil {
 		return
 	}
 
@@ -187,11 +188,7 @@ func recordNotificationFailureAudit(notification *model.Notification, sendErr er
 
 	detail := fmt.Sprintf("Method: %s, Notification: %q (ID %d), Error: %s",
 		notificationType, notification.Name, notification.ID, sendErr)
-	_ = DB.Create(&model.AuditLog{
-		Type:   "event",
-		Action: "Notification delivery failed",
-		Detail: truncateAuditText(detail, 1024),
-	}).Error
+	audit.Record(nil, audit.TypeEvent, "Notification delivery failed", detail)
 }
 
 type _NotificationMuteLabel struct{}

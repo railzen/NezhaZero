@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 	"github.com/railzen/nezha-zero/pkg/utils"
 )
 
@@ -83,6 +84,7 @@ func InitDBFromPath(path string) {
 	if err = createTransferCycleIndex(DB); err != nil {
 		panic(err)
 	}
+	audit.Init(DB)
 }
 
 // CloseDB 关闭底层 SQLite 连接。应在所有依赖 DB 的落盘完成后再调用。
@@ -94,6 +96,7 @@ func CloseDB() error {
 	if err != nil {
 		return err
 	}
+	audit.Init(nil)
 	DB = nil
 	return sqlDB.Close()
 }

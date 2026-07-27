@@ -11,6 +11,7 @@ import (
 	"github.com/robfig/cron/v3"
 
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 	pb "github.com/railzen/nezha-zero/proto"
 )
 
@@ -178,10 +179,6 @@ func cronTrigger(cr model.Cron, triggerSource string, triggerServer ...uint64) f
 }
 
 func recordCronTriggerAudit(cr model.Cron, triggerSource string, sentServers []string) {
-	if DB == nil {
-		return
-	}
-
 	detail := fmt.Sprintf("Trigger: %s, Task %d, Command: %s, RunServerID %s",
 		triggerSource,
 		cr.ID,
@@ -189,11 +186,7 @@ func recordCronTriggerAudit(cr model.Cron, triggerSource string, sentServers []s
 		joinAuditList(sentServers),
 	)
 
-	_ = DB.Create(&model.AuditLog{
-		Type:   "event",
-		Action: "Scheduled task triggered",
-		Detail: truncateAuditText(detail, 1024),
-	}).Error
+	audit.Record(nil, audit.TypeEvent, "Scheduled task triggered", detail)
 }
 
 func serverAuditID(server *model.Server) string {
