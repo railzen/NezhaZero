@@ -134,6 +134,7 @@ func ServeMultiplex(port uint, httpHandler http.Handler) error {
 		Handler:           h2c.NewHandler(multiplexHandler, &http2.Server{}),
 		Addr:              fmt.Sprintf(":%d", port),
 		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 	multiplexHTTPServer = httpServer
 

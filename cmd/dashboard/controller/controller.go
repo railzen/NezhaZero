@@ -29,6 +29,27 @@ import (
 
 var updateNoRoute func()
 
+// protectRequestBody 限制普通 HTTP 请求体，避免全局 ReadTimeout 中断 WebSocket 或 gRPC 长连接。
+func protectRequestBody(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Body == nil || r.Body == http.NoBody {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if r.ContentLength > 1024768 {
+			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+			return
+		}
+
+		r.Body = http.MaxBytesReader(w, r.Body, 1024768)
+		responseController := http.NewResponseController(w)
+		if err := responseController.SetReadDeadline(time.Now().Add(30 * time.Second)); err == nil {
+			defer responseController.SetReadDeadline(time.Time{})
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func ServeWeb(port uint) *http.Server {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
@@ -99,7 +120,8 @@ func ServeWeb(port uint) *http.Server {
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", port),
 		ReadHeaderTimeout: time.Second * 5,
-		Handler:           r,
+		IdleTimeout:       60 * time.Second,
+		Handler:           protectRequestBody(r),
 	}
 	return srv
 }
