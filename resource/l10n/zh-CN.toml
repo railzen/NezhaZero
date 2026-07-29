@@ -1018,11 +1018,23 @@ other = "未启用"
 [TwoFactorConfirmEnable]
 other = "确认启用"
 
+[TwoFactorConfirmDisable]
+other = "确认关闭"
+
 [ConfirmDisableTwoFactor]
 other = "确认关闭双重验证并清除已绑定的密钥？"
 
 [TwoFactorV1LoginHint]
 other = "出于安全考虑，启用二次验证后将禁用兼容 API 登录"
+
+[TwoFactorLoginTitle]
+other = "完成二次验证"
+
+[TwoFactorLoginPrompt]
+other = "身份验证已完成，请输入动态验证码继续登录"
+
+[TwoFactorLoginRestart]
+other = "重新登录"
 
 [EditPublicNote]
 other = "编辑公开备注"

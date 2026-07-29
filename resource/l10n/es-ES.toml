@@ -1009,11 +1009,23 @@ other = "Desactivada"
 [TwoFactorConfirmEnable]
 other = "Confirmar activación"
 
+[TwoFactorConfirmDisable]
+other = "Confirmar desactivación"
+
 [ConfirmDisableTwoFactor]
 other = "¿Desactivar la autenticación en dos pasos y eliminar el secreto vinculado?"
 
 [TwoFactorV1LoginHint]
 other = "Por seguridad, activar la autenticación en dos pasos desactiva el inicio de sesión de la API compatible"
+
+[TwoFactorLoginTitle]
+other = "Completar la autenticación en dos pasos"
+
+[TwoFactorLoginPrompt]
+other = "La autenticación ha finalizado. Introduzca el código de autenticación para continuar."
+
+[TwoFactorLoginRestart]
+other = "Volver a iniciar sesión"
 
 [EditPublicNote]
 other = "Editar nota pública"

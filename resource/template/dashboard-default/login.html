@@ -6,7 +6,9 @@
       <h2 class="ui image header">
         <a href="/" class="image"><img src="/static/logo.svg?v20210804" alt=""></a>
         <div class="content">
-          {{if .PasswordEnabled}}
+          {{if .SecondFactorMode}}
+            {{tr "TwoFactorLoginTitle"}}
+          {{else if .PasswordEnabled}}
             {{tr "AdminLogin"}}
           {{else if .OauthEnabled}}
             {{tr "Use"}} {{.LoginType}} {{tr "AccountToLogin"}}
@@ -15,7 +17,8 @@
           {{end}}
         </div>
       </h2>
-      
+
+      {{if not .SecondFactorMode}}
       {{if .PasswordEnabled}}
       <form id="loginForm" class="ui large form" method="post" action="/auth">
         <div class="field">
@@ -43,24 +46,6 @@
             >
           </div>
         </div>
-        {{if .TwoFactorEnabled}}
-        <div class="field">
-          <div class="ui left icon input">
-            <i class="shield alternate icon"></i>
-            <input
-              id="otpInput"
-              type="text"
-              name="otp"
-              placeholder='{{tr "TwoFactorCode"}}'
-              autocomplete="one-time-code"
-              inputmode="numeric"
-              pattern="[0-9]{6}"
-              maxlength="6"
-              required
-            >
-          </div>
-        </div>
-        {{end}}
         <button type="submit" class="ui fluid large nezha-primary-btn button">{{tr "Login"}}</button>
       </form>
 
@@ -83,10 +68,94 @@
         {{tr "DontHaveAnAccount"}} <a href="{{.RegistrationLink}}" target="_blank" rel="noopener noreferrer">{{tr "SignUp"}}</a>
       </div>
       {{end}}
+      {{end}}
     </div>
   </div>
 </div>
+{{if .SecondFactorMode}}
+<style>
+  #loginTwoFactorModal {
+    width: min(380px, calc(100% - 2rem)) !important;
+  }
+
+  #loginTwoFactorModal #twoFactorForm {
+    margin-top: 1rem;
+  }
+</style>
+<div class="ui small modal" id="loginTwoFactorModal">
+  <div class="header">{{tr "TwoFactorLoginTitle"}}</div>
+  <div class="content">
+    <p>{{tr "TwoFactorLoginPrompt"}}</p>
+    {{if .Ticket}}
+    <form id="twoFactorForm" class="ui form" method="post" action="/auth/2fa">
+      <input type="hidden" name="ticket" value="{{.Ticket}}">
+      <input id="twoFactorCSRF" type="hidden" name="_csrf" value="">
+      <div class="field">
+        <div class="ui left icon input">
+          <i class="shield alternate icon"></i>
+          <input
+            id="otpInput"
+            type="text"
+            name="otp"
+            placeholder='{{tr "TwoFactorCodePlaceholder"}}'
+            autocomplete="one-time-code"
+            inputmode="numeric"
+            pattern="[0-9]{6}"
+            maxlength="6"
+            required
+          >
+        </div>
+      </div>
+    </form>
+    {{end}}
+    {{if .SecondFactorError}}
+    <div id="secondFactorError" data-message="{{.SecondFactorError}}" hidden></div>
+    {{end}}
+  </div>
+  <div class="actions">
+    <a href="/login" class="ui cancel button">{{tr "TwoFactorLoginRestart"}}</a>
+    {{if .Ticket}}
+    <button type="submit" form="twoFactorForm" class="ui nezha-primary-btn button">{{tr "Login"}}</button>
+    {{end}}
+  </div>
+</div>
+{{end}}
 {{template "common/footer" .}}
+{{if .SecondFactorMode}}
+<script>
+  (function() {
+    const modal = $('#loginTwoFactorModal');
+    const errorElement = document.getElementById('secondFactorError');
+    modal.modal({
+      closable: false,
+      autofocus: false,
+      onVisible: function() {
+        document.getElementById('otpInput')?.focus();
+        if (errorElement) {
+          $.suiAlert({
+            title: '登陆失败',
+            description: errorElement.dataset.message,
+            type: 'error',
+            time: '0.8',
+            position: 'top-center',
+          });
+        }
+      },
+    }).modal('show');
+
+    const form = document.getElementById('twoFactorForm');
+    if (form) {
+      form.addEventListener('submit', function() {
+        const csrfInput = document.getElementById('twoFactorCSRF');
+        const csrfMatch = document.cookie.match(/(^| )nz-csrf=([^;]+)/);
+        if (csrfInput && csrfMatch) {
+          csrfInput.value = decodeURIComponent(csrfMatch[2]);
+        }
+      });
+    }
+  })();
+</script>
+{{end}}
 {{if .PasswordEnabled}}
 <script>
   // 在表单提交时进行加密并处理响应
@@ -121,20 +190,6 @@
       restoreBtn();
       showError('获取登录凭证失败，请稍后重试');
       return;
-    }
-
-    if (challengeData.twoFactorEnabled) {
-      const otpInput = document.getElementById('otpInput');
-      if (!otpInput) {
-        restoreBtn();
-        showError('已开启二次验证，请刷新页面后重新登录');
-        return;
-      }
-      if (!otpInput.value.trim()) {
-        restoreBtn();
-        showError('请输入二次验证码');
-        return;
-      }
     }
 
     // RSA-OAEP(SHA-256) 加密。HTTP 无 crypto.subtle，使用纯 JS 实现 OAEP + BigInt。

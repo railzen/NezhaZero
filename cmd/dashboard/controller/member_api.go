@@ -1638,6 +1638,23 @@ func (ma *memberAPI) totp(c *gin.Context) {
 			})
 			return
 		}
+		// 关闭二次验证需先用当前 TOTP 码二次确认（修复会话被盗即可直接关闭 2FA 的缺口）。
+		// 与开启时的 confirm 一致，要求输入当前有效的双重验证码。
+		if req.Code == "" {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "请输入当前双重验证码",
+			})
+			return
+		}
+		if !totp.Validate(singleton.Conf.Site.TwoFactorSecret, req.Code, 1) {
+			audit.Record(c, audit.TypeSecurity, "Two-factor disable failed", "invalid two-factor code on unbind")
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: "双重验证码错误，请重试",
+			})
+			return
+		}
 		oldSecret := singleton.Conf.Site.TwoFactorSecret
 		singleton.Conf.Site.TwoFactorSecret = ""
 		if err := singleton.Conf.Save(); err != nil {

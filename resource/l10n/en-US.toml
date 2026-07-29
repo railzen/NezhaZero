@@ -1018,11 +1018,23 @@ other = "Disabled"
 [TwoFactorConfirmEnable]
 other = "Confirm enable"
 
+[TwoFactorConfirmDisable]
+other = "Confirm disable"
+
 [ConfirmDisableTwoFactor]
 other = "Disable two-factor authentication and remove the bound secret?"
 
 [TwoFactorV1LoginHint]
 other = "For security reasons, enabling two-factor authentication disables Compatible API login"
+
+[TwoFactorLoginTitle]
+other = "Complete two-factor authentication"
+
+[TwoFactorLoginPrompt]
+other = "Authentication is complete. Enter your authentication code to continue."
+
+[TwoFactorLoginRestart]
+other = "Start over"
 
 [EditPublicNote]
 other = "Edit Public Note"
