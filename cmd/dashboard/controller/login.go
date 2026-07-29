@@ -50,9 +50,9 @@ const (
 	loginChallengeCachePrefix = "login_challenge_"
 	loginChallengeTTL         = 5 * time.Minute
 	authRateLimit1sKey        = "authrate_r1s"
-	authRateLimit1mKey        = "authrate_r1m"
+	authRateLimit30sKey       = "authrate_r30s"
 	authRateLimit1sMax        = 9
-	authRateLimit1mMax        = 120
+	authRateLimit30sMax       = 75
 )
 
 func init() {
@@ -323,21 +323,21 @@ func consumeLoginChallenge(challengeID, challenge string) bool {
 	return true
 }
 
-// allowAuthRateLimitedCheck 全站限制认证相关公开接口共用计数：1 秒 9 次、1 分钟 120 次。
+// allowAuthRateLimitedCheck 全站限制认证相关公开接口共用计数
 func allowAuthRateLimitedCheck() bool {
 	if count, ok := singleton.Cache.Get(authRateLimit1sKey); ok {
 		if c, ok := count.(int); ok && c >= authRateLimit1sMax {
 			return false
 		}
 	}
-	if count, ok := singleton.Cache.Get(authRateLimit1mKey); ok {
-		if c, ok := count.(int); ok && c >= authRateLimit1mMax {
+	if count, ok := singleton.Cache.Get(authRateLimit30sKey); ok {
+		if c, ok := count.(int); ok && c >= authRateLimit30sMax {
 			return false
 		}
 	}
 
 	incrementAuthRateLimit(authRateLimit1sKey, time.Second)
-	incrementAuthRateLimit(authRateLimit1mKey, time.Minute)
+	incrementAuthRateLimit(authRateLimit30sKey, 30*time.Second)
 	return true
 }
 
@@ -461,6 +461,15 @@ func (oa *oauth2controller) login(c *gin.Context) {
 		}, true)
 		return
 	}
+	if !allowAuthRateLimitedCheck() {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusTooManyRequests,
+			Title: "登录失败",
+			Msg:   "请求过于频繁，请稍后再试",
+		}, true)
+		return
+	}
+
 	randomString, err := utils.GenerateRandomString(32)
 	if err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
