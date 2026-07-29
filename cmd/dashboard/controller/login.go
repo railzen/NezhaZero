@@ -480,7 +480,13 @@ func (oa *oauth2controller) login(c *gin.Context) {
 		return
 	}
 	state, stateKey := randomString[:16], randomString[16:]
-	singleton.Cache.Set(fmt.Sprintf("%s%s", model.CacheKeyOauth2State, stateKey), state, cache.DefaultExpiration)
+	// 将发起请求的 Host 与 state 绑定存储，供回调时校验两次 Host 一致。
+	// state 在回调成功校验后即删除（一次性消费）。这是针对 CVE-2026-53523
+	// （redirect_uri 可被 Host 头注入）的缓解：当受害者浏览器曾以真实域名访问过
+	// 本服务、而攻击者回调时使用伪造 Host 时，两次 Host 失配会被拦截。
+	// 注意：若攻击者全程自行发起并回调（受害者不经过本服务），两次 Host 可同为伪造值，
+	// 此校验无法覆盖，仍需反代规范化 Host 或固定可信回调域名作为根本防御。
+	singleton.Cache.Set(fmt.Sprintf("%s%s", model.CacheKeyOauth2State, stateKey), state+"|"+c.Request.Host, cache.DefaultExpiration)
 	url := oa.getCommonOauth2Config(c).AuthCodeURL(state, oauth2.AccessTypeOnline)
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(singleton.Conf.Site.CookieName+"-sk", stateKey, 60*5, "/", "", mygin.CookieSecure(c), true)
@@ -510,8 +516,10 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 	if err == nil {
 		cacheKey := fmt.Sprintf("%s%s", model.CacheKeyOauth2State, stateKey)
 		state, ok := singleton.Cache.Get(cacheKey)
-		cachedState, _ := state.(string)
-		if !ok || cachedState == "" || cachedState != stateParam {
+		cachedValue, _ := state.(string)
+		// 拆分为 state|host，校验 state 匹配且当前请求 Host 与发起时一致（见 login 处注释）。
+		cachedState, cachedHost, _ := strings.Cut(cachedValue, "|")
+		if !ok || cachedState == "" || cachedState != stateParam || cachedHost == "" || cachedHost != c.Request.Host {
 			err = errors.New("非法的登录方式")
 		} else {
 			singleton.Cache.Delete(cacheKey)
