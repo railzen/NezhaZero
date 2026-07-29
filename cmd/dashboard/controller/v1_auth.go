@@ -45,6 +45,11 @@ func (cv *compatV1) login(c *gin.Context) {
 		c.JSON(403, V1Response[any]{Error: "CompatAPI: Password login not allowed"})
 		return
 	}
+	// 全局限速：被全局限速器拒绝的请求不写审计，避免未认证写放大打满 SQLite 单写者。
+	if !allowAuthRateLimitedCheck() {
+		c.JSON(http.StatusTooManyRequests, V1Response[any]{Error: "Too many requests"})
+		return
+	}
 
 	if err := c.ShouldBindJSON(&lr); err != nil {
 		audit.Record(c, audit.TypeAuth, "V1 password login failed", "invalid request body")

@@ -11,6 +11,7 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 	pb "github.com/railzen/nezha-zero/proto"
 )
 
@@ -270,7 +271,7 @@ func (ss *ServiceSentinel) Shutdown() error {
 }
 
 // flushMonitorHistory 每次最多写 200 条。force 为 true 时同时写出不足 200 条的尾批。
-// 写入失败的批次会放回队首，留待下一次 tick 重试。
+// 写入失败的批次会直接丢弃，避免数据库持续故障时内存无上限增长。
 func (ss *ServiceSentinel) flushMonitorHistory(force bool) error {
 	for {
 		ss.monitorHistoryBatchLock.Lock()
@@ -289,12 +290,10 @@ func (ss *ServiceSentinel) flushMonitorHistory(force bool) error {
 
 		if err := DB.Create(&batch).Error; err != nil {
 			ss.monitorHistoryBatchLock.Lock()
-			pending := make([]model.MonitorHistory, 0, len(ss.monitorHistoryInFlight)+len(ss.monitorHistoryBatch))
-			pending = append(pending, ss.monitorHistoryInFlight...)
-			pending = append(pending, ss.monitorHistoryBatch...)
-			ss.monitorHistoryBatch = pending
 			ss.monitorHistoryInFlight = nil
 			ss.monitorHistoryBatchLock.Unlock()
+			audit.Record(nil, audit.TypeEvent, "Monitor history persistence failed",
+				fmt.Sprintf("dropped %d monitor history records: %v", len(batch), err))
 			log.Println("NEZHA>> 服务监控数据批量持久化失败：", err)
 			return err
 		}

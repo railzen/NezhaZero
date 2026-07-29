@@ -107,7 +107,7 @@ func (oa *oauth2controller) newChallenge(c *gin.Context) {
 
 func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	if !allowAuthRateLimitedCheck() {
-		audit.Record(c, audit.TypeAuth, "Password login failed", "login blocked by rate limit")
+		// 被全局限速器拒绝的请求不写审计，避免未认证写放大打满 SQLite 单写者。
 		showLoginRuleFailed(c)
 		return
 	}
