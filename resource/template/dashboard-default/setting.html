@@ -503,6 +503,10 @@
         }
     });
 
+    $('#twoFactorModalCode, #twoFactorDisableCode').on('input', function () {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+    });
+
     function totpRequest(data) {
         return $.ajax({
             url: '/api/totp',

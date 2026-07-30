@@ -126,11 +126,17 @@
   (function() {
     const modal = $('#loginTwoFactorModal');
     const errorElement = document.getElementById('secondFactorError');
+    const otpInput = document.getElementById('otpInput');
+    if (otpInput) {
+      otpInput.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+      });
+    }
     modal.modal({
       closable: false,
       autofocus: false,
       onVisible: function() {
-        document.getElementById('otpInput')?.focus();
+        otpInput?.focus();
         if (errorElement) {
           $.suiAlert({
             title: '登陆失败',
@@ -173,7 +179,7 @@
 
     submitBtn.disabled = true;
     const originalBtnText = submitBtn.textContent;
-    submitBtn.textContent = '登录中...';
+    submitBtn.textContent = 'Processing...';
 
     const restoreBtn = () => {
       submitBtn.disabled = false;
