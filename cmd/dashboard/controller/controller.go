@@ -29,6 +29,8 @@ import (
 
 var updateNoRoute func()
 
+const requestBodyLimit int64 = 8 << 20
+
 // protectRequestBody 限制普通 HTTP 请求体，避免全局 ReadTimeout 中断 WebSocket 或 gRPC 长连接。
 func protectRequestBody(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -36,12 +38,12 @@ func protectRequestBody(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if r.ContentLength > 1024768 {
+		if r.ContentLength > requestBodyLimit {
 			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
 			return
 		}
 
-		r.Body = http.MaxBytesReader(w, r.Body, 1024768)
+		r.Body = http.MaxBytesReader(w, r.Body, requestBodyLimit)
 		responseController := http.NewResponseController(w)
 		if err := responseController.SetReadDeadline(time.Now().Add(30 * time.Second)); err == nil {
 			defer responseController.SetReadDeadline(time.Time{})
