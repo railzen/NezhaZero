@@ -71,7 +71,6 @@ type SettingChangeInput struct {
 	IgnoredIPNotification           string
 	IPChangeNotificationTag         string
 	PasswordChanged                 bool
-	TwoFactorCleared                bool
 }
 
 // TypeOptions 供筛选使用
@@ -102,9 +101,6 @@ func BuildSecuritySettingDetail(before *model.Config, in SettingChangeInput) str
 	}
 	if in.PasswordChanged {
 		changes = append(changes, "Admin password changed")
-	}
-	if in.TwoFactorCleared {
-		changes = append(changes, "Two-factor authentication cleared (password login disabled)")
 	}
 	return joinChanges(changes)
 }

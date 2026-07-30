@@ -318,13 +318,10 @@ func (c *Config) ValidateLoginConfig() error {
 			return errors.New("启用密码登录时必须设置管理员密码")
 		}
 	}
-	if c.Site.TwoFactorSecret != "" && !c.PasswordLoginActive() {
-		return errors.New("双重验证需要先启用密码登录")
-	}
 	return nil
 }
 
-// TwoFactorActive 是否已启用密码登录双重验证（以密钥是否存在为准）。
+// TwoFactorActive 是否已启用登录双重验证（以密钥是否存在为准）。
 func (c *Config) TwoFactorActive() bool {
 	return c.Site.TwoFactorSecret != ""
 }
