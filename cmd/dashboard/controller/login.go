@@ -769,6 +769,10 @@ func (oa *oauth2controller) twoFactorVerify(c *gin.Context) {
 	audit.Record(c, audit.TypeAuth, "Two-factor login passed", "user: "+verifiedTicket.User.Login)
 	switch verifiedTicket.Method {
 	case twoFactorLoginMethodPassword:
+		if !singleton.Conf.PasswordLoginActive() {
+			oa.renderTwoFactor(c, http.StatusForbidden, "", "密码登录已被禁用，请重新登录")
+			return
+		}
 		oa.issuePasswordSession(c, &verifiedTicket.User)
 	case twoFactorLoginMethodOAuth:
 		if singleton.Conf.Oauth2.DisableOauthLogin {
