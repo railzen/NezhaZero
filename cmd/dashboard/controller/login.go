@@ -339,31 +339,34 @@ func consumeLoginChallenge(challengeID, challenge string) bool {
 	return true
 }
 
-// allowAuthRateLimitedCheck 全站限制认证相关公开接口共用计数
+// allowAuthRateLimitedCheck 全站限制认证相关公开接口共用计数。
+// 用原子递增替代"读取-判断-写回"，避免并发下多个请求读到同一旧值导致计数丢失、
+// 实际放行量超过上限。go-cache 的 IncrementInt 在内部持锁完成读改写，且只改值不动 TTL。
 func allowAuthRateLimitedCheck() bool {
-	if count, ok := singleton.Cache.Get(authRateLimit1sKey); ok {
-		if c, ok := count.(int); ok && c >= authRateLimit1sMax {
-			return false
-		}
+	if incrementAuthRateLimit(authRateLimit1sKey, time.Second) > authRateLimit1sMax {
+		return false
 	}
-	if count, ok := singleton.Cache.Get(authRateLimit30sKey); ok {
-		if c, ok := count.(int); ok && c >= authRateLimit30sMax {
-			return false
-		}
+	if incrementAuthRateLimit(authRateLimit30sKey, 30*time.Second) > authRateLimit30sMax {
+		return false
 	}
-
-	incrementAuthRateLimit(authRateLimit1sKey, time.Second)
-	incrementAuthRateLimit(authRateLimit30sKey, 30*time.Second)
 	return true
 }
 
-func incrementAuthRateLimit(key string, window time.Duration) {
-	count, _ := singleton.Cache.Get(key)
-	if c, ok := count.(int); ok {
-		singleton.Cache.Set(key, c+1, window)
-		return
+// incrementAuthRateLimit 原子地将窗口计数 +1 并返回新值。固定窗口语义：已有键的递增不刷新
+// TTL，窗口随首个请求起点到期后重置。Add 与 IncrementInt 均为 go-cache 内部持锁的原子操作，
+// 通过 Add 优先处理"窗口首个请求"的初始化，彻底消除并发首请求初始化/递增之间的竞争窗口。
+func incrementAuthRateLimit(key string, window time.Duration) int {
+	for {
+		// 窗口首个请求：原子地把键初始化为 1 并设置 TTL。已存在（未过期）则返回 error。
+		if err := singleton.Cache.Add(key, 1, window); err == nil {
+			return 1
+		}
+		// 键已存在：原子递增并取新值。若键恰在 Add 与递增之间过期被清除，IncrementInt 报错，
+		// 回到 Add 重新作为新窗口起点。
+		if n, err := singleton.Cache.IncrementInt(key, 1); err == nil {
+			return n
+		}
 	}
-	singleton.Cache.Set(key, 1, window)
 }
 
 // 增加失败计数并设置 10 分钟过期
