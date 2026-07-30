@@ -662,7 +662,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 
 // beginTwoFactor 为已通过第一阶段身份核验的用户签发一次性二次验证 ticket。
 func (oa *oauth2controller) beginTwoFactor(c *gin.Context, user model.User, method twoFactorLoginMethod) {
-	ticket, err := utils.GenerateRandomString(32)
+	ticket, err := utils.GenerateRandomString(48)
 	if err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusBadRequest,
