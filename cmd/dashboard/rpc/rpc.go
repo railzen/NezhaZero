@@ -198,7 +198,10 @@ func DispatchTask(serviceSentinelDispatchBus <-chan model.Monitor) {
 			go func(server *model.Server) {
 				dispatchLock.Lock()
 				defer dispatchLock.Unlock()
-				_ = server.SendTask(monitorTask)
+				singleton.AuthorizeTaskResult(server.ID, monitorTask.GetType(), monitorTask.GetId(), 5*time.Minute)
+				if err := server.SendTask(monitorTask); err != nil {
+					singleton.RevokeTaskResultAuthorization(server.ID, monitorTask.GetType(), monitorTask.GetId())
+				}
 			}(server)
 		}
 	}

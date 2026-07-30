@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/jinzhu/copier"
 
@@ -19,7 +20,92 @@ var (
 	Cron     *cron.Cron
 	Crons    map[uint64]*model.Cron // [CrondID] -> *model.Cron
 	CronLock sync.RWMutex
+
+	taskResultAuthorizationLock      sync.Mutex
+	taskResultAuthorizations         = make(map[taskResultAuthorizationKey]taskResultAuthorization)
+	taskResultAuthorizationLastPrune time.Time
 )
+
+type taskResultAuthorizationKey struct {
+	serverID uint64
+	taskType uint64
+	taskID   uint64
+}
+
+type taskResultAuthorization struct {
+	count     uint32
+	expiresAt time.Time
+}
+
+// AuthorizeTaskResult records that a server may report one result for a task.
+func AuthorizeTaskResult(serverID, taskType, taskID uint64, ttl time.Duration) {
+	now := time.Now()
+	key := taskResultAuthorizationKey{serverID: serverID, taskType: taskType, taskID: taskID}
+
+	taskResultAuthorizationLock.Lock()
+	defer taskResultAuthorizationLock.Unlock()
+
+	if taskResultAuthorizationLastPrune.IsZero() || now.Sub(taskResultAuthorizationLastPrune) >= time.Minute {
+		for key, authorization := range taskResultAuthorizations {
+			if !now.Before(authorization.expiresAt) {
+				delete(taskResultAuthorizations, key)
+			}
+		}
+		taskResultAuthorizationLastPrune = now
+	}
+
+	authorization := taskResultAuthorizations[key]
+	authorization.count++
+	expiresAt := now.Add(ttl)
+	if expiresAt.After(authorization.expiresAt) {
+		authorization.expiresAt = expiresAt
+	}
+	taskResultAuthorizations[key] = authorization
+}
+
+// RevokeTaskResultAuthorization removes an authorization when task delivery fails.
+func RevokeTaskResultAuthorization(serverID, taskType, taskID uint64) {
+	key := taskResultAuthorizationKey{serverID: serverID, taskType: taskType, taskID: taskID}
+
+	taskResultAuthorizationLock.Lock()
+	defer taskResultAuthorizationLock.Unlock()
+
+	authorization, ok := taskResultAuthorizations[key]
+	if !ok {
+		return
+	}
+	if authorization.count <= 1 {
+		delete(taskResultAuthorizations, key)
+		return
+	}
+	authorization.count--
+	taskResultAuthorizations[key] = authorization
+}
+
+// ConsumeTaskResultAuthorization accepts each authorized task result only once.
+func ConsumeTaskResultAuthorization(serverID, taskType, taskID uint64) bool {
+	now := time.Now()
+	key := taskResultAuthorizationKey{serverID: serverID, taskType: taskType, taskID: taskID}
+
+	taskResultAuthorizationLock.Lock()
+	defer taskResultAuthorizationLock.Unlock()
+
+	authorization, ok := taskResultAuthorizations[key]
+	if !ok {
+		return false
+	}
+	if !now.Before(authorization.expiresAt) {
+		delete(taskResultAuthorizations, key)
+		return false
+	}
+	if authorization.count <= 1 {
+		delete(taskResultAuthorizations, key)
+	} else {
+		authorization.count--
+		taskResultAuthorizations[key] = authorization
+	}
+	return true
+}
 
 type cronOfflineNotification struct {
 	tag     string
@@ -166,7 +252,9 @@ func cronTrigger(cr model.Cron, triggerSource string, triggerServer ...uint64) f
 
 		var sentServers []string
 		for _, s := range targetServers {
+			AuthorizeTaskResult(s.ID, task.GetType(), task.GetId(), 65*time.Minute)
 			if err := s.SendTask(task); err != nil {
+				RevokeTaskResultAuthorization(s.ID, task.GetType(), task.GetId())
 				continue
 			}
 			sentServers = append(sentServers, serverAuditID(s))

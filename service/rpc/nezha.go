@@ -107,6 +107,9 @@ func (s *NezhaHandler) ReportTask(c context.Context, r *pb.TaskResult) (*pb.Rece
 	if clientID, err = s.Auth.Check(c); err != nil {
 		return nil, err
 	}
+	if !singleton.ConsumeTaskResultAuthorization(clientID, r.GetType(), r.GetId()) {
+		return nil, status.Error(codes.PermissionDenied, "task result was not requested")
+	}
 	if r.GetType() == model.TaskTypeCommand {
 		// 处理上报的计划任务
 		singleton.CronLock.RLock()
