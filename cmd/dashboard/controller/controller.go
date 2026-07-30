@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/hashicorp/go-uuid"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 
@@ -30,6 +31,27 @@ import (
 var updateNoRoute func()
 
 const requestBodyLimit int64 = 8 << 20
+
+const webSocketConnectionLimit = 256
+
+var webSocketConnectionSlots = make(chan struct{}, webSocketConnectionLimit)
+
+func limitWebSocketConnections(c *gin.Context) {
+	if !websocket.IsWebSocketUpgrade(c.Request) {
+		c.Next()
+		return
+	}
+
+	select {
+	case webSocketConnectionSlots <- struct{}{}:
+		defer func() { <-webSocketConnectionSlots }()
+		c.Next()
+	default:
+		c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+			"error": "too many websocket connections",
+		})
+	}
+}
 
 // protectRequestBody 限制普通 HTTP 请求体，避免全局 ReadTimeout 中断 WebSocket 或 gRPC 长连接。
 func protectRequestBody(next http.Handler) http.Handler {
@@ -87,6 +109,7 @@ func ServeWeb(port uint) *http.Server {
 		log.Printf("NEZHA>> SetTrustedProxies error: %v", err)
 	}
 
+	r.Use(limitWebSocketConnections)
 	r.Use(natGateway)
 	tmpl := template.New("").Funcs(funcMap)
 	var err error
@@ -430,7 +453,11 @@ func natGateway(c *gin.Context) {
 		return
 	}
 
-	rpc.NezhaHandlerSingleton.CreateStream(streamId)
+	if err := rpc.NezhaHandlerSingleton.CreateStream(streamId); err != nil {
+		c.String(http.StatusServiceUnavailable, err.Error())
+		c.Abort()
+		return
+	}
 	defer rpc.NezhaHandlerSingleton.CloseStream(streamId)
 
 	taskData, err := utils.Json.Marshal(model.TaskNAT{

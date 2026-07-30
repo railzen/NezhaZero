@@ -555,7 +555,16 @@ func (cp *commonPage) createTerminal(c *gin.Context) {
 		return
 	}
 
-	rpc.NezhaHandlerSingleton.CreateStream(streamId)
+	if err := rpc.NezhaHandlerSingleton.CreateStream(streamId); err != nil {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusServiceUnavailable,
+			Title: "请求失败",
+			Msg:   err.Error(),
+			Link:  "/server",
+			Btn:   "返回重试",
+		}, true)
+		return
+	}
 
 	singleton.ServerLock.RLock()
 	server := singleton.ServerList[createTerminalReq.ID]
@@ -689,7 +698,16 @@ func (cp *commonPage) createFM(c *gin.Context) {
 		return
 	}
 
-	rpc.NezhaHandlerSingleton.CreateStream(streamId)
+	if err := rpc.NezhaHandlerSingleton.CreateStream(streamId); err != nil {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusServiceUnavailable,
+			Title: "请求失败",
+			Msg:   err.Error(),
+			Link:  "/server",
+			Btn:   "返回重试",
+		}, true)
+		return
+	}
 
 	serverId, err := strconv.Atoi(IdString)
 	if err != nil {

@@ -46,6 +46,7 @@ type NezhaHandler struct {
 	Auth          *authHandler
 	ioStreams     map[string]*ioStreamContext
 	ioStreamMutex *sync.RWMutex
+	ioStreamSlots chan struct{}
 }
 
 func NewNezhaHandler() *NezhaHandler {
@@ -53,6 +54,7 @@ func NewNezhaHandler() *NezhaHandler {
 		Auth:          &authHandler{},
 		ioStreamMutex: new(sync.RWMutex),
 		ioStreams:     make(map[string]*ioStreamContext),
+		ioStreamSlots: make(chan struct{}, ioStreamLimit),
 	}
 	go h.cleanupStaleStreams()
 	return h
@@ -441,6 +443,12 @@ func (s *NezhaHandler) ReportSystemInfo(c context.Context, r *pb.Host) (*pb.Rece
 func (s *NezhaHandler) IOStream(stream pb.NezhaService_IOStreamServer) error {
 	if _, err := s.Auth.Check(stream.Context()); err != nil {
 		return err
+	}
+	select {
+	case s.ioStreamSlots <- struct{}{}:
+		defer func() { <-s.ioStreamSlots }()
+	default:
+		return status.Error(codes.ResourceExhausted, "too many active streams")
 	}
 	id, err := stream.Recv()
 	if err != nil {

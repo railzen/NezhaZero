@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -37,7 +38,13 @@ func (cv *compatV1) createTerminal(c *gin.Context) {
 		return
 	}
 
-	rpc.NezhaHandlerSingleton.CreateStream(streamId)
+	if err := rpc.NezhaHandlerSingleton.CreateStream(streamId); err != nil {
+		c.JSON(http.StatusServiceUnavailable, V1Response[any]{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
 
 	singleton.ServerLock.RLock()
 	server := singleton.ServerList[createTerminalReq.ServerID]

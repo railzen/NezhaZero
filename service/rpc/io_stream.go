@@ -31,17 +31,22 @@ var bufPool = sync.Pool{
 const (
 	ioStreamCleanupInterval = time.Minute
 	ioStreamConnectTimeout  = 5 * time.Minute
+	ioStreamLimit           = 256
 )
 
-func (s *NezhaHandler) CreateStream(streamId string) {
+func (s *NezhaHandler) CreateStream(streamId string) error {
 	s.ioStreamMutex.Lock()
 	defer s.ioStreamMutex.Unlock()
 
+	if len(s.ioStreams) >= ioStreamLimit {
+		return errors.New("too many active streams")
+	}
 	s.ioStreams[streamId] = &ioStreamContext{
 		userIoConnectCh:  make(chan struct{}),
 		agentIoConnectCh: make(chan struct{}),
 		createdAt:        time.Now(),
 	}
+	return nil
 }
 
 func (s *NezhaHandler) GetStream(streamId string) (*ioStreamContext, error) {

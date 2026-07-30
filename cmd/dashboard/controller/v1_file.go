@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"net/http"
 	"strconv"
 	"time"
 
@@ -31,7 +32,13 @@ func (cv *compatV1) createFM(c *gin.Context) {
 		return
 	}
 
-	rpc.NezhaHandlerSingleton.CreateStream(streamId)
+	if err := rpc.NezhaHandlerSingleton.CreateStream(streamId); err != nil {
+		c.JSON(http.StatusServiceUnavailable, V1Response[any]{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
 
 	serverId, err := strconv.Atoi(IdString)
 	if err != nil {
