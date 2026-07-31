@@ -32,22 +32,39 @@ func CheckExpirationReminders() {
 		ip         string
 		expiration time.Time
 	}
+	type serverSnapshotSource struct {
+		id         uint64
+		name       string
+		publicNote string
+		server     *model.Server
+	}
 	now := time.Now()
 	var expirations []serverExpiration
+	var servers []serverSnapshotSource
 	ServerLock.RLock()
 	for id, server := range ServerList {
 		if server == nil {
 			continue
 		}
-		if expiration, ok := parsePublicNoteExpiration(server.PublicNote, now); ok {
-			ip := ""
-			if server.Host != nil {
-				ip = IPDesensitize(server.Host.IP)
-			}
-			expirations = append(expirations, serverExpiration{id: id, name: server.Name, ip: ip, expiration: expiration})
-		}
+		servers = append(servers, serverSnapshotSource{
+			id:         id,
+			name:       server.Name,
+			publicNote: server.PublicNote,
+			server:     server,
+		})
 	}
 	ServerLock.RUnlock()
+
+	for _, source := range servers {
+		if expiration, ok := parsePublicNoteExpiration(source.publicNote, now); ok {
+			host, _, _, _, _ := source.server.RuntimeSnapshot()
+			ip := ""
+			if host != nil {
+				ip = IPDesensitize(host.IP)
+			}
+			expirations = append(expirations, serverExpiration{id: source.id, name: source.name, ip: ip, expiration: expiration})
+		}
+	}
 
 	for _, rule := range rules {
 		if !rule.Enabled() || !rule.IsExpirationRule() {
