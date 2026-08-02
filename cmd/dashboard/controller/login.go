@@ -523,6 +523,14 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 		}, true)
 		return
 	}
+	if !allowAuthRateLimitedCheck() {
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusTooManyRequests,
+			Title: "登录失败",
+			Msg:   "请求过于频繁，请稍后再试",
+		}, true)
+		return
+	}
 	var err error
 	// 验证登录跳转时的 State
 	stateKey, err := c.Cookie(singleton.Conf.Site.CookieName + "-sk")

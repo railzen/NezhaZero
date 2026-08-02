@@ -35,13 +35,11 @@ func (cv *compatV1) login(c *gin.Context) {
 		return
 	}
 	if singleton.Conf.TwoFactorActive() {
-		audit.Record(c, audit.TypeAuth, "V1 password login failed", "two-factor enabled, V1 password login blocked")
 		c.JSON(403, V1Response[any]{Error: "CompatAPI: Password login not allowed"})
 		return
 	}
 	// ===== 是否启用密码登录 =====
 	if !singleton.Conf.PasswordLoginActive() {
-		audit.Record(c, audit.TypeAuth, "V1 password login failed", "password login is disabled")
 		c.JSON(403, V1Response[any]{Error: "CompatAPI: Password login not allowed"})
 		return
 	}
