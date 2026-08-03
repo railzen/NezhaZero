@@ -37,7 +37,14 @@ const (
 	discoverCreateBurst       = 10
 	discoverCreateInterval    = 100 * time.Millisecond
 	discoverDeviceSecretLimit = 10000
+	bootTimeToleranceSeconds  = 5
 )
+
+func bootTimeIndicatesReboot(oldBootTime, newBootTime uint64) bool {
+	return oldBootTime > 0 &&
+		newBootTime > oldBootTime &&
+		newBootTime-oldBootTime > bootTimeToleranceSeconds
+}
 
 var discoverCreateLimiter = rate.NewLimiter(rate.Every(discoverCreateInterval), discoverCreateBurst)
 
@@ -403,7 +410,7 @@ func (s *NezhaHandler) ReportSystemInfo(c context.Context, r *pb.Host) (*pb.Rece
 	 * 当 agent 重启时，bootTime 变大，agent 端会先上报 host 信息，然后上报 state 信息
 	 * 这是可以借助上报顺序的空档，将停机前的流量统计数据标记下来，加到下一个小时的数据点上
 	 */
-	if server.Host != nil && server.State != nil && server.Host.BootTime < host.BootTime {
+	if server.Host != nil && server.State != nil && bootTimeIndicatesReboot(server.Host.BootTime, host.BootTime) {
 		server.PrevTransferInSnapshot = server.PrevTransferInSnapshot - int64(server.State.NetInTransfer)
 		server.PrevTransferOutSnapshot = server.PrevTransferOutSnapshot - int64(server.State.NetOutTransfer)
 	}
