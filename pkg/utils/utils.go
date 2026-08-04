@@ -157,12 +157,9 @@ func ValidateAdminPassword(password string) error {
 	return nil
 }
 
-func Uint64SubInt64(a uint64, b int64) uint64 {
-	if b < 0 {
-		return a + uint64(-b)
-	}
-	if a < uint64(b) {
+func SubUintChecked(a, b uint64) uint64 {
+	if a < b {
 		return 0
 	}
-	return a - uint64(b)
+	return a - b
 }

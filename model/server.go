@@ -38,8 +38,8 @@ type Server struct {
 	TaskStream       pb.NezhaService_RequestTaskServer `gorm:"-" json:"-"`
 	RuntimeLock      *sync.RWMutex                     `gorm:"-" json:"-"`
 
-	PrevTransferInSnapshot  int64 `gorm:"-" json:"-"` // 上次数据点时的入站使用量
-	PrevTransferOutSnapshot int64 `gorm:"-" json:"-"` // 上次数据点时的出站使用量
+	PrevTransferInSnapshot  uint64 `gorm:"-" json:"-"` // 上次数据点时的入站使用量
+	PrevTransferOutSnapshot uint64 `gorm:"-" json:"-"` // 上次数据点时的出站使用量
 }
 
 func (s *Server) CopyFromRunningServer(old *Server) {
@@ -66,7 +66,7 @@ func (s *Server) InitRuntimeLock() {
 	}
 }
 
-func (s *Server) RuntimeSnapshot() (*Host, *HostState, time.Time, int64, int64) {
+func (s *Server) RuntimeSnapshot() (*Host, *HostState, time.Time, uint64, uint64) {
 	if s == nil {
 		return nil, nil, time.Time{}, 0, 0
 	}

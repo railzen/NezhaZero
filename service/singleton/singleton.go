@@ -135,16 +135,15 @@ func RecordTransferHourlyUsage() {
 		}
 		tx := model.Transfer{
 			ServerID: id,
-			In:       utils.Uint64SubInt64(server.State.NetInTransfer, server.PrevTransferInSnapshot),
-			Out:      utils.Uint64SubInt64(server.State.NetOutTransfer, server.PrevTransferOutSnapshot),
+			In:       utils.SubUintChecked(server.State.NetInTransfer, server.PrevTransferInSnapshot),
+			Out:      utils.SubUintChecked(server.State.NetOutTransfer, server.PrevTransferOutSnapshot),
 		}
+		server.PrevTransferInSnapshot = server.State.NetInTransfer
+		server.PrevTransferOutSnapshot = server.State.NetOutTransfer
+		server.RuntimeLock.Unlock()
 		if tx.In == 0 && tx.Out == 0 {
-			server.RuntimeLock.Unlock()
 			continue
 		}
-		server.PrevTransferInSnapshot = int64(server.State.NetInTransfer)
-		server.PrevTransferOutSnapshot = int64(server.State.NetOutTransfer)
-		server.RuntimeLock.Unlock()
 		tx.CreatedAt = nowTrimSeconds
 		txs = append(txs, tx)
 	}
@@ -152,6 +151,13 @@ func RecordTransferHourlyUsage() {
 		return
 	}
 	log.Println("NEZHA>> Cron 流量统计入库", len(txs), DB.Create(txs).Error)
+}
+
+func PersistTransfer(transfer model.Transfer) error {
+	if transfer.In == 0 && transfer.Out == 0 {
+		return nil
+	}
+	return DB.Create(&transfer).Error
 }
 
 // CleanMonitorHistory 清理无效或过时的 监控记录 和 流量记录

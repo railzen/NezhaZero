@@ -46,6 +46,34 @@ func bootTimeIndicatesReboot(oldBootTime, newBootTime uint64) bool {
 		newBootTime-oldBootTime > bootTimeToleranceSeconds
 }
 
+// settleTransferOnRebootLocked persists the last unrecorded transfer before
+// clearing the old runtime state. The caller must hold server.RuntimeLock.
+func settleTransferOnRebootLocked(server *model.Server, host *model.Host, createdAt time.Time, persist func(model.Transfer) error) (bool, error) {
+	if server == nil || host == nil || server.Host == nil || !bootTimeIndicatesReboot(server.Host.BootTime, host.BootTime) {
+		return false, nil
+	}
+
+	transfer := model.Transfer{
+		Common:   model.Common{CreatedAt: createdAt},
+		ServerID: server.ID,
+	}
+	if server.State != nil {
+		transfer.In = utils.SubUintChecked(server.State.NetInTransfer, server.PrevTransferInSnapshot)
+		transfer.Out = utils.SubUintChecked(server.State.NetOutTransfer, server.PrevTransferOutSnapshot)
+	}
+	if persist != nil {
+		if err := persist(transfer); err != nil {
+			return false, err
+		}
+	}
+
+	server.State = &model.HostState{}
+	server.LastActive = time.Time{}
+	server.PrevTransferInSnapshot = 0
+	server.PrevTransferOutSnapshot = 0
+	return true, nil
+}
+
 var discoverCreateLimiter = rate.NewLimiter(rate.Every(discoverCreateInterval), discoverCreateBurst)
 
 type NezhaHandler struct {
@@ -349,9 +377,9 @@ func (s *NezhaHandler) ReportSystemState(c context.Context, r *pb.State) (*pb.Re
 	server.State = &state
 
 	// 应对 dashboard 重启的情况，如果从未记录过，先打点，等到小时时间点时入库
-	if server.PrevTransferInSnapshot == 0 || server.PrevTransferOutSnapshot == 0 {
-		server.PrevTransferInSnapshot = int64(state.NetInTransfer)
-		server.PrevTransferOutSnapshot = int64(state.NetOutTransfer)
+	if server.PrevTransferInSnapshot == 0 && server.PrevTransferOutSnapshot == 0 {
+		server.PrevTransferInSnapshot = state.NetInTransfer
+		server.PrevTransferOutSnapshot = state.NetOutTransfer
 	}
 
 	return &pb.Receipt{Proced: true}, nil
@@ -408,11 +436,11 @@ func (s *NezhaHandler) ReportSystemInfo(c context.Context, r *pb.Host) (*pb.Rece
 	/**
 	 * 这里的 singleton 中的数据都是关机前的旧数据
 	 * 当 agent 重启时，bootTime 变大，agent 端会先上报 host 信息，然后上报 state 信息
-	 * 这是可以借助上报顺序的空档，将停机前的流量统计数据标记下来，加到下一个小时的数据点上
+	 * 这时可以借助上报顺序的空档，立即记录停机前的数据并重置 Prev 数据，由接下来的 state 重新赋值
 	 */
-	if server.Host != nil && server.State != nil && bootTimeIndicatesReboot(server.Host.BootTime, host.BootTime) {
-		server.PrevTransferInSnapshot = server.PrevTransferInSnapshot - int64(server.State.NetInTransfer)
-		server.PrevTransferOutSnapshot = server.PrevTransferOutSnapshot - int64(server.State.NetOutTransfer)
+	if _, err := settleTransferOnRebootLocked(server, &host, time.Now(), singleton.PersistTransfer); err != nil {
+		server.RuntimeLock.Unlock()
+		return nil, status.Errorf(codes.Internal, "persist transfer before reboot: %v", err)
 	}
 
 	// 不要冲掉国家码

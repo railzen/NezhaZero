@@ -103,17 +103,17 @@ func (u *Rule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, 
 			src = float64(lastActive.Unix())
 		}
 	case "transfer_in_cycle":
-		src = float64(utils.Uint64SubInt64(state.NetInTransfer, prevIn))
+		src = float64(utils.SubUintChecked(state.NetInTransfer, prevIn))
 		if u.CycleInterval != 0 {
 			src += transferCycleFromDB
 		}
 	case "transfer_out_cycle":
-		src = float64(utils.Uint64SubInt64(state.NetOutTransfer, prevOut))
+		src = float64(utils.SubUintChecked(state.NetOutTransfer, prevOut))
 		if u.CycleInterval != 0 {
 			src += transferCycleFromDB
 		}
 	case "transfer_all_cycle":
-		src = float64(utils.Uint64SubInt64(state.NetOutTransfer, prevOut) + utils.Uint64SubInt64(state.NetInTransfer, prevIn))
+		src = float64(utils.SubUintChecked(state.NetOutTransfer, prevOut) + utils.SubUintChecked(state.NetInTransfer, prevIn))
 		if u.CycleInterval != 0 {
 			src += transferCycleFromDB
 		}

@@ -101,8 +101,8 @@ type V1Server struct {
 
 	TaskStream pb.NezhaService_RequestTaskServer `gorm:"-" json:"-"`
 
-	PrevTransferInSnapshot  int64 `gorm:"-" json:"-"` // 上次数据点时的入站使用量
-	PrevTransferOutSnapshot int64 `gorm:"-" json:"-"` // 上次数据点时的出站使用量
+	PrevTransferInSnapshot  uint64 `gorm:"-" json:"-"` // 上次数据点时的入站使用量
+	PrevTransferOutSnapshot uint64 `gorm:"-" json:"-"` // 上次数据点时的出站使用量
 }
 
 type V1ServerGroup struct {

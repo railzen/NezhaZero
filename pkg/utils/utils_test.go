@@ -1,8 +1,6 @@
 package utils
 
-import (
-	"testing"
-)
+import "testing"
 
 type testSt struct {
 	input  string
@@ -54,5 +52,26 @@ func TestGenerGenerateRandomString(t *testing.T) {
 			t.Fatalf("Duplicated string: %s", str)
 		}
 		generatedString[str] = true
+	}
+}
+
+func TestSubUintChecked(t *testing.T) {
+	tests := []struct {
+		name string
+		a    uint64
+		b    uint64
+		want uint64
+	}{
+		{name: "subtract", a: 10, b: 3, want: 7},
+		{name: "equal", a: 10, b: 10, want: 0},
+		{name: "rollback", a: 3, b: 10, want: 0},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := SubUintChecked(test.a, test.b); got != test.want {
+				t.Fatalf("SubUintChecked(%d, %d) = %d, want %d", test.a, test.b, got, test.want)
+			}
+		})
 	}
 }
