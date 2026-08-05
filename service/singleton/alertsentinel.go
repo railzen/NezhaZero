@@ -10,6 +10,7 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 
 	"github.com/railzen/nezha-zero/model"
+	"github.com/railzen/nezha-zero/pkg/audit"
 )
 
 const (
@@ -208,9 +209,13 @@ func fetchCycleTransferFromDB(queries []cycleTransferQuery) map[model.CycleTrans
 	out := make(map[model.CycleTransferDBKey]float64, len(queries))
 	for _, q := range queries {
 		var res model.NResult
-		DB.Model(&model.Transfer{}).Select(q.sel).
+		err := DB.Model(&model.Transfer{}).Select(q.sel).
 			Where("datetime(`created_at`) >= datetime(?) AND server_id = ?", q.since, q.key.ServerID).
-			Scan(&res)
+			Scan(&res).Error
+		if err != nil {
+			audit.Record(nil, audit.TypeEvent, "Cycle transfer query failed", err.Error())
+			continue
+		}
 		out[q.key] = float64(res.N)
 	}
 	return out

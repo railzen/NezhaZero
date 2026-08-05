@@ -46,6 +46,13 @@ func bootTimeIndicatesReboot(oldBootTime, newBootTime uint64) bool {
 		newBootTime-oldBootTime > bootTimeToleranceSeconds
 }
 
+func stabilizeBootTime(oldBootTime, newBootTime uint64) uint64 {
+	if oldBootTime > 0 && newBootTime < oldBootTime {
+		return oldBootTime
+	}
+	return newBootTime
+}
+
 // settleTransferOnRebootLocked persists the last unrecorded transfer before
 // clearing the old runtime state. The caller must hold server.RuntimeLock.
 func settleTransferOnRebootLocked(server *model.Server, host *model.Host, createdAt time.Time, persist func(model.Transfer) error) (bool, error) {
@@ -438,6 +445,7 @@ func (s *NezhaHandler) ReportSystemInfo(c context.Context, r *pb.Host) (*pb.Rece
 	 * 当 agent 重启时，bootTime 变大，agent 端会先上报 host 信息，然后上报 state 信息
 	 * 这时可以借助上报顺序的空档，立即记录停机前的数据并重置 Prev 数据，由接下来的 state 重新赋值
 	 */
+	host.BootTime = stabilizeBootTime(server.Host.BootTime, host.BootTime)
 	if _, err := settleTransferOnRebootLocked(server, &host, time.Now(), singleton.PersistTransfer); err != nil {
 		server.RuntimeLock.Unlock()
 		return nil, status.Errorf(codes.Internal, "persist transfer before reboot: %v", err)
