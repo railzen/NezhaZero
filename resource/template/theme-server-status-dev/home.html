@@ -102,6 +102,7 @@
         mounted() {
             // Initialize the WebSocket connection on first load
             this.connect();
+            this._responsiveViewportWidth = window.innerWidth;
             this.scheduleResponsiveTableLayout();
             window.addEventListener("resize", this.scheduleResponsiveTableLayout);
             this._handleVisibilityChange = () => {
@@ -136,10 +137,13 @@
                     cancelAnimationFrame(this._responsiveTableLayoutFrame);
                 }
                 this._responsiveTableLayoutFrame = requestAnimationFrame(() => {
+                    const viewportWidth = window.innerWidth;
+                    const viewportWidthChanged = viewportWidth !== this._responsiveViewportWidth;
+                    this._responsiveViewportWidth = viewportWidth;
                     const displayModeChanged = this.applyResponsiveTableLayout();
                     if (displayModeChanged) {
                         this.reloadCharts();
-                    } else {
+                    } else if (viewportWidthChanged) {
                         this.resizeVisibleCharts();
                     }
                 });
