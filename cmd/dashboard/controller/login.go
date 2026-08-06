@@ -56,6 +56,7 @@ const (
 	authRateLimit30sKey       = "authrate_r30s"
 	authRateLimit1sMax        = 9
 	authRateLimit30sMax       = 75
+	oidcProviderTTL           = time.Hour
 	// twoFactorCachePrefix 二次验证一次性 ticket 的缓存键前缀。
 	// ticket 只存于服务端缓存，对应已通过密码或 OAuth 身份核验但尚未通过 2FA 的用户，
 	// 通过 2FA 后立即删除（一次性消费），避免被重放。
@@ -92,8 +93,11 @@ func init() {
 }
 
 type oauth2controller struct {
-	r            gin.IRoutes
-	oidcProvider *oidc.Provider
+	r                     gin.IRoutes
+	oidcProviderMu        sync.Mutex
+	oidcIssuer            string
+	oidcProvider          *oidc.Provider
+	oidcProviderFetchedAt time.Time
 }
 
 func (oa *oauth2controller) serve() {
@@ -432,8 +436,7 @@ func (oa *oauth2controller) getCommonOauth2Config(c *gin.Context) *oauth2.Config
 			RedirectURL: oa.getRedirectURL(c),
 		}
 	} else if singleton.Conf.Oauth2.Type == model.ConfigTypeOidc {
-		var err error
-		oa.oidcProvider, err = oidc.NewProvider(c.Request.Context(), singleton.Conf.Oauth2.OidcIssuer)
+		provider, err := oa.getOIDCProvider(c.Request.Context(), singleton.Conf.Oauth2.OidcIssuer)
 		if err != nil {
 			mygin.ShowErrorPage(c, mygin.ErrInfo{
 				Code:  http.StatusBadRequest,
@@ -449,7 +452,7 @@ func (oa *oauth2controller) getCommonOauth2Config(c *gin.Context) *oauth2.Config
 			ClientID:     singleton.Conf.Oauth2.ClientID,
 			ClientSecret: singleton.Conf.Oauth2.ClientSecret,
 			Scopes:       uniqueScopes,
-			Endpoint:     oa.oidcProvider.Endpoint(),
+			Endpoint:     provider.Endpoint(),
 			RedirectURL:  oa.getRedirectURL(c),
 		}
 	} else {
@@ -460,6 +463,22 @@ func (oa *oauth2controller) getCommonOauth2Config(c *gin.Context) *oauth2.Config
 			Endpoint:     GitHubOauth2.Endpoint,
 		}
 	}
+}
+
+func (oa *oauth2controller) getOIDCProvider(ctx context.Context, issuer string) (*oidc.Provider, error) {
+	oa.oidcProviderMu.Lock()
+	defer oa.oidcProviderMu.Unlock()
+	if oa.oidcProvider != nil && oa.oidcIssuer == issuer && time.Now().Before(oa.oidcProviderFetchedAt.Add(oidcProviderTTL)) {
+		return oa.oidcProvider, nil
+	}
+	provider, err := oidc.NewProvider(ctx, issuer)
+	if err != nil {
+		return nil, err
+	}
+	oa.oidcIssuer = issuer
+	oa.oidcProvider = provider
+	oa.oidcProviderFetchedAt = time.Now()
+	return provider, nil
 }
 
 func (oa *oauth2controller) getRedirectURL(c *gin.Context) string {
@@ -608,7 +627,14 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 				}
 			}
 		} else if singleton.Conf.Oauth2.Type == model.ConfigTypeOidc {
-			userInfo, err := oa.oidcProvider.UserInfo(c.Request.Context(), oauth2.StaticTokenSource(otk))
+			provider, providerErr := oa.getOIDCProvider(c.Request.Context(), singleton.Conf.Oauth2.OidcIssuer)
+			if providerErr != nil {
+				err = providerErr
+			}
+			var userInfo *oidc.UserInfo
+			if err == nil {
+				userInfo, err = provider.UserInfo(c.Request.Context(), oauth2.StaticTokenSource(otk))
+			}
 			if err == nil {
 				loginClaim := singleton.Conf.Oauth2.OidcLoginClaim
 				groupClain := singleton.Conf.Oauth2.OidcGroupClaim
