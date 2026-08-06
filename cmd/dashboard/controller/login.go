@@ -554,6 +554,15 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 			c.SetCookie(singleton.Conf.Site.CookieName+"-sk", "", -1, "/", "", mygin.CookieSecure(c), true)
 		}
 	}
+	if err != nil {
+		audit.Record(c, audit.TypeAuth, "OAuth login failed", "failed to complete OAuth authentication")
+		mygin.ShowErrorPage(c, mygin.ErrInfo{
+			Code:  http.StatusBadRequest,
+			Title: "登录失败",
+			Msg:   "登录过程中发生错误，请稍后重试",
+		}, true)
+		return
+	}
 	oauth2Config := oa.getCommonOauth2Config(c)
 	ctx := context.Background()
 	var otk *oauth2.Token
