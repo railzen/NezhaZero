@@ -130,11 +130,9 @@ func (r *AlertRule) Check(points [][]interface{}) (int, bool) {
 			if maxNum < 1 {
 				maxNum = 1
 			}
-			for j := len(points[i]) - 1; j >= 0; j-- {
-				if points[i][j] != nil {
-					count++
-					break
-				}
+			latest := len(points) - 1
+			if latest >= 0 && i < len(points[latest]) && points[latest][i] != nil {
+				count++
 			}
 		} else {
 			// 常规报警
