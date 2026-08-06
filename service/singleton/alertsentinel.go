@@ -10,7 +10,6 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 
 	"github.com/railzen/nezha-zero/model"
-	"github.com/railzen/nezha-zero/pkg/audit"
 )
 
 const (
@@ -147,92 +146,9 @@ func OnDeleteAlert(id uint64) {
 	delete(AlertsCycleTransferStatsStore, id)
 }
 
-type cycleTransferQuery struct {
-	key   model.CycleTransferDBKey
-	sel   string
-	since time.Time
-}
-
-// collectCycleTransferQueries 在持锁期间收集本轮需要查库的周期流量项（不执行 DB）。
-func collectCycleTransferQueries() []cycleTransferQuery {
-	var queries []cycleTransferQuery
-	now := time.Now()
-	for _, alert := range Alerts {
-		if !alert.Enabled() {
-			continue
-		}
-		for ruleIdx := range alert.Rules {
-			rule := &alert.Rules[ruleIdx]
-			if !rule.IsTransferDurationRule() || rule.CycleInterval == 0 {
-				continue
-			}
-			for _, server := range ServerList {
-				if rule.Cover == model.RuleCoverAll && rule.Ignore[server.ID] {
-					continue
-				}
-				if rule.Cover == model.RuleCoverIgnoreAll && !rule.Ignore[server.ID] {
-					continue
-				}
-				if rule.NextTransferAt[server.ID].After(now) {
-					continue
-				}
-				var sel string
-				switch rule.Type {
-				case "transfer_in_cycle":
-					sel = "SUM(`in`) AS n"
-				case "transfer_out_cycle":
-					sel = "SUM(`out`) AS n"
-				case "transfer_all_cycle":
-					sel = "SUM(`in`+`out`) AS n"
-				default:
-					continue
-				}
-				queries = append(queries, cycleTransferQuery{
-					key: model.CycleTransferDBKey{
-						AlertID:  alert.ID,
-						RuleIdx:  ruleIdx,
-						ServerID: server.ID,
-					},
-					sel:   sel,
-					since: rule.GetTransferDurationStart().UTC(),
-				})
-			}
-		}
-	}
-	return queries
-}
-
-func fetchCycleTransferFromDB(queries []cycleTransferQuery) map[model.CycleTransferDBKey]float64 {
-	if len(queries) == 0 {
-		return nil
-	}
-	out := make(map[model.CycleTransferDBKey]float64, len(queries))
-	for _, q := range queries {
-		var res model.NResult
-		err := DB.Model(&model.Transfer{}).Select(q.sel).
-			Where("datetime(`created_at`) >= datetime(?) AND server_id = ?", q.since, q.key.ServerID).
-			Scan(&res).Error
-		if err != nil {
-			audit.Record(nil, audit.TypeEvent, "Cycle transfer query failed", err.Error())
-			continue
-		}
-		out[q.key] = float64(res.N)
-	}
-	return out
-}
-
 // checkStatus 检查报警规则并发送报警
 func checkStatus() {
 	// 锁顺序：ServerLock → AlertsLock，与 onServerDelete 一致，避免 AB-BA 死锁。
-	// 周期流量 DB 查询在锁外执行，避免 SQLite 拖住全局锁。
-	ServerLock.RLock()
-	AlertsLock.Lock()
-	queries := collectCycleTransferQueries()
-	AlertsLock.Unlock()
-	ServerLock.RUnlock()
-
-	cycleFromDB := fetchCycleTransferFromDB(queries)
-
 	ServerLock.RLock()
 	defer ServerLock.RUnlock()
 	AlertsLock.Lock()
@@ -246,7 +162,7 @@ func checkStatus() {
 		for _, server := range ServerList {
 			// 监测点
 			alertsStore[alert.ID][server.ID] = append(alertsStore[alert.
-				ID][server.ID], alert.Snapshot(AlertsCycleTransferStatsStore[alert.ID], server, cycleFromDB))
+				ID][server.ID], alert.Snapshot(AlertsCycleTransferStatsStore[alert.ID], server, DB))
 			// 发送通知，分为触发报警和恢复通知
 			_, passed := alert.Check(alertsStore[alert.ID][server.ID])
 			// 保存当前服务器状态信息
