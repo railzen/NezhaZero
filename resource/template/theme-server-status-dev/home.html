@@ -1,6 +1,23 @@
 {{define "theme-server-status-dev/home"}}
 {{template "theme-server-status-dev/header" .}}
 {{template "theme-server-status-dev/menu" .}}   
+<style>
+    .expandRow .node-detail-list {
+        min-width: 0;
+        width: 100%;
+    }
+    .expandRow .node-echarts-expand {
+        display: block;
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+    }
+    .expandRow .chartbox {
+        min-width: 0;
+        max-width: 100%;
+    }
+</style>
 <!--  showGroup true -->
 <template v-if="showGroup">
     <div class="container-fluid table-responsive content" v-for="group in nodesTag">
@@ -151,9 +168,25 @@
             resizeVisibleCharts() {
                 document.querySelectorAll('.chartbox[chartbox-show="1"]').forEach(chartContainer => {
                     const chart = echarts.getInstanceByDom(chartContainer);
-                    if (chart) {
-                        chart.resize();
+                    if (!chart) {
+                        return;
                     }
+                    const responsiveContainer = chartContainer.closest('.table-responsive.content');
+                    if (!responsiveContainer) {
+                        chart.resize();
+                        return;
+                    }
+                    const containerStyle = window.getComputedStyle(responsiveContainer);
+                    let chartWidth = responsiveContainer.clientWidth
+                        - (parseFloat(containerStyle.paddingLeft) || 0)
+                        - (parseFloat(containerStyle.paddingRight) || 0);
+                    const accordionBody = chartContainer.closest('.accordian-body');
+                    if (accordionBody) {
+                        const accordionStyle = window.getComputedStyle(accordionBody);
+                        chartWidth -= (parseFloat(accordionStyle.marginLeft) || 0)
+                            + (parseFloat(accordionStyle.marginRight) || 0);
+                    }
+                    chart.resize({ width: Math.max(0, Math.floor(chartWidth)) });
                 });
             },
             applyResponsiveTableLayout() {
