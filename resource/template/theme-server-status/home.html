@@ -102,7 +102,6 @@
         mounted() {
             // 初始化时建立WebSocket连接
             this.connect();
-            window.addEventListener("resize", this.scheduleChartResize);
             // 监听页面可见性变化
             document.addEventListener("visibilitychange", () => {
                 if (document.visibilityState === "visible") {
@@ -114,38 +113,7 @@
                 }
             });
         },
-        beforeDestroy() {
-            window.removeEventListener("resize", this.scheduleChartResize);
-            if (this._chartResizeFrame) {
-                cancelAnimationFrame(this._chartResizeFrame);
-                this._chartResizeFrame = null;
-            }
-        },
         methods: {
-            scheduleChartResize() {
-                if (this._chartResizeFrame) {
-                    cancelAnimationFrame(this._chartResizeFrame);
-                }
-                this._chartResizeFrame = requestAnimationFrame(() => {
-                    this._chartResizeFrame = null;
-                    const isMobile = this.checkIsMobile();
-                    const displayModeChanged = isMobile !== this.isMobile;
-                    this.isMobile = isMobile;
-                    if (displayModeChanged) {
-                        this.reloadCharts();
-                    } else {
-                        this.resizeVisibleCharts();
-                    }
-                });
-            },
-            resizeVisibleCharts() {
-                document.querySelectorAll('.chartbox[chartbox-show="1"]').forEach(chartContainer => {
-                    const chart = echarts.getInstanceByDom(chartContainer);
-                    if (chart) {
-                        chart.resize();
-                    }
-                });
-            },
             initAdditional(servers) {
                 let nodes = {};
                 servers?.forEach(server => {
