@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"math/rand"
+	"crypto/sha1"
+	"encoding/hex"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,17 +15,6 @@ import (
 	"github.com/railzen/nezha-zero/service/singleton"
 	"golang.org/x/crypto/bcrypt"
 )
-
-var passwordLoginAttempt struct {
-	LastAttempt   time.Time // 最近一次尝试
-	WindowStart   time.Time // 当前10秒窗口起点
-	WindowCount   int       // 窗口内请求次数
-	FailCount     int
-	LockedUntil   time.Time
-	NextAllowedAt time.Time
-}
-
-var passwordLoginLock sync.Mutex
 
 func (cv *compatV1) login(c *gin.Context) {
 	var lr model.V1LoginRequest
@@ -63,9 +52,9 @@ func (cv *compatV1) login(c *gin.Context) {
 		return
 	}
 
-	// 防止过长的输入导致DoS
-	if len(lr.Username) > 63 || len(lr.Password) > 63 {
-		audit.Record(c, audit.TypeAuth, "V1 password login failed", "username or password exceeds length limit")
+	// 与 /login 一致：密码最短 6；并防止过长输入导致 DoS
+	if len(lr.Username) > 63 || len(lr.Password) < 6 || len(lr.Password) > 63 {
+		audit.Record(c, audit.TypeAuth, "V1 password login failed", "username or password length invalid")
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return
 	}
@@ -79,48 +68,24 @@ func (cv *compatV1) login(c *gin.Context) {
 		}
 	}
 
-	// ===== 全局锁 & 节流 & 退避 =====
-	passwordLoginLock.Lock()
-
-	// 锁定期
-	if now.Before(passwordLoginAttempt.LockedUntil) {
-		passwordLoginLock.Unlock()
-		audit.Record(c, audit.TypeAuth, "V1 password login failed", "password login temporarily locked")
+	// 与 /login 共享 IP / 用户名失败计数
+	sum := sha1.Sum([]byte(strings.ToLower(lr.Username)))
+	failKey := "passwd_fail_" + hex.EncodeToString(sum[:])
+	failCount, _ := singleton.Cache.Get(failKey)
+	ruleAllowed := true
+	if failCountInt, ok := failCount.(int); ok && failCountInt >= 5 {
+		ruleAllowed = false
+	}
+	ipFailKey := "ip_fail_" + c.ClientIP()
+	ipFailCount, _ := singleton.Cache.Get(ipFailKey)
+	if ipFailCountInt, ok := ipFailCount.(int); ok && ipFailCountInt >= 5 {
+		ruleAllowed = false
+	}
+	if !ruleAllowed {
+		audit.Record(c, audit.TypeAuth, "V1 password login failed", "too many failed attempts, temporarily blocked")
 		c.JSON(http.StatusForbidden, V1Response[any]{Error: "Password login locked"})
 		return
 	}
-
-	// 指数退避（立即拒绝，不 sleep）
-	if now.Before(passwordLoginAttempt.NextAllowedAt) {
-		passwordLoginLock.Unlock()
-		audit.Record(c, audit.TypeAuth, "V1 password login failed", "login blocked by backoff")
-		c.JSON(http.StatusTooManyRequests, V1Response[any]{Error: "Invalid credentials"})
-		return
-	}
-
-	// ===== 10 秒窗口内允许 2 次 =====
-	window := 10 * time.Second
-	// 新窗口 or 窗口已过期
-	if passwordLoginAttempt.WindowStart.IsZero() ||
-		now.Sub(passwordLoginAttempt.WindowStart) >= window {
-
-		passwordLoginAttempt.WindowStart = now
-		passwordLoginAttempt.WindowCount = 1
-	} else {
-		passwordLoginAttempt.WindowCount++
-		if passwordLoginAttempt.WindowCount > 2 {
-			passwordLoginLock.Unlock()
-			audit.Record(c, audit.TypeAuth, "V1 password login failed", "login blocked by rate limit")
-			c.JSON(http.StatusTooManyRequests, V1Response[any]{
-				Error: "Invalid credentials",
-			})
-			return
-		}
-	}
-
-	passwordLoginAttempt.LastAttempt = now
-
-	passwordLoginLock.Unlock()
 
 	// ===== 密码校验 =====
 	passwordOK := false
@@ -133,36 +98,16 @@ func (cv *compatV1) login(c *gin.Context) {
 
 	// ===== 登录失败处理 =====
 	if !usernameOK || !passwordOK {
-
-		passwordLoginLock.Lock()
-		passwordLoginAttempt.FailCount++
-		fail := passwordLoginAttempt.FailCount
-
-		// 达到最大失败次数，直接锁定
-		if fail >= 6 {
-			passwordLoginAttempt.LockedUntil = now.Add(10 * time.Minute)
-			passwordLoginAttempt.FailCount = 0
-			passwordLoginAttempt.NextAllowedAt = time.Time{}
-			passwordLoginAttempt.WindowStart = time.Time{}
-			passwordLoginAttempt.WindowCount = 0
-		} else {
-			passwordLoginAttempt.NextAllowedAt = calcNextAllowedTime(now, fail)
-		}
-		passwordLoginLock.Unlock()
-
+		incrementFailCount(failKey)
+		incrementFailCount(ipFailKey)
 		audit.Record(c, audit.TypeAuth, "V1 password login failed", "invalid username or password")
 		c.JSON(400, V1Response[any]{Error: "Invalid credentials"})
 		return
 	}
 
 	// ===== 登录成功，重置状态 =====
-	passwordLoginLock.Lock()
-	passwordLoginAttempt.FailCount = 0
-	passwordLoginAttempt.LockedUntil = time.Time{}
-	passwordLoginAttempt.NextAllowedAt = time.Time{}
-	passwordLoginAttempt.WindowStart = time.Time{}
-	passwordLoginAttempt.WindowCount = 0
-	passwordLoginLock.Unlock()
+	singleton.Cache.Delete(failKey)
+	singleton.Cache.Delete(ipFailKey)
 
 	// ===== 创建会话 =====
 	var u model.User
@@ -197,25 +142,6 @@ func (cv *compatV1) login(c *gin.Context) {
 		},
 	})
 	audit.Record(c, audit.TypeAuth, "V1 password login succeeded", "user: "+lr.Username)
-}
-
-func calcNextAllowedTime(now time.Time, failCount int) time.Time {
-	if failCount <= 0 {
-		return now
-	}
-
-	// 最大退避时间
-	const maxDelay = 20 * time.Second
-
-	// 2^(failCount-1) 秒
-	baseDelay := time.Duration(1<<(failCount-1)) * time.Second
-	delay := baseDelay + time.Duration(rand.Int63n(int64(baseDelay/2)))
-
-	if delay > maxDelay {
-		delay = maxDelay
-	}
-
-	return now.Add(delay)
 }
 
 func (cv *compatV1) refreshToken(c *gin.Context) {
