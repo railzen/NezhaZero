@@ -9,13 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// CycleTransferDBKey 标识一条周期流量规则在某服务器上的预查结果。
-type CycleTransferDBKey struct {
-	AlertID  uint64
-	RuleIdx  int
-	ServerID uint64
-}
-
 const (
 	ModeAlwaysTrigger  = 0
 	ModeOnetimeTrigger = 1
@@ -119,19 +112,10 @@ func (r *AlertRule) ExpirationServerIDs() string {
 }
 
 // Snapshot 对传入的Server进行该报警规则下所有type的检查 返回包含每项检查结果的空接口。
-// cycleFromDB 为锁外预查的周期流量合计，key 见 CycleTransferDBKey；无预查时传 nil。
-// 需要查库的周期规则未命中 cycleFromDB 时（下次检查时间恰好在锁外预查窗口内到期），
-// 跳过本轮评估并沿用上次结果，避免把 DB 合计当作 0 导致显示值骤降。
-func (r *AlertRule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, cycleFromDB map[CycleTransferDBKey]float64, cycleCheckAt time.Time) []interface{} {
+func (r *AlertRule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, db *gorm.DB) []interface{} {
 	var point []interface{}
 	for i := 0; i < len(r.Rules); i++ {
-		key := CycleTransferDBKey{AlertID: r.ID, RuleIdx: i, ServerID: server.ID}
-		fromDB, ok := cycleFromDB[key]
-		if !ok && r.Rules[i].IsTransferDurationRule() && r.Rules[i].CycleInterval != 0 {
-			point = append(point, r.Rules[i].LastCycleStatus[server.ID])
-			continue
-		}
-		point = append(point, r.Rules[i].Snapshot(cycleTransferStats, server, fromDB, cycleCheckAt))
+		point = append(point, r.Rules[i].Snapshot(cycleTransferStats, server, db))
 	}
 	return point
 }

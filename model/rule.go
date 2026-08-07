@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/railzen/nezha-zero/pkg/utils"
+	"gorm.io/gorm"
 )
 
 const (
@@ -48,8 +49,7 @@ func percentage(used, total uint64) float64 {
 }
 
 // Snapshot 未通过规则返回 struct{}{}, 通过返回 nil。
-// transferCycleFromDB 为周期流量规则在锁外预查的历史流量合计；非周期规则忽略该参数。
-func (u *Rule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, transferCycleFromDB float64, cycleCheckAt time.Time) interface{} {
+func (u *Rule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, db *gorm.DB) interface{} {
 	// 监控全部但是排除了此服务器
 	if u.Cover == RuleCoverAll && u.Ignore[server.ID] {
 		return nil
@@ -60,7 +60,7 @@ func (u *Rule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, 
 	}
 
 	// 循环区间流量检测 · 短期无需重复检测
-	if u.IsTransferDurationRule() && u.NextTransferAt[server.ID].After(cycleCheckAt) {
+	if u.IsTransferDurationRule() && u.NextTransferAt[server.ID].After(time.Now()) {
 		return u.LastCycleStatus[server.ID]
 	}
 
@@ -105,17 +105,23 @@ func (u *Rule) Snapshot(cycleTransferStats *CycleTransferStats, server *Server, 
 	case "transfer_in_cycle":
 		src = float64(utils.SubUintChecked(state.NetInTransfer, prevIn))
 		if u.CycleInterval != 0 {
-			src += transferCycleFromDB
+			var res NResult
+			db.Model(&Transfer{}).Select("SUM(`in`) AS n").Where("datetime(`created_at`) >= datetime(?) AND server_id = ?", u.GetTransferDurationStart().UTC(), server.ID).Scan(&res)
+			src += float64(res.N)
 		}
 	case "transfer_out_cycle":
 		src = float64(utils.SubUintChecked(state.NetOutTransfer, prevOut))
 		if u.CycleInterval != 0 {
-			src += transferCycleFromDB
+			var res NResult
+			db.Model(&Transfer{}).Select("SUM(`out`) AS n").Where("datetime(`created_at`) >= datetime(?) AND server_id = ?", u.GetTransferDurationStart().UTC(), server.ID).Scan(&res)
+			src += float64(res.N)
 		}
 	case "transfer_all_cycle":
 		src = float64(utils.SubUintChecked(state.NetOutTransfer, prevOut) + utils.SubUintChecked(state.NetInTransfer, prevIn))
 		if u.CycleInterval != 0 {
-			src += transferCycleFromDB
+			var res NResult
+			db.Model(&Transfer{}).Select("SUM(`in`+`out`) AS n").Where("datetime(`created_at`) >= datetime(?) AND server_id = ?", u.GetTransferDurationStart().UTC(), server.ID).Scan(&res)
+			src += float64(res.N)
 		}
 	case "load1":
 		src = state.Load1
