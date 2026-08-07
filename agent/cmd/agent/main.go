@@ -258,6 +258,9 @@ func restartSelfForDiscover(newClientSecret string) error {
 			skipNext = true
 			continue
 		}
+		if strings.HasPrefix(arg, "--auto-discover=") {
+			continue
+		}
 		newArgs = append(newArgs, arg)
 	}
 
@@ -266,6 +269,11 @@ func restartSelfForDiscover(newClientSecret string) error {
 	for i, arg := range newArgs {
 		if arg == "-p" && i+1 < len(newArgs) {
 			newArgs[i+1] = newClientSecret
+			foundP = true
+			break
+		}
+		if strings.HasPrefix(arg, "-p=") {
+			newArgs[i] = "-p=" + newClientSecret
 			foundP = true
 			break
 		}
