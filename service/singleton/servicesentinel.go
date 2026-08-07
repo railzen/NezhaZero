@@ -433,7 +433,9 @@ func (ss *ServiceSentinel) OnMonitorDelete(id uint64) {
 	delete(ss.serviceStatusToday, id)
 
 	// 停掉定时任务
-	Cron.Remove(ss.monitors[id].CronJobID)
+	if monitor := ss.monitors[id]; monitor != nil {
+		Cron.Remove(monitor.CronJobID)
+	}
 	delete(ss.monitors, id)
 
 	delete(ss.monthlyStatus, id)
