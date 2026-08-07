@@ -186,8 +186,7 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 	}
 
 	if !ruleAllowed {
-		incrementFailCount(failKey)
-		incrementFailCount(ipFailKey)
+		// 已锁定时不再累加计数：否则 Cache.Set 会刷新 TTL，攻击者每 <10min 一次即可永久锁死
 		audit.Record(c, audit.TypeAuth, "Password login failed", "too many failed attempts, temporarily blocked")
 		showLoginRuleFailed(c)
 		return
@@ -373,13 +372,17 @@ func incrementAuthRateLimit(key string, window time.Duration) int {
 	}
 }
 
-// 增加失败计数并设置 10 分钟过期
+// 增加失败计数。仅首次创建时设置 10 分钟 TTL，后续 IncrementInt 不刷新过期时间，
+// 避免失败窗口被反复续期导致永久锁定。
 func incrementFailCount(key string) {
-	count, _ := singleton.Cache.Get(key)
-	if cInt, ok := count.(int); ok {
-		singleton.Cache.Set(key, cInt+1, 10*time.Minute)
-	} else {
-		singleton.Cache.Set(key, 1, 10*time.Minute)
+	const window = 10 * time.Minute
+	for {
+		if err := singleton.Cache.Add(key, 1, window); err == nil {
+			return
+		}
+		if _, err := singleton.Cache.IncrementInt(key, 1); err == nil {
+			return
+		}
 	}
 }
 
