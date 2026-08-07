@@ -66,8 +66,8 @@ func (provider *Provider) updateDomain() error {
 		return err
 	}
 
-	// 当IPv4和IPv6同时成功才算作成功
-	if *provider.DDNSProfile.EnableIPv4 {
+	// 当IPv4和IPv6同时成功才算作成功；nil 视为未启用
+	if provider.DDNSProfile.EnableIPv4 != nil && *provider.DDNSProfile.EnableIPv4 {
 		provider.recordType = getRecordString(true)
 		provider.ipAddr = provider.IPAddrs.Ipv4Addr
 		if err = provider.addDomainRecord(); err != nil {
@@ -75,7 +75,7 @@ func (provider *Provider) updateDomain() error {
 		}
 	}
 
-	if *provider.DDNSProfile.EnableIPv6 {
+	if provider.DDNSProfile.EnableIPv6 != nil && *provider.DDNSProfile.EnableIPv6 {
 		provider.recordType = getRecordString(false)
 		provider.ipAddr = provider.IPAddrs.Ipv6Addr
 		if err = provider.addDomainRecord(); err != nil {

@@ -157,7 +157,6 @@ func (r *AlertRule) Check(points [][]interface{}) (int, bool) {
 			// 当70%以上的采样点未通过规则判断时 才认为当前检查未通过
 			if fail/total > 0.7 {
 				count++
-				break
 			}
 		}
 	}

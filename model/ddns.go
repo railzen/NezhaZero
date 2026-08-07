@@ -84,6 +84,14 @@ func (d *DDNSProfile) AfterFind(tx *gorm.DB) error {
 	if d.DomainsRaw != "" {
 		d.Domains = strings.Split(d.DomainsRaw, ",")
 	}
+	if d.EnableIPv4 == nil {
+		v := false
+		d.EnableIPv4 = &v
+	}
+	if d.EnableIPv6 == nil {
+		v := false
+		d.EnableIPv6 = &v
+	}
 	return nil
 }
 
