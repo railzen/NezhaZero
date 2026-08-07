@@ -493,10 +493,30 @@ func (s *NezhaHandler) IOStream(stream pb.NezhaService_IOStreamServer) error {
 	default:
 		return status.Error(codes.ResourceExhausted, "too many active streams")
 	}
-	id, err := stream.Recv()
-	if err != nil {
-		return err
+
+	type recvResult struct {
+		id  *pb.IOStreamData
+		err error
 	}
+	ch := make(chan recvResult, 1)
+	go func() {
+		id, err := stream.Recv()
+		ch <- recvResult{id, err}
+	}()
+
+	var id *pb.IOStreamData
+	select {
+	case r := <-ch:
+		if r.err != nil {
+			return r.err
+		}
+		id = r.id
+	case <-time.After(ioStreamIDTimeout):
+		return status.Error(codes.DeadlineExceeded, "stream id timeout")
+	case <-stream.Context().Done():
+		return stream.Context().Err()
+	}
+
 	if id == nil || len(id.Data) < 4 || id.Data[0] != 0xff || id.Data[1] != 0x05 || id.Data[2] != 0xff || id.Data[3] != 0x05 {
 		return fmt.Errorf("invalid stream id")
 	}

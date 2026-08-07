@@ -32,6 +32,8 @@ const (
 	ioStreamCleanupInterval = time.Minute
 	ioStreamConnectTimeout  = 5 * time.Minute
 	ioStreamLimit           = 256
+	// 首帧 stream id 等待上限：避免已鉴权 agent 占槽后永不 Recv 导致永久耗尽
+	ioStreamIDTimeout = 2 * time.Minute
 )
 
 func (s *NezhaHandler) CreateStream(streamId string) error {
