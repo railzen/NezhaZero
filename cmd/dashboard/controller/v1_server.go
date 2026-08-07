@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/pkg/utils"
+	"github.com/railzen/nezha-zero/pkg/websocketx"
 	"github.com/railzen/nezha-zero/service/singleton"
 )
 
@@ -152,11 +153,13 @@ func (cv *compatV1) serverStream(c *gin.Context) {
 		if err != nil {
 			continue
 		}
+		_ = conn.SetWriteDeadline(time.Now().Add(websocketx.WriteTimeout))
 		if err := conn.WriteMessage(websocket.TextMessage, stat); err != nil {
 			break
 		}
 		count += 1
 		if count%4 == 0 {
+			_ = conn.SetWriteDeadline(time.Now().Add(websocketx.WriteTimeout))
 			err = conn.WriteMessage(websocket.PingMessage, []byte{})
 			if err != nil {
 				break

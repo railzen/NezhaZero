@@ -435,11 +435,13 @@ func (cp *commonPage) ws(c *gin.Context) {
 		if err != nil {
 			continue
 		}
+		_ = conn.SetWriteDeadline(time.Now().Add(websocketx.WriteTimeout))
 		if err := conn.WriteMessage(websocket.TextMessage, stat); err != nil {
 			break
 		}
 		count += 1
 		if count%4 == 0 {
+			_ = conn.SetWriteDeadline(time.Now().Add(websocketx.WriteTimeout))
 			err = conn.WriteMessage(websocket.PingMessage, []byte{})
 			if err != nil {
 				break
