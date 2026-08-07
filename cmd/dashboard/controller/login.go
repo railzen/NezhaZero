@@ -57,7 +57,19 @@ const (
 	authRateLimit30sKey       = "authrate_r30s"
 	authRateLimit1sMax        = 9
 	authRateLimit30sMax       = 75
-	oidcProviderTTL           = time.Hour
+	// 来源级认证限速：同一 IP 网段在 10 秒内超过 12 次请求记一次违规
+	authSourceRequestPrefix = "auth_src_req_"
+	authSourceTripPrefix    = "auth_src_trip_"
+	authBlacklistPrefix     = "auth_black_"
+	authSourceRequestWindow = 10 * time.Second
+	authSourceRequestMax    = 18
+	authSourceTripWindow    = 10 * time.Minute
+	authSourceTripThreshold = 9
+	// authBlacklistTTL 拉黑时长。
+	authBlacklistTTL = 30 * time.Minute
+	// authSourceStateMaxItems 来源请求、违规和黑名单状态的总条目硬上限。
+	authSourceStateMaxItems = 3000
+	oidcProviderTTL         = time.Hour
 	// twoFactorCachePrefix 二次验证一次性 ticket 的缓存键前缀。
 	// ticket 只存于服务端缓存，对应已通过密码或 OAuth 身份核验但尚未通过 2FA 的用户，
 	// 通过 2FA 后立即删除（一次性消费），避免被重放。
@@ -65,6 +77,11 @@ const (
 	twoFactorTTL         = 5 * time.Minute
 	// twoFactorMaxAttempts 同一 ticket 允许的 TOTP 试错次数，防 6 位码枚举。
 	twoFactorMaxAttempts = 5
+)
+
+var (
+	authSourceStateMu    sync.Mutex
+	authSourceStateCache = cache.New(authBlacklistTTL, time.Minute)
 )
 
 type twoFactorLoginMethod uint8
@@ -111,7 +128,7 @@ func (oa *oauth2controller) serve() {
 
 // newChallenge 为前端提供一个新的一次性登录挑战（供登录失败后无刷新重试使用）
 func (oa *oauth2controller) newChallenge(c *gin.Context) {
-	if !allowAuthRateLimitedCheck() {
+	if !allowAuthRateLimitedCheck(c) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "too many requests"})
 		return
 	}
@@ -137,7 +154,7 @@ func (oa *oauth2controller) newChallenge(c *gin.Context) {
 }
 
 func (oa *oauth2controller) passwordLogin(c *gin.Context) {
-	if !allowAuthRateLimitedCheck() {
+	if !allowAuthRateLimitedCheck(c) {
 		// 被全局限速器拒绝的请求不写审计，避免未认证写放大打满 SQLite 单写者。
 		showLoginRuleFailed(c)
 		return
@@ -343,17 +360,75 @@ func consumeLoginChallenge(challengeID, challenge string) bool {
 	return true
 }
 
-// allowAuthRateLimitedCheck 全站限制认证相关公开接口共用计数。
-// 用原子递增替代"读取-判断-写回"，避免并发下多个请求读到同一旧值导致计数丢失、
-// 实际放行量超过上限。go-cache 的 IncrementInt 在内部持锁完成读改写，且只改值不动 TTL。
-func allowAuthRateLimitedCheck() bool {
-	if incrementAuthRateLimit(authRateLimit1sKey, time.Second) > authRateLimit1sMax {
+// allowAuthRateLimitedCheck 先执行来源级限速，再执行全站认证接口共用的全局安全阀。
+// 来源级拒绝和黑名单命中均不消耗全局额度，避免单一来源长期占满全局限流。
+func allowAuthRateLimitedCheck(c *gin.Context) bool {
+	ipKey := passwordLoginIPFailKey(c.ClientIP())
+
+	// ① 黑名单命中：最早短路，不计入任何限速、不写重复审计。
+	if _, blocked := authSourceStateCache.Get(authBlacklistPrefix + ipKey); blocked {
 		return false
 	}
-	if incrementAuthRateLimit(authRateLimit30sKey, 30*time.Second) > authRateLimit30sMax {
+
+	// ② 来源短窗口。容量已满时不创建新来源状态，退回全局安全阀。
+	requestCount, tracked := incrementAuthSourceState(authSourceRequestPrefix+ipKey, authSourceRequestWindow)
+	if tracked && requestCount > authSourceRequestMax {
+		// 每个短窗口只有第一个超限请求记录一次违规。
+		if requestCount == authSourceRequestMax+1 {
+			tripCount, tripTracked := incrementAuthSourceState(authSourceTripPrefix+ipKey, authSourceTripWindow)
+			if tripTracked && tripCount >= authSourceTripThreshold {
+				authBlacklistAdd(c, ipKey)
+			}
+		}
+		return false
+	}
+
+	// ③ 全局安全阀仅统计通过来源级检查的请求。
+	if incrementAuthRateLimit(authRateLimit1sKey, time.Second) > authRateLimit1sMax ||
+		incrementAuthRateLimit(authRateLimit30sKey, 30*time.Second) > authRateLimit30sMax {
 		return false
 	}
 	return true
+}
+
+// incrementAuthSourceState 原子递增独立的来源状态。新来源创建受硬容量限制；
+// 容量满时返回 tracked=false，由调用方退回全局安全阀。
+func incrementAuthSourceState(key string, window time.Duration) (count int, tracked bool) {
+	for {
+		if _, found := authSourceStateCache.Get(key); !found {
+			authSourceStateMu.Lock()
+			if _, found = authSourceStateCache.Get(key); !found {
+				if authSourceStateCache.ItemCount() >= authSourceStateMaxItems {
+					authSourceStateMu.Unlock()
+					return 0, false
+				}
+				if err := authSourceStateCache.Add(key, 1, window); err == nil {
+					authSourceStateMu.Unlock()
+					return 1, true
+				}
+			}
+			authSourceStateMu.Unlock()
+		}
+		if n, err := authSourceStateCache.IncrementInt(key, 1); err == nil {
+			return n, true
+		}
+	}
+}
+
+// authBlacklistAdd 将某 IP 网段加入认证限速黑名单。仅在加入时写一次审计。
+func authBlacklistAdd(c *gin.Context, ipKey string) {
+	blackKey := authBlacklistPrefix + ipKey
+
+	authSourceStateMu.Lock()
+	// 转换为黑名单前释放该来源的请求和违规状态，容量不会净增长。
+	authSourceStateCache.Delete(authSourceRequestPrefix + ipKey)
+	authSourceStateCache.Delete(authSourceTripPrefix + ipKey)
+	err := authSourceStateCache.Add(blackKey, 1, authBlacklistTTL)
+	authSourceStateMu.Unlock()
+	if err != nil {
+		return
+	}
+	audit.Record(c, audit.TypeAuth, "Auth rate-limit blacklist", "IP segment blacklisted for repeated rate-limit hits: "+ipKey)
 }
 
 // incrementAuthRateLimit 原子地将窗口计数 +1 并返回新值。固定窗口语义：已有键的递增不刷新
@@ -528,7 +603,7 @@ func (oa *oauth2controller) login(c *gin.Context) {
 		}, true)
 		return
 	}
-	if !allowAuthRateLimitedCheck() {
+	if !allowAuthRateLimitedCheck(c) {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusTooManyRequests,
 			Title: "登录失败",
@@ -571,7 +646,7 @@ func (oa *oauth2controller) callback(c *gin.Context) {
 		}, true)
 		return
 	}
-	if !allowAuthRateLimitedCheck() {
+	if !allowAuthRateLimitedCheck(c) {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusTooManyRequests,
 			Title: "登录失败",
@@ -797,7 +872,7 @@ func (oa *oauth2controller) twoFactorVerify(c *gin.Context) {
 		}, true)
 		return
 	}
-	if !allowAuthRateLimitedCheck() {
+	if !allowAuthRateLimitedCheck(c) {
 		oa.renderTwoFactor(c, http.StatusTooManyRequests, strings.TrimSpace(c.PostForm("ticket")), "请求过于频繁，请稍后再试")
 		return
 	}

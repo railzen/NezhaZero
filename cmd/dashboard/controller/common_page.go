@@ -80,7 +80,7 @@ func (p *commonPage) v1Dashboard(c *gin.Context) {
 }
 
 func (p *commonPage) issueViewPassword(c *gin.Context) {
-	if !allowAuthRateLimitedCheck() {
+	if !allowAuthRateLimitedCheck(c) {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
 			Code:  http.StatusTooManyRequests,
 			Title: singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "AnErrorEccurred"}),

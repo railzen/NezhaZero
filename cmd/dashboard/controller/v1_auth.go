@@ -33,7 +33,7 @@ func (cv *compatV1) login(c *gin.Context) {
 		return
 	}
 	// 全局限速：被全局限速器拒绝的请求不写审计，避免未认证写放大打满 SQLite 单写者。
-	if !allowAuthRateLimitedCheck() {
+	if !allowAuthRateLimitedCheck(c) {
 		c.JSON(http.StatusTooManyRequests, V1Response[any]{Error: "Too many requests"})
 		return
 	}
