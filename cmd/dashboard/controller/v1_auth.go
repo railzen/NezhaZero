@@ -76,7 +76,7 @@ func (cv *compatV1) login(c *gin.Context) {
 	if failCountInt, ok := failCount.(int); ok && failCountInt >= 5 {
 		ruleAllowed = false
 	}
-	ipFailKey := "ip_fail_" + c.ClientIP()
+	ipFailKey := passwordLoginIPFailKey(c.ClientIP())
 	ipFailCount, _ := singleton.Cache.Get(ipFailKey)
 	if ipFailCountInt, ok := ipFailCount.(int); ok && ipFailCountInt >= 5 {
 		ruleAllowed = false

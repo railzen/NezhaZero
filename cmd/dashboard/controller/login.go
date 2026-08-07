@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -178,8 +179,8 @@ func (oa *oauth2controller) passwordLogin(c *gin.Context) {
 		ruleAllowed = false
 	}
 
-	// 2. IP 地址限制
-	ipFailKey := "ip_fail_" + clientIP
+	// 2. IP 地址限制（IPv4 按 /24 网段共享计数）
+	ipFailKey := passwordLoginIPFailKey(clientIP)
 	ipFailCount, _ := singleton.Cache.Get(ipFailKey)
 	if ipFailCountInt, ok := ipFailCount.(int); ok && ipFailCountInt >= 5 {
 		ruleAllowed = false
@@ -370,6 +371,16 @@ func incrementAuthRateLimit(key string, window time.Duration) int {
 			return n
 		}
 	}
+}
+
+// passwordLoginIPFailKey 生成 IP 失败计数键。IPv4 按 /24 聚合，同网段共享封锁。
+func passwordLoginIPFailKey(clientIP string) string {
+	ip := net.ParseIP(clientIP)
+	if ip4 := ip.To4(); ip4 != nil {
+		masked := net.IP{ip4[0], ip4[1], ip4[2], 0}
+		return "ip_fail_" + masked.String() + "/24"
+	}
+	return "ip_fail_" + clientIP
 }
 
 // 增加失败计数。仅首次创建时设置 10 分钟 TTL，后续 IncrementInt 不刷新过期时间，
