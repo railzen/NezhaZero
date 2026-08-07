@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"time"
 
 	pb "github.com/railzen/nezha-zero/agent/proto"
 )
@@ -52,6 +53,8 @@ func (t *Task) listDir() {
 				return
 			}
 			dir = usr.HomeDir + string(filepath.Separator)
+			// home 目录不可读时退化为慢速重试，避免 100% CPU 死循环卡死整个 FM 会话
+			time.Sleep(time.Second)
 			continue
 		}
 		break
