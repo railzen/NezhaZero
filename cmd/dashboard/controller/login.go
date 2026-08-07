@@ -747,7 +747,7 @@ func (oa *oauth2controller) issueOAuthSession(c *gin.Context, user *model.User) 
 		return
 	}
 	user.Token = sessionToken.Hash
-	user.TokenExpired = time.Now().UTC().AddDate(0, 2, 0)
+	user.TokenExpired = time.Now().UTC().AddDate(0, 0, 3)
 	singleton.DB.Save(user)
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(singleton.Conf.Site.CookieName, sessionToken.Plain, 60*60*24*3, "/", "", mygin.CookieSecure(c), true)
