@@ -93,6 +93,8 @@ func GenerateRandomString(n int) (string, error) {
 
 const sessionTokenLength = 32
 
+const apiTokenVisibleLength = 4
+
 // SessionToken 会话 Token：Plain 发给客户端，Hash 写入 users.token。
 type SessionToken struct {
 	Plain string
@@ -115,6 +117,36 @@ func NewSessionToken() (SessionToken, error) {
 func HashSessionToken(plain string) string {
 	sum := sha256.Sum256([]byte(plain))
 	return hex.EncodeToString(sum[:])
+}
+
+// HashAPIToken converts a plaintext API token to the SHA-256 digest stored in
+// the database and used as the in-memory authentication index.
+func HashAPIToken(plain string) string {
+	sum := sha256.Sum256([]byte(strings.TrimSpace(plain)))
+	return hex.EncodeToString(sum[:])
+}
+
+// IsHashedAPIToken reports whether value has the shape produced by
+// HashAPIToken. API tokens issued by the dashboard are 32 characters long, so
+// this also distinguishes legacy plaintext rows during an upgrade.
+func IsHashedAPIToken(value string) bool {
+	if len(value) != sha256.Size*2 {
+		return false
+	}
+	_, err := hex.DecodeString(value)
+	return err == nil
+}
+
+// MaskAPIToken keeps enough of a token to identify it without retaining the
+// recoverable credential in the database.
+func MaskAPIToken(plain string) string {
+	plain = strings.TrimSpace(plain)
+	if len(plain) <= apiTokenVisibleLength*2 {
+		return strings.Repeat("*", len(plain))
+	}
+	return plain[:apiTokenVisibleLength] +
+		strings.Repeat("*", len(plain)-apiTokenVisibleLength*2) +
+		plain[len(plain)-apiTokenVisibleLength:]
 }
 
 // ValidateAdminPassword 校验管理员明文密码：长度不少于 8 位，且四类字符至少包含三种。

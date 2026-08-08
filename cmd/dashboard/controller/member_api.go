@@ -133,10 +133,17 @@ func (ma *memberAPI) issueNewToken(c *gin.Context) {
 	}
 	token := &model.ApiToken{
 		UserID: u.ID,
-		Token:  secureToken,
+		Token:  utils.MaskAPIToken(secureToken),
+		Hash:   utils.HashAPIToken(secureToken),
 		Note:   tf.Note,
 	}
-	singleton.DB.Create(token)
+	if err := singleton.DB.Create(token).Error; err != nil {
+		c.JSON(http.StatusOK, model.Response{
+			Code:    http.StatusInternalServerError,
+			Message: fmt.Sprintf("database error: %s", err),
+		})
+		return
+	}
 
 	singleton.ApiLock.Lock()
 	singleton.ApiTokenList[token.Token] = token
@@ -147,7 +154,7 @@ func (ma *memberAPI) issueNewToken(c *gin.Context) {
 		Code:    http.StatusOK,
 		Message: "success",
 		Result: map[string]string{
-			"token": token.Token,
+			"token": secureToken,
 			"note":  token.Note,
 		},
 	})

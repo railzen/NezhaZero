@@ -1,10 +1,13 @@
 package singleton
 
 import (
+	"crypto/subtle"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"gorm.io/gorm"
 
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/pkg/utils"
@@ -92,18 +95,66 @@ func InitAPI() {
 	UserIDToApiTokenList = make(map[uint64][]string)
 }
 
+// migrateAPITokens replaces each legacy plaintext token with a masked
+// identifier and stores its SHA-256 digest separately. Existing plaintext
+// credentials continue to authenticate after the upgrade.
+func migrateAPITokens(db *gorm.DB) error {
+	var tokenList []model.ApiToken
+	if err := db.Find(&tokenList).Error; err != nil {
+		return err
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		for i := range tokenList {
+			token := &tokenList[i]
+			plain := strings.TrimSpace(token.Token)
+			hash := strings.TrimSpace(token.Hash)
+			if plain == "" && hash == "" {
+				continue
+			}
+			updates := map[string]any{}
+			if hash == "" {
+				updates["hash"] = utils.HashAPIToken(plain)
+				updates["token"] = utils.MaskAPIToken(plain)
+			}
+			if len(updates) > 0 {
+				if err := tx.Model(token).Updates(updates).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
 func loadAPI() {
 	InitAPI()
 	var tokenList []*model.ApiToken
 	DB.Find(&tokenList)
 	for _, token := range tokenList {
 		token.Token = strings.TrimSpace(token.Token)
-		if token.Token == "" {
+		token.Hash = strings.TrimSpace(token.Hash)
+		if token.Token == "" || !utils.IsHashedAPIToken(token.Hash) {
 			continue
 		}
 		ApiTokenList[token.Token] = token
 		UserIDToApiTokenList[token.UserID] = append(UserIDToApiTokenList[token.UserID], token.Token)
 	}
+}
+
+func FindAPIToken(plain string) (*model.ApiToken, bool) {
+	plain = strings.TrimSpace(plain)
+	if plain == "" {
+		return nil, false
+	}
+	masked := utils.MaskAPIToken(plain)
+	hash := utils.HashAPIToken(plain)
+	ApiLock.RLock()
+	token, ok := ApiTokenList[masked]
+	ApiLock.RUnlock()
+	if !ok || subtle.ConstantTimeCompare([]byte(token.Hash), []byte(hash)) != 1 {
+		return nil, false
+	}
+	return token, true
 }
 
 // GetStatusByIDList 获取传入IDList的服务器状态信息

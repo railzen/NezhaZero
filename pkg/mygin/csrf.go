@@ -92,9 +92,7 @@ func isAPICredential(c *gin.Context) bool {
 	if token == "" {
 		return false
 	}
-	singleton.ApiLock.RLock()
-	_, ok := singleton.ApiTokenList[token]
-	singleton.ApiLock.RUnlock()
+	_, ok := singleton.FindAPIToken(token)
 	return ok
 }
 

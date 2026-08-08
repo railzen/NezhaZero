@@ -75,3 +75,17 @@ func TestSubUintChecked(t *testing.T) {
 		})
 	}
 }
+
+func TestAPITokenHashAndMask(t *testing.T) {
+	plain := "abcd1234567890abcdefghijklmnWXYZ"
+	hash := HashAPIToken(plain)
+	if hash == plain || !IsHashedAPIToken(hash) {
+		t.Fatalf("HashAPIToken() returned invalid digest %q", hash)
+	}
+	if got, want := MaskAPIToken(plain), "abcd************************WXYZ"; got != want {
+		t.Fatalf("MaskAPIToken() = %q, want %q", got, want)
+	}
+	if got := HashAPIToken("  " + plain + "  "); got != hash {
+		t.Fatalf("HashAPIToken() should normalize surrounding whitespace")
+	}
+}

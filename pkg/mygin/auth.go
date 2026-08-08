@@ -70,10 +70,8 @@ func Authorize(opt AuthorizeOption) func(*gin.Context) {
 					c.Set(model.CtxKeyAuthorizedUser, &u)
 				}
 			} else if opt.AllowAPI {
-				// API Token 鉴权：Token 在 ApiTokenList 中即视为已登录
-				singleton.ApiLock.RLock()
-				apiToken, ok := singleton.ApiTokenList[token]
-				singleton.ApiLock.RUnlock()
+				// API Token 鉴权：只计算请求明文的摘要，并查询摘要索引。
+				apiToken, ok := singleton.FindAPIToken(token)
 				if ok {
 					isLogin = true
 					apiUser := model.User{

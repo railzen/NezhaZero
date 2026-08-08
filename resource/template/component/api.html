@@ -16,4 +16,19 @@
         </button>
     </div>
 </div>
+<div class="ui tiny issued-api-token modal transition hidden">
+    <div class="header">{{tr "APITokenCreated"}}</div>
+    <div class="content">
+        <div class="ui warning message">{{tr "APITokenOnlyShownOnce"}}</div>
+        <div class="ui fluid action input">
+            <input type="text" name="IssuedToken" readonly autocomplete="off" spellcheck="false">
+            <button type="button" class="ui icon button" onclick="copyIssuedApiToken(this)" data-tooltip="{{tr "ClickToCopy"}}">
+                <i class="copy outline icon"></i>
+            </button>
+        </div>
+    </div>
+    <div class="actions">
+        <button class="ui positive nezha-primary-btn button">{{tr "Confirm"}}</button>
+    </div>
+</div>
 {{end}}

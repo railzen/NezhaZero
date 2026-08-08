@@ -1,3 +1,9 @@
+[APITokenCreated]
+other = "Token de API creado"
+
+[APITokenOnlyShownOnce]
+other = "Copie y guarde este Token de forma segura; no podrá volver a verlo después de cerrar esta ventana."
+
 [NezhaMonitoring]
 other = "Nezha Monitoring"
 

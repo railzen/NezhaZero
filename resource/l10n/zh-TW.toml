@@ -1,3 +1,9 @@
+[APITokenCreated]
+other = "API Token 已建立"
+
+[APITokenOnlyShownOnce]
+other = "請複製並妥善保存此 Token，關閉視窗後將無法再次查看。"
+
 [NezhaMonitoring]
 other = "哪吒監控"
 

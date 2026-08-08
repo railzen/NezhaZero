@@ -86,7 +86,7 @@ function postJson(url, data) {
     });
 }
 
-function showFormModal(modelSelector, formID, URL, getData) {
+function showFormModal(modelSelector, formID, URL, getData, onSuccess) {
   const $modal = $(modelSelector);
 
   // 初始化 modal 一次
@@ -218,7 +218,11 @@ function showFormModal(modelSelector, formID, URL, getData) {
         $.post(URL, JSON.stringify(data))
           .done(function (resp) {
             if (resp.code == 200) {
-              window.location.reload()
+              if (onSuccess) {
+                onSuccess(resp);
+              } else {
+                window.location.reload()
+              }
             } else {
               form.append(
                 `<div class="ui negative message"><div class="header">操作失败</div><p>` +
@@ -588,7 +592,39 @@ function issueNewApiToken(apiToken) {
       apiToken ? LANG.Edit + '<i class="edit icon"></i>' : LANG.Add + '<i class="add icon"></i>'
     );
   modal.find("textarea[name=Note]").val(apiToken ? apiToken.Note : null);
-  showFormModal(".api.modal", "#apiForm", "/api/token");
+  showFormModal(".api.modal", "#apiForm", "/api/token", null, showIssuedApiToken);
+}
+
+function showIssuedApiToken(resp) {
+  const token = resp && resp.result ? resp.result.token : "";
+  if (!token) {
+    window.location.reload();
+    return;
+  }
+  $(".api.modal").modal("hide");
+  const modal = $(".issued-api-token.modal");
+  modal.find("input[name=IssuedToken]").val(token);
+  setTimeout(function () {
+    modal.modal({
+      closable: false,
+      onHidden: function () {
+        modal.find("input[name=IssuedToken]").val("");
+        window.location.reload();
+      },
+    }).modal("show");
+  }, 350);
+}
+
+function copyIssuedApiToken(button) {
+  const input = $(button).siblings("input[name=IssuedToken]")[0];
+  if (!input) return;
+  input.select();
+  input.setSelectionRange(0, input.value.length);
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(input.value);
+  } else {
+    document.execCommand("copy");
+  }
 }
 
 function addOrEditServer(server, conf) {

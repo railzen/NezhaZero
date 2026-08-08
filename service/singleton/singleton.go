@@ -78,6 +78,9 @@ func InitDBFromPath(path string) {
 	if err != nil {
 		panic(err)
 	}
+	if err = migrateAPITokens(DB); err != nil {
+		panic(err)
+	}
 	if err = dropLegacyMonitorHistoryIndex(DB); err != nil {
 		panic(err)
 	}
