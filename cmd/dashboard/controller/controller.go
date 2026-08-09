@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/hashicorp/go-uuid"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 
@@ -30,6 +31,49 @@ import (
 var updateNoRoute func()
 
 const requestBodyLimit int64 = 8 << 20
+
+const (
+	webSocketGlobalLimit        = 256
+	webSocketPublicLimit        = 224
+	webSocketAdminLimit         = 32
+	publicWebSocketWriteTimeout = 90 * time.Second
+)
+
+var (
+	webSocketGlobalSlots = make(chan struct{}, webSocketGlobalLimit)
+	webSocketPublicSlots = make(chan struct{}, webSocketPublicLimit)
+	webSocketAdminSlots  = make(chan struct{}, webSocketAdminLimit)
+)
+
+// limitAllWebSocketConnections is the final process-wide backstop. Route
+// handlers also acquire a public or admin slot so public viewers cannot consume
+// the capacity reserved for administrative sessions.
+func limitAllWebSocketConnections(c *gin.Context) {
+	if !websocket.IsWebSocketUpgrade(c.Request) {
+		c.Next()
+		return
+	}
+
+	release, ok := acquireWebSocketSlot(c, webSocketGlobalSlots, "websocket")
+	if !ok {
+		return
+	}
+	defer release()
+	c.Next()
+}
+
+func acquireWebSocketSlot(c *gin.Context, slots chan struct{}, class string) (func(), bool) {
+	select {
+	case slots <- struct{}{}:
+		return func() { <-slots }, true
+	default:
+		c.Header("Retry-After", "10")
+		c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+			"error": "too many " + class + " connections",
+		})
+		return nil, false
+	}
+}
 
 // protectRequestBody 限制普通 HTTP 请求体，避免全局 ReadTimeout 中断 WebSocket 或 gRPC 长连接。
 func protectRequestBody(next http.Handler) http.Handler {
@@ -87,6 +131,7 @@ func ServeWeb(port uint) *http.Server {
 		log.Printf("NEZHA>> SetTrustedProxies error: %v", err)
 	}
 
+	r.Use(limitAllWebSocketConnections)
 	r.Use(natGateway)
 	tmpl := template.New("").Funcs(funcMap)
 	var err error
@@ -412,6 +457,13 @@ func natGateway(c *gin.Context) {
 	natConfig := singleton.GetNATConfigByDomain(c.Request.Host)
 	if natConfig == nil {
 		return
+	}
+	if websocket.IsWebSocketUpgrade(c.Request) {
+		release, ok := acquireWebSocketSlot(c, webSocketPublicSlots, "public websocket")
+		if !ok {
+			return
+		}
+		defer release()
 	}
 
 	singleton.ServerLock.RLock()

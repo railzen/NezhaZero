@@ -12,7 +12,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/pkg/utils"
-	"github.com/railzen/nezha-zero/pkg/websocketx"
 	"github.com/railzen/nezha-zero/service/singleton"
 )
 
@@ -136,6 +135,12 @@ func (cv *compatV1) serverStream(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
+	release, ok := acquireWebSocketSlot(c, webSocketPublicSlots, "public websocket")
+	if !ok {
+		return
+	}
+	defer release()
+
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, V1Response[any]{
@@ -153,13 +158,13 @@ func (cv *compatV1) serverStream(c *gin.Context) {
 		if err != nil {
 			continue
 		}
-		_ = conn.SetWriteDeadline(time.Now().Add(websocketx.WriteTimeout))
+		_ = conn.SetWriteDeadline(time.Now().Add(publicWebSocketWriteTimeout))
 		if err := conn.WriteMessage(websocket.TextMessage, stat); err != nil {
 			break
 		}
 		count += 1
 		if count%4 == 0 {
-			_ = conn.SetWriteDeadline(time.Now().Add(websocketx.WriteTimeout))
+			_ = conn.SetWriteDeadline(time.Now().Add(publicWebSocketWriteTimeout))
 			err = conn.WriteMessage(websocket.PingMessage, []byte{})
 			if err != nil {
 				break

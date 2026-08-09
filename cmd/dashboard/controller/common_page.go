@@ -413,6 +413,12 @@ type Data struct {
 }
 
 func (cp *commonPage) ws(c *gin.Context) {
+	release, ok := acquireWebSocketSlot(c, webSocketPublicSlots, "public websocket")
+	if !ok {
+		return
+	}
+	defer release()
+
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		mygin.ShowErrorPage(c, mygin.ErrInfo{
@@ -435,13 +441,13 @@ func (cp *commonPage) ws(c *gin.Context) {
 		if err != nil {
 			continue
 		}
-		_ = conn.SetWriteDeadline(time.Now().Add(websocketx.WriteTimeout))
+		_ = conn.SetWriteDeadline(time.Now().Add(publicWebSocketWriteTimeout))
 		if err := conn.WriteMessage(websocket.TextMessage, stat); err != nil {
 			break
 		}
 		count += 1
 		if count%4 == 0 {
-			_ = conn.SetWriteDeadline(time.Now().Add(websocketx.WriteTimeout))
+			_ = conn.SetWriteDeadline(time.Now().Add(publicWebSocketWriteTimeout))
 			err = conn.WriteMessage(websocket.PingMessage, []byte{})
 			if err != nil {
 				break
@@ -476,6 +482,12 @@ func (cp *commonPage) terminal(c *gin.Context) {
 		}, true)
 		return
 	}
+	release, ok := acquireWebSocketSlot(c, webSocketAdminSlots, "admin websocket")
+	if !ok {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
+		return
+	}
+	defer release()
 	defer rpc.NezhaHandlerSingleton.CloseStream(streamId)
 
 	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -636,6 +648,12 @@ func (cp *commonPage) fm(c *gin.Context) {
 		}, true)
 		return
 	}
+	release, ok := acquireWebSocketSlot(c, webSocketAdminSlots, "admin websocket")
+	if !ok {
+		rpc.NezhaHandlerSingleton.CloseStream(streamId)
+		return
+	}
+	defer release()
 	defer rpc.NezhaHandlerSingleton.CloseStream(streamId)
 
 	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
