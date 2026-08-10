@@ -1,5 +1,12 @@
-#Get server and key
-param($server, $key, $tls)
+#Get server and key; remaining args (e.g. --tls --disable-command-execute) are forwarded
+param(
+    [Parameter(Mandatory = $true, Position = 0)]
+    $server,
+    [Parameter(Mandatory = $true, Position = 1)]
+    $key,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    $extra
+)
 # Download latest release from github
 if($PSVersionTable.PSVersion.Major -lt 5){
     Write-Host "Require PS >= 5,your PSVersion:"$PSVersionTable.PSVersion.Major -BackgroundColor DarkGreen -ForegroundColor White
@@ -80,6 +87,6 @@ Move-Item -Path "C:\temp\nezha-agent.exe" -Destination "C:\nezha\nezha-agent.exe
 Remove-Item "C:\nezha.zip"
 Remove-Item "C:\temp" -Recurse
 #安装部分
-C:\nezha\nezha-agent.exe service install -s $server -p $key $tls
+C:\nezha\nezha-agent.exe service install -s $server -p $key @extra
 #enjoy
 Write-Host "Enjoy It!" -BackgroundColor DarkGreen -ForegroundColor Red

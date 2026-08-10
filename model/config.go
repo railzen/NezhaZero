@@ -117,6 +117,7 @@ type Config struct {
 
 	EnablePlainIPInNotification     bool // 通知信息IP不打码
 	DisableSwitchTemplateInFrontend bool // 前台禁用切换模板功能
+	DisableCommandExecuteInInstall  bool // 界面安装脚本默认附带 --disable-command-execute
 	CompatAPIDisable                bool // 兼容API开关
 	UseTemplateHandleNoRoute        bool // 用模板处理无路由情况
 

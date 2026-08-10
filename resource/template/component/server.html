@@ -55,7 +55,7 @@
                     {{if .Conf.GRPCHost}}
                     curl -L https://raw.githubusercontent.com/railzen/nezha-zero/main/script/naza.sh -o naza.sh && chmod +x naza.sh && ./naza.sh install_agent <code class="command">{{.Conf.GRPCHost}}</code> <code
                         class="command">{{if .Conf.ProxyGRPCPort}}{{.Conf.ProxyGRPCPort}}{{else}}{{.Conf.GRPCPort}}{{end}}</code> <code
-                        class="command hostSecret"></code> <code class="command">{{if .Conf.TLS}}--tls{{end}}</code>
+                        class="command hostSecret"></code>{{if .Conf.TLS}} <code class="command">--tls</code>{{end}}{{if .Conf.DisableCommandExecuteInInstall}} <code class="command">--disable-command-execute</code>{{end}}
                     {{else}}
                     {{tr "NoDomainAlert"}}
                     {{end}}

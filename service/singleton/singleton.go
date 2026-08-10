@@ -179,7 +179,10 @@ func CleanMonitorHistory() {
 	specialServerKeep := make(map[uint64]time.Time)
 	var specialServerIDs []uint64
 	var alerts []model.AlertRule
-	DB.Find(&alerts)
+	if err := DB.Find(&alerts).Error; err != nil {
+		log.Printf("NEZHA>> Failed to load alert rules while cleaning transfer history: %v", err)
+		return
+	}
 	for _, alert := range alerts {
 		for _, rule := range alert.Rules {
 			// 是不是流量记录规则
@@ -204,11 +207,17 @@ func CleanMonitorHistory() {
 			}
 		}
 	}
+	// 无 CoverAll 周期规则时无全局保留期，避免 transfers 表无界增长
+	if allServerKeep.IsZero() {
+		allServerKeep = time.Now().AddDate(-1, 0, 0).UTC()
+	}
 	for id, couldRemove := range specialServerKeep {
 		DB.Unscoped().Delete(&model.Transfer{}, "server_id = ? AND datetime(`created_at`) < datetime(?)", id, couldRemove)
 	}
-	if allServerKeep.IsZero() {
-		DB.Unscoped().Delete(&model.Transfer{}, "server_id NOT IN (?)", specialServerIDs)
+	// specialServerIDs 为空时，NOT IN (?) 会被 GORM 展开为 NOT IN (NULL) 导致匹配 0 行，
+	// 清理静默失效；此时省略 NOT IN 子句，按全局保留期清理所有服务器。
+	if len(specialServerIDs) == 0 {
+		DB.Unscoped().Delete(&model.Transfer{}, "datetime(`created_at`) < datetime(?)", allServerKeep)
 	} else {
 		DB.Unscoped().Delete(&model.Transfer{}, "server_id NOT IN (?) AND datetime(`created_at`) < datetime(?)", specialServerIDs, allServerKeep)
 	}
