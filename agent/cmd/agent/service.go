@@ -82,6 +82,8 @@ func serviceActions(cmd *cobra.Command, args []string) {
 		{agentCliParam.SkipConnectionCount, "--skip-conn", ""},
 		{agentCliParam.SkipProcsCount, "--skip-procs", ""},
 		{agentCliParam.DisableCommandExecute, "--disable-command-execute", ""},
+		{agentCliParam.DisableNat, "--disable-nat", ""},
+		{agentCliParam.DisableSendQuery, "--disable-send-query", ""},
 		{agentCliParam.DisableAutoUpdate, "--disable-auto-update", ""},
 		{agentCliParam.DisableForceUpdate, "--disable-force-update", ""},
 		{agentCliParam.UseIPv6CountryCode, "--use-ipv6-countrycode", ""},
