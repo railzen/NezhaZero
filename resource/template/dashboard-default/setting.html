@@ -322,6 +322,22 @@
         <div class="ui nezha-primary-btn button" id="twoFactorDisableConfirmBtn">{{tr "TwoFactorConfirmDisable"}}</div>
     </div>
 </div>
+<div class="ui small modal" id="twoFactorPasswordModal">
+    <div class="header">{{tr "AdminPassword"}}</div>
+    <div class="content">
+        <p>{{tr "TwoFactorPasswordChangePrompt"}}</p>
+        <div class="ui form" style="margin-top: 1em;">
+            <div class="field">
+                <label>{{tr "TwoFactorCode"}}</label>
+                <input type="text" id="twoFactorPasswordCode" placeholder="{{tr "TwoFactorCodePlaceholder"}}" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6">
+            </div>
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui cancel button">{{tr "Cancel"}}</div>
+        <div class="ui nezha-primary-btn button" id="twoFactorPasswordConfirmBtn">{{tr "Save"}}</div>
+    </div>
+</div>
 {{template "common/footer" .}}
 <script>
     function adminPasswordCharTypes(pwd) {
@@ -334,6 +350,7 @@
     }
 
     const hasAdminPassword = {{if .Conf.Site.AdminPassword}}true{{else}}false{{end}};
+    const twoFactorEnabled = {{if .Conf.Site.TwoFactorSecret}}true{{else}}false{{end}};
 
     function isAdminPasswordUnchanged(pwd) {
         return pwd === '********' || (hasAdminPassword && !pwd);
@@ -405,28 +422,12 @@
         }
     });
 
-    $('#settingForm').submit(function () {
-        syncCompatAPIDisableField();
-        const $passwordInput = $('#adminPasswordInput');
-        const password = $passwordInput.val();
-        const confirmPassword = $('#adminPasswordConfirmInput').val();
-        const passwordLoginDisabled = $('.checkbox.disable-password-login').checkbox('is checked');
-        if (passwordLoginDisabled) {
-            $passwordInput.val('');
-        } else {
-            if (!renderAdminPasswordValidation(password, confirmPassword)) {
-                if (!validateAdminPassword(password).ok) {
-                    $('#adminPasswordInput').focus();
-                } else {
-                    $('#adminPasswordConfirmInput').focus();
-                }
-                return false;
-            }
-            if (hasAdminPassword && !password) {
-                $passwordInput.val('********');
-            }
+    function submitSettings(twoFactorCode) {
+        const data = $('#settingForm').serializeArray();
+        if (twoFactorCode) {
+            data.push({ name: 'TwoFactorCode', value: twoFactorCode });
         }
-        $.post('/api/setting', $('#settingForm').serialize())
+        $.post('/api/setting', $.param(data))
             .then((resp) => {
                 if (resp.code == 200) {
                     $.suiAlert({
@@ -456,9 +457,39 @@
                     time: '3',
                     position: 'top-center',
                 });
-            })
+            });
+    }
+
+    $('#settingForm').submit(function () {
+        syncCompatAPIDisableField();
+        const $passwordInput = $('#adminPasswordInput');
+        const password = $passwordInput.val();
+        const confirmPassword = $('#adminPasswordConfirmInput').val();
+        const passwordLoginDisabled = $('.checkbox.disable-password-login').checkbox('is checked');
+        const passwordWillChange = passwordLoginDisabled ? hasAdminPassword : !isAdminPasswordUnchanged(password);
+        if (passwordLoginDisabled) {
+            $passwordInput.val('');
+        } else {
+            if (!renderAdminPasswordValidation(password, confirmPassword)) {
+                if (!validateAdminPassword(password).ok) {
+                    $('#adminPasswordInput').focus();
+                } else {
+                    $('#adminPasswordConfirmInput').focus();
+                }
+                return false;
+            }
+            if (hasAdminPassword && !password) {
+                $passwordInput.val('********');
+            }
+        }
+        if (twoFactorEnabled && passwordWillChange) {
+            $('#twoFactorPasswordCode').val('');
+            twoFactorPasswordModal.modal('show');
+            return false;
+        }
+        submitSettings('');
         return false;
-    })
+    });
     $('.checkbox').checkbox()
     function syncCompatAPIDisableField() {
         const enabled = $('.checkbox.enable-compat-api').checkbox('is checked');
@@ -503,8 +534,39 @@
         }
     });
 
-    $('#twoFactorModalCode, #twoFactorDisableCode').on('input', function () {
+    const twoFactorPasswordModal = $('#twoFactorPasswordModal');
+    twoFactorPasswordModal.modal({
+        closable: true,
+        onHidden: function () {
+            $('#twoFactorPasswordCode').val('');
+        }
+    });
+
+    $('#twoFactorModalCode, #twoFactorDisableCode, #twoFactorPasswordCode').on('input', function () {
         this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+    });
+
+    function confirmPasswordChange() {
+        const code = $('#twoFactorPasswordCode').val().trim();
+        if (code.length !== 6) {
+            $.suiAlert({
+                title: '',
+                description: '{{tr "TwoFactorCodePlaceholder"}}',
+                type: 'error',
+                time: '3',
+                position: 'top-center',
+            });
+            return;
+        }
+        submitSettings(code);
+    }
+
+    $('#twoFactorPasswordConfirmBtn').on('click', confirmPasswordChange);
+    $('#twoFactorPasswordCode').on('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmPasswordChange();
+        }
     });
 
     function totpRequest(data) {

@@ -1234,6 +1234,7 @@ type settingForm struct {
 	GRPCDiscoverKey                 string
 	Cover                           uint8
 	Password                        string
+	TwoFactorCode                   string
 	UseExternalGeoIP                string
 	EnableIPChangeNotification      string
 	EnablePlainIPInNotification     string
@@ -1248,6 +1249,19 @@ const (
 	twoFactorSetupCachePrefix = "totp_setup_"
 	twoFactorSetupTTL         = 10 * time.Minute
 )
+
+func validatePasswordChangeTwoFactor(passwordChanged bool, secret, code string) string {
+	if !passwordChanged || secret == "" {
+		return ""
+	}
+	if strings.TrimSpace(code) == "" {
+		return "请输入当前双重验证码"
+	}
+	if !totp.Validate(secret, code, 1) {
+		return "双重验证码错误，请重试"
+	}
+	return ""
+}
 
 func (ma *memberAPI) updateSetting(c *gin.Context) {
 	var sf settingForm
@@ -1329,6 +1343,24 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 			adminPassword = string(hash)
 		}
 	}
+	passwordChanged := singleton.Conf.Site.AdminPassword != adminPassword
+	if passwordChanged && singleton.Conf.TwoFactorActive() {
+		if !allowAuthRateLimitedCheck(c) {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusTooManyRequests,
+				Message: "请求过于频繁，请稍后再试",
+			})
+			return
+		}
+		if message := validatePasswordChangeTwoFactor(passwordChanged, singleton.Conf.Site.TwoFactorSecret, sf.TwoFactorCode); message != "" {
+			audit.Record(c, audit.TypeSecurity, "Admin password change failed", "invalid two-factor code")
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusBadRequest,
+				Message: message,
+			})
+			return
+		}
+	}
 
 	// ===== 校验登录方式 =====
 	// 管理员用户名列表是密码登录与 OAuth 登录共用的白名单，任何模式下都必填
@@ -1385,8 +1417,6 @@ func (ma *memberAPI) updateSetting(c *gin.Context) {
 		singleton.Conf.IPChangeNotificationTag = "default"
 	}
 
-	oldAdminPassword := singleton.Conf.Site.AdminPassword
-	passwordChanged := oldAdminPassword != adminPassword
 	if passwordChanged {
 		singleton.Conf.Site.AdminPassword = adminPassword
 	}

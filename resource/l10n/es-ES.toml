@@ -1021,6 +1021,9 @@ other = "Confirmar desactivación"
 [ConfirmDisableTwoFactor]
 other = "¿Desactivar la autenticación en dos pasos y eliminar el secreto vinculado?"
 
+[TwoFactorPasswordChangePrompt]
+other = "Cambiar la contraseña de administrador requiere autenticación en dos pasos. Introduzca el código actual."
+
 [TwoFactorV1LoginHint]
 other = "Por seguridad, activar la autenticación en dos pasos desactiva el inicio de sesión de la API compatible"
 

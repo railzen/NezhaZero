@@ -1030,6 +1030,9 @@ other = "确认关闭"
 [ConfirmDisableTwoFactor]
 other = "确认关闭双重验证并清除已绑定的密钥？"
 
+[TwoFactorPasswordChangePrompt]
+other = "修改管理员密码需要双重验证，请输入当前动态验证码。"
+
 [TwoFactorV1LoginHint]
 other = "出于安全考虑，启用二次验证后将禁用兼容 API 登录"
 

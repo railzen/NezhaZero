@@ -1030,6 +1030,9 @@ other = "Confirm disable"
 [ConfirmDisableTwoFactor]
 other = "Disable two-factor authentication and remove the bound secret?"
 
+[TwoFactorPasswordChangePrompt]
+other = "Changing the administrator password requires two-factor authentication. Enter your current authentication code."
+
 [TwoFactorV1LoginHint]
 other = "For security reasons, enabling two-factor authentication disables Compatible API login"
 
