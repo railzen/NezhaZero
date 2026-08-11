@@ -94,7 +94,7 @@ install_agent() {
 
     # Nezha Agent Folder
     mkdir -p $NZ_AGENT_PATH
-    chmod -R 777 $NZ_AGENT_PATH
+    chmod -R 755 $NZ_AGENT_PATH
 
     echo -e "Downloading Agent"
     NZ_AGENT_URL="https://${GITHUB_URL}/nezhahq/agent/releases/download/${version}/nezha-agent_darwin_${os_arch}.zip"

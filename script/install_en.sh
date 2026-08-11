@@ -449,7 +449,11 @@ discover_agent() {
 
     if ! eval "$_cmd"; then
         sudo "${NZ_AGENT_PATH}"/nezha-agent service uninstall >/dev/null 2>&1
-        sudo "${NZ_AGENT_PATH}"/nezha-agent service install -s "$nz_grpc_host:$nz_grpc_port" --auto-discover "$nz_discover_secret" "$args" >/dev/null 2>&1    
+
+        if ! eval "$_cmd"; then
+            err "Agent discovery failed: service could not be reinstalled"
+            return 1
+        fi
     fi
 
     if [ $? -eq 0 ]; then
@@ -497,7 +501,11 @@ modify_agent_config() {
 
     if ! eval "$_cmd"; then
         sudo "${NZ_AGENT_PATH}"/nezha-agent service uninstall >/dev/null 2>&1
-        sudo "${NZ_AGENT_PATH}"/nezha-agent service install -s "$nz_grpc_host:$nz_grpc_port" -p "$nz_client_secret" "$args" >/dev/null 2>&1
+
+        if ! eval "$_cmd"; then
+            err "Failed to modify Agent configuration: service could not be reinstalled"
+            return 1
+        fi
     fi
     
     success "Agent configuration modified successfully, please wait for Agent self-restart to take effect"

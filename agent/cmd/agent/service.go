@@ -21,7 +21,7 @@ type program struct {
 
 var serviceCmd = &cobra.Command{
 	Use:    "service <install/uninstall/start/stop/restart>",
-	Short:  "服务与自启动设置",
+	Short:  "服务管理（service install：安装并启动；service uninstall：停止并卸载）",
 	Args:   cobra.ExactArgs(1),
 	Run:    serviceActions,
 	PreRun: servicePreRun,
