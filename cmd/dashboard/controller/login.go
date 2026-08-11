@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/sdk/gitea"
 	"github.com/gin-gonic/gin"
 	GitHubAPI "github.com/google/go-github/v75/github"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/patrickmn/go-cache"
 	"github.com/railzen/nezha-zero/model"
 	"github.com/railzen/nezha-zero/pkg/audit"
@@ -832,7 +833,9 @@ func (oa *oauth2controller) beginTwoFactor(c *gin.Context, user model.User, meth
 // 自定义主题不一定支持该状态，因此这里固定复用内置登录模板。
 func (oa *oauth2controller) renderTwoFactor(c *gin.Context, status int, ticket, errorMessage string) {
 	c.HTML(status, "dashboard-default/login", mygin.CommonEnvironment(c, gin.H{
-		"Title":             "二次验证",
+		"Title": singleton.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "TwoFactorLoginTitle",
+		}),
 		"SecondFactorMode":  true,
 		"SecondFactorError": errorMessage,
 		"Ticket":            ticket,
