@@ -224,8 +224,10 @@ func main() {
 
 		println("Restarting...")
 		if err := restartSelfForDiscover(secret); err != nil {
-			// 这行代码永远不会执行，因为当前进程已被替换
-			panic("Restart failed: " + err.Error())
+			// 打印新密钥后以退出码 0 退出: syscall.Exec 仅 Unix 可用,Windows 服务恢复策略只对失败退出生效,不会触发反复重启
+			fmt.Fprintf(os.Stdout, "\033[33m[Warn] New client secret: %s\033[0m\n", secret)
+			fmt.Fprintln(os.Stdout, "\033[33m[Warn] Please configure the agent with: -p <secret> (remove --auto-discover)\033[0m")
+			os.Exit(0)
 		}
 	}
 
