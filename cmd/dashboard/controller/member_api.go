@@ -1679,6 +1679,14 @@ func (ma *memberAPI) totp(c *gin.Context) {
 			})
 			return
 		}
+		// 限速防止持有被盗会话暴力猜 6 位码关闭 2FA；被限速的请求不写审计。
+		if !allowAuthRateLimitedCheck(c) {
+			c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusTooManyRequests,
+				Message: "请求过于频繁，请稍后再试",
+			})
+			return
+		}
 		if !totp.Validate(singleton.Conf.Site.TwoFactorSecret, req.Code, 1) {
 			audit.Record(c, audit.TypeSecurity, "Two-factor disable failed", "invalid two-factor code on unbind")
 			c.JSON(http.StatusOK, model.Response{
