@@ -107,13 +107,13 @@
     <iframe id="file-list-iframe" name="file-list-iframe" src=""></iframe>
     <button id="folder-button">📁</button>
     <div id="terminal-keys">
-        <button type="button" id="key-ctrl" aria-pressed="false">Ctrl</button>
+        <button type="button" id="key-ctrl">Ctrl</button>
         <button type="button" data-key="escape">Esc</button>
         <button type="button" data-key="tab">Tab</button>
-        <button type="button" data-key="arrowLeft" aria-label="Left arrow">←</button>
-        <button type="button" data-key="arrowUp" aria-label="Up arrow">↑</button>
-        <button type="button" data-key="arrowDown" aria-label="Down arrow">↓</button>
-        <button type="button" data-key="arrowRight" aria-label="Right arrow">→</button>
+        <button type="button" data-key="arrowLeft">←</button>
+        <button type="button" data-key="arrowUp">↑</button>
+        <button type="button" data-key="arrowDown">↓</button>
+        <button type="button" data-key="arrowRight">→</button>
         <button type="button" data-key="home">Home</button>
         <button type="button" data-key="end">End</button>
     </div>
@@ -177,27 +177,14 @@
             home: '\x1b[1;5H',
             end: '\x1b[1;5F',
         };
-        const CTRL_PUNCTUATION = {
-            ' ': 0, '@': 0, '[': 27, '\\': 28, ']': 29, '^': 30, '_': 31, '?': 127,
-            '2': 0, '3': 27, '4': 28, '5': 29, '6': 30, '7': 31, '8': 127,
-        };
 
         let controlActive = false;
         let lastKeyWasIME = false;
-
-        function controlSequenceForInput(data) {
-            if (data.length !== 1) return null;
-            const code = data.toUpperCase().charCodeAt(0);
-            if (code >= 65 && code <= 90) return String.fromCharCode(code - 64);
-            const mapped = CTRL_PUNCTUATION[data];
-            return mapped === undefined ? null : String.fromCharCode(mapped);
-        }
 
         function setControlActive(active) {
             controlActive = active;
             const btn = document.getElementById('key-ctrl');
             btn.classList.toggle('active', active);
-            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
         }
 
         const term = new Terminal({
@@ -215,12 +202,12 @@
 
         term.attachCustomKeyEventHandler(function (ev) {
             if (ev.type !== 'keydown') return true;
-            lastKeyWasIME = ev.keyCode === 229 || ev.key === 'Unidentified' || ev.key === 'Process';
+            lastKeyWasIME = ev.keyCode === 229;
             if (lastKeyWasIME) return false;
             if (controlActive && ev.key && ev.key.length === 1) {
-                const seq = controlSequenceForInput(ev.key);
-                if (seq) {
-                    if (socket.readyState === WebSocket.OPEN) socket.send(seq);
+                const code = ev.key.toUpperCase().charCodeAt(0);
+                if (code >= 65 && code <= 90) {
+                    socket.send(String.fromCharCode(code - 64));
                     setControlActive(false);
                     return false;
                 }
@@ -231,13 +218,9 @@
         const terminalContainer = document.getElementById('terminal-container');
         term.open(terminalContainer);
 
-        // xterm 5.5 drops composed `input` after keyCode 229 because it sets
-        // _keyDownSeen before emitting data. Capture here and send it ourselves.
         terminalContainer.addEventListener('input', function (ev) {
             if (!lastKeyWasIME || ev.target !== term.textarea || !ev.data) return;
-            const type = ev.inputType || '';
-            if (type !== 'insertText' && type !== 'insertCompositionText' && type !== 'insertReplacementText') return;
-            if (socket.readyState === WebSocket.OPEN) socket.send(ev.data);
+            socket.send(ev.data);
             term.textarea.value = '';
             ev.stopImmediatePropagation();
         }, true);
