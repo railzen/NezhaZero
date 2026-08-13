@@ -239,6 +239,16 @@
         }
 
         const keyBar = document.getElementById('terminal-keys');
+        function pinKeyBar() {
+            const vv = window.visualViewport;
+            if (!vv) return;
+            keyBar.style.bottom = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) + 'px';
+        }
+        pinKeyBar();
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', pinKeyBar);
+            window.visualViewport.addEventListener('scroll', pinKeyBar);
+        }
         keyBar.addEventListener('mousedown', function (ev) { ev.preventDefault(); });
 
         document.getElementById('key-ctrl').addEventListener('click', function () {
