@@ -5,23 +5,46 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <title>tty@{{.ServerName}} - {{.Title}}</title>
     <link rel="shortcut icon" type="image/png" href="/static/logo.svg?v20210804" />
     <link type="text/css" rel="stylesheet" href="/static/cdn/xterm@5.5.0/css/xterm.css" />
 </head>
 <style>
     html,
-    body,
-    #terminal-container {
+    body {
         padding: unset;
         margin: unset;
-        width: 100vw;
-        height: 100vh;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
     }
 
     body {
         background-color: black;
+        overflow: hidden;
+    }
+
+    #terminal-shell {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background-color: black;
+    }
+
+    #terminal-container {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        position: relative;
+    }
+
+    #terminal-container .xterm {
+        height: 100%;
     }
 
     #file-list-iframe {
@@ -38,8 +61,8 @@
 
     #folder-button {
         position: absolute;
-        bottom: 20px;
-        right: 20px;
+        bottom: 12px;
+        right: 12px;
         width: 50px;
         height: 50px;
         background-color: #007bff;
@@ -53,24 +76,88 @@
         cursor: pointer;
         z-index: 20;
     }
+
+    #terminal-keys {
+        display: none;
+        flex-shrink: 0;
+        flex-wrap: nowrap;
+        gap: 6px;
+        padding: 8px;
+        box-sizing: border-box;
+        background: #111;
+        z-index: 30;
+    }
+
+    @media (max-width: 768px), (hover: none) and (pointer: coarse) {
+        #terminal-keys {
+            display: flex;
+        }
+    }
+
+    #terminal-keys button {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 36px;
+        padding: 0 2px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background: #f3f3f3;
+        color: #111;
+        font-size: 13px;
+        line-height: 1;
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+    }
+
+    #terminal-keys button.active {
+        background: #2563eb;
+        border-color: #1d4ed8;
+        color: #fff;
+    }
 </style>
 
-<body onresize="onResize()">
-    <div id="terminal-container"></div>
-    <iframe id="file-list-iframe" name="file-list-iframe" src=""></iframe>
-    <button id="folder-button">📁</button>
+<body>
+    <div id="terminal-shell">
+    <div id="terminal-container">
+        <iframe id="file-list-iframe" name="file-list-iframe" src=""></iframe>
+        <button id="folder-button" type="button">📁</button>
+    </div>
+    <div id="terminal-keys">
+        <button type="button" id="key-ctrl" aria-pressed="false">Ctrl</button>
+        <button type="button" data-key="escape">Esc</button>
+        <button type="button" data-key="tab">Tab</button>
+        <button type="button" data-key="arrowLeft" aria-label="Left arrow">←</button>
+        <button type="button" data-key="arrowUp" aria-label="Up arrow">↑</button>
+        <button type="button" data-key="arrowDown" aria-label="Down arrow">↓</button>
+        <button type="button" data-key="arrowRight" aria-label="Right arrow">→</button>
+        <button type="button" data-key="home">Home</button>
+        <button type="button" data-key="end">End</button>
+    </div>
+    </div>
 
     <script src="/static/cdn/xterm@5.5.0/lib/xterm.js"></script>
     <script src="/static/cdn/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
     <script src="/static/cdn/@xterm/addon-web-links@0.11.0/lib/addon-web-links.js"></script>
     <script src="/static/cdn/@xterm/addon-attach@0.11.0/lib/addon-attach.js"></script>
     <script>
-        let sendResizing = false;
+        let lastSize = '';
+        let fitFrame = 0;
 
         function doResize() {
-            fitAddon.fit()
-
+            if (typeof fitAddon === 'undefined' || !socket || socket.readyState !== WebSocket.OPEN) return;
+            try {
+                fitAddon.fit();
+            } catch (e) {
+                return;
+            }
             const w = fitAddon.proposeDimensions();
+            if (!w || w.rows < 2 || w.cols < 2) return;
+            const sizeKey = w.rows + 'x' + w.cols;
+            if (lastSize === sizeKey) return;
+            lastSize = sizeKey;
+
             const prefix = new Int8Array([1]);
             const resizeMessage = new TextEncoder().encode(JSON.stringify({
                 Rows: w.rows,
@@ -80,25 +167,82 @@
             var msg = new Int8Array(prefix.length + resizeMessage.length);
             msg.set(prefix);
             msg.set(resizeMessage, prefix.length);
-
-            socket.send(msg)
+            socket.send(msg);
         }
 
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
-        async function onResize() {
-            if (sendResizing) return;
-            sendResizing = true;
-            try {
-                await sleep(1500);
-                doResize();
-            } catch (error) {
-                console.log('resize', error);
-            } finally {
-                sendResizing = false
+        function updateViewport() {
+            const shell = document.getElementById('terminal-shell');
+            const vv = window.visualViewport;
+            if (vv) {
+                shell.style.top = vv.offsetTop + 'px';
+                shell.style.left = vv.offsetLeft + 'px';
+                shell.style.width = Math.floor(vv.width) + 'px';
+                shell.style.height = Math.max(180, Math.floor(vv.height)) + 'px';
+            } else {
+                shell.style.top = '0px';
+                shell.style.left = '0px';
+                shell.style.width = '100%';
+                shell.style.height = '100%';
             }
+            window.cancelAnimationFrame(fitFrame);
+            fitFrame = window.requestAnimationFrame(function () {
+                try {
+                    doResize();
+                } catch (error) {
+                    console.log('resize', error);
+                }
+            });
+        }
+
+        const KEY_SEQ = {
+            escape: '\x1b',
+            tab: '\t',
+            arrowUp: '\x1b[A',
+            arrowDown: '\x1b[B',
+            arrowRight: '\x1b[C',
+            arrowLeft: '\x1b[D',
+            home: '\x1b[H',
+            end: '\x1b[F',
+        };
+        const CTRL_KEY_SEQ = {
+            arrowUp: '\x1b[1;5A',
+            arrowDown: '\x1b[1;5B',
+            arrowRight: '\x1b[1;5C',
+            arrowLeft: '\x1b[1;5D',
+            home: '\x1b[1;5H',
+            end: '\x1b[1;5F',
+        };
+        const CTRL_PUNCTUATION = {
+            ' ': 0, '@': 0, '[': 27, '\\': 28, ']': 29, '^': 30, '_': 31, '?': 127,
+            '2': 0, '3': 27, '4': 28, '5': 29, '6': 30, '7': 31, '8': 127,
+        };
+
+        let controlActive = false;
+
+        function controlSequenceForInput(data) {
+            if (data.length !== 1) return null;
+            const code = data.toUpperCase().charCodeAt(0);
+            if (code >= 65 && code <= 90) return String.fromCharCode(code - 64);
+            const mapped = CTRL_PUNCTUATION[data];
+            return mapped === undefined ? null : String.fromCharCode(mapped);
+        }
+
+        function setControlActive(active) {
+            controlActive = active;
+            const btn = document.getElementById('key-ctrl');
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        }
+
+        function sendText(data, applyControl) {
+            if (socket.readyState !== WebSocket.OPEN) return;
+            let outgoing = data;
+            if (applyControl && controlActive) {
+                outgoing = controlSequenceForInput(data) ?? data;
+                setControlActive(false);
+            }
+            socket.send(outgoing);
+            term.focus();
         }
 
         const term = new Terminal({
@@ -108,17 +252,46 @@
         });
         const socket = new WebSocket((window.location.protocol == 'https:' ? 'wss' : 'ws') + '://' + window.location.host + '/terminal/' + '{{.SessionID}}');
 
-        const attachAddon = new AttachAddon.AttachAddon(socket);
+        const attachAddon = new AttachAddon.AttachAddon(socket, { bidirectional: false });
         term.loadAddon(attachAddon);
+        term.onData((data) => sendText(data, true));
 
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
 
         term.open(document.getElementById('terminal-container'));
+        updateViewport();
 
         socket.onopen = () => {
-            onResize()
+            lastSize = '';
+            updateViewport();
+            term.focus();
         }
+
+        window.addEventListener('resize', updateViewport);
+        window.addEventListener('orientationchange', updateViewport);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateViewport);
+            window.visualViewport.addEventListener('scroll', updateViewport);
+        }
+
+        const keyBar = document.getElementById('terminal-keys');
+        keyBar.addEventListener('mousedown', (ev) => ev.preventDefault());
+
+        document.getElementById('key-ctrl').addEventListener('click', () => {
+            setControlActive(!controlActive);
+            term.focus();
+        });
+
+        keyBar.addEventListener('click', (ev) => {
+            const btn = ev.target.closest('button[data-key]');
+            if (!btn || socket.readyState !== WebSocket.OPEN) return;
+            const key = btn.getAttribute('data-key');
+            const withControl = controlActive;
+            setControlActive(false);
+            socket.send((withControl && CTRL_KEY_SEQ[key]) || KEY_SEQ[key]);
+            term.focus();
+        });
 
         socket.onclose = () => {
             alert('{{tr "TerminalConnectionTimeOutOrSessionEnded"}}')
