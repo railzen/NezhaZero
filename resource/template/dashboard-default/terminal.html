@@ -5,46 +5,23 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>tty@{{.ServerName}} - {{.Title}}</title>
     <link rel="shortcut icon" type="image/png" href="/static/logo.svg?v20210804" />
     <link type="text/css" rel="stylesheet" href="/static/cdn/xterm@5.5.0/css/xterm.css" />
 </head>
 <style>
     html,
-    body {
+    body,
+    #terminal-container {
         padding: unset;
         margin: unset;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
     }
 
     body {
         background-color: black;
-        overflow: hidden;
-    }
-
-    #terminal-shell {
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        background-color: black;
-    }
-
-    #terminal-container {
-        flex: 1;
-        min-height: 0;
-        width: 100%;
-        position: relative;
-    }
-
-    #terminal-container .xterm {
-        height: 100%;
     }
 
     #file-list-iframe {
@@ -61,8 +38,8 @@
 
     #folder-button {
         position: absolute;
-        bottom: 12px;
-        right: 12px;
+        bottom: 20px;
+        right: 20px;
         width: 50px;
         height: 50px;
         background-color: #007bff;
@@ -79,7 +56,10 @@
 
     #terminal-keys {
         display: none;
-        flex-shrink: 0;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
         flex-wrap: nowrap;
         gap: 6px;
         padding: 8px;
@@ -91,6 +71,10 @@
     @media (max-width: 768px), (hover: none) and (pointer: coarse) {
         #terminal-keys {
             display: flex;
+        }
+
+        #folder-button {
+            bottom: 60px;
         }
     }
 
@@ -118,12 +102,10 @@
     }
 </style>
 
-<body>
-    <div id="terminal-shell">
-    <div id="terminal-container">
-        <iframe id="file-list-iframe" name="file-list-iframe" src=""></iframe>
-        <button id="folder-button" type="button">📁</button>
-    </div>
+<body onresize="onResize()">
+    <div id="terminal-container"></div>
+    <iframe id="file-list-iframe" name="file-list-iframe" src=""></iframe>
+    <button id="folder-button">📁</button>
     <div id="terminal-keys">
         <button type="button" id="key-ctrl" aria-pressed="false">Ctrl</button>
         <button type="button" data-key="escape">Esc</button>
@@ -135,29 +117,18 @@
         <button type="button" data-key="home">Home</button>
         <button type="button" data-key="end">End</button>
     </div>
-    </div>
 
     <script src="/static/cdn/xterm@5.5.0/lib/xterm.js"></script>
     <script src="/static/cdn/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
     <script src="/static/cdn/@xterm/addon-web-links@0.11.0/lib/addon-web-links.js"></script>
     <script src="/static/cdn/@xterm/addon-attach@0.11.0/lib/addon-attach.js"></script>
     <script>
-        let lastSize = '';
-        let fitFrame = 0;
+        let sendResizing = false;
 
         function doResize() {
-            if (typeof fitAddon === 'undefined' || !socket || socket.readyState !== WebSocket.OPEN) return;
-            try {
-                fitAddon.fit();
-            } catch (e) {
-                return;
-            }
-            const w = fitAddon.proposeDimensions();
-            if (!w || w.rows < 2 || w.cols < 2) return;
-            const sizeKey = w.rows + 'x' + w.cols;
-            if (lastSize === sizeKey) return;
-            lastSize = sizeKey;
+            fitAddon.fit()
 
+            const w = fitAddon.proposeDimensions();
             const prefix = new Int8Array([1]);
             const resizeMessage = new TextEncoder().encode(JSON.stringify({
                 Rows: w.rows,
@@ -167,31 +138,25 @@
             var msg = new Int8Array(prefix.length + resizeMessage.length);
             msg.set(prefix);
             msg.set(resizeMessage, prefix.length);
-            socket.send(msg);
+
+            socket.send(msg)
         }
 
-        function updateViewport() {
-            const shell = document.getElementById('terminal-shell');
-            const vv = window.visualViewport;
-            if (vv) {
-                shell.style.top = vv.offsetTop + 'px';
-                shell.style.left = vv.offsetLeft + 'px';
-                shell.style.width = Math.floor(vv.width) + 'px';
-                shell.style.height = Math.max(180, Math.floor(vv.height)) + 'px';
-            } else {
-                shell.style.top = '0px';
-                shell.style.left = '0px';
-                shell.style.width = '100%';
-                shell.style.height = '100%';
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function onResize() {
+            if (sendResizing) return;
+            sendResizing = true;
+            try {
+                await sleep(1500);
+                doResize();
+            } catch (error) {
+                console.log('resize', error);
+            } finally {
+                sendResizing = false
             }
-            window.cancelAnimationFrame(fitFrame);
-            fitFrame = window.requestAnimationFrame(function () {
-                try {
-                    doResize();
-                } catch (error) {
-                    console.log('resize', error);
-                }
-            });
         }
 
         const KEY_SEQ = {
@@ -218,6 +183,7 @@
         };
 
         let controlActive = false;
+        let lastKeyWasIME = false;
 
         function controlSequenceForInput(data) {
             if (data.length !== 1) return null;
@@ -234,17 +200,6 @@
             btn.setAttribute('aria-pressed', active ? 'true' : 'false');
         }
 
-        function sendText(data, applyControl) {
-            if (socket.readyState !== WebSocket.OPEN) return;
-            let outgoing = data;
-            if (applyControl && controlActive) {
-                outgoing = controlSequenceForInput(data) ?? data;
-                setControlActive(false);
-            }
-            socket.send(outgoing);
-            term.focus();
-        }
-
         const term = new Terminal({
             screenKeys: true,
             useStyle: true,
@@ -252,46 +207,44 @@
         });
         const socket = new WebSocket((window.location.protocol == 'https:' ? 'wss' : 'ws') + '://' + window.location.host + '/terminal/' + '{{.SessionID}}');
 
-        const attachAddon = new AttachAddon.AttachAddon(socket, { bidirectional: false });
+        const attachAddon = new AttachAddon.AttachAddon(socket);
         term.loadAddon(attachAddon);
-        term.onData((data) => sendText(data, true));
 
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
 
-        term.open(document.getElementById('terminal-container'));
-        updateViewport();
+        term.attachCustomKeyEventHandler(function (ev) {
+            if (ev.type !== 'keydown') return true;
+            lastKeyWasIME = ev.keyCode === 229 || ev.key === 'Unidentified' || ev.key === 'Process';
+            if (lastKeyWasIME) return false;
+            if (controlActive && ev.key && ev.key.length === 1) {
+                const seq = controlSequenceForInput(ev.key);
+                if (seq) {
+                    if (socket.readyState === WebSocket.OPEN) socket.send(seq);
+                    setControlActive(false);
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        const terminalContainer = document.getElementById('terminal-container');
+        term.open(terminalContainer);
+
+        // xterm 5.5 drops composed `input` after keyCode 229 because it sets
+        // _keyDownSeen before emitting data. Capture here and send it ourselves.
+        terminalContainer.addEventListener('input', function (ev) {
+            if (!lastKeyWasIME || ev.target !== term.textarea || !ev.data) return;
+            const type = ev.inputType || '';
+            if (type !== 'insertText' && type !== 'insertCompositionText' && type !== 'insertReplacementText') return;
+            if (socket.readyState === WebSocket.OPEN) socket.send(ev.data);
+            term.textarea.value = '';
+            ev.stopImmediatePropagation();
+        }, true);
 
         socket.onopen = () => {
-            lastSize = '';
-            updateViewport();
-            term.focus();
+            onResize()
         }
-
-        window.addEventListener('resize', updateViewport);
-        window.addEventListener('orientationchange', updateViewport);
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', updateViewport);
-            window.visualViewport.addEventListener('scroll', updateViewport);
-        }
-
-        const keyBar = document.getElementById('terminal-keys');
-        keyBar.addEventListener('mousedown', (ev) => ev.preventDefault());
-
-        document.getElementById('key-ctrl').addEventListener('click', () => {
-            setControlActive(!controlActive);
-            term.focus();
-        });
-
-        keyBar.addEventListener('click', (ev) => {
-            const btn = ev.target.closest('button[data-key]');
-            if (!btn || socket.readyState !== WebSocket.OPEN) return;
-            const key = btn.getAttribute('data-key');
-            const withControl = controlActive;
-            setControlActive(false);
-            socket.send((withControl && CTRL_KEY_SEQ[key]) || KEY_SEQ[key]);
-            term.focus();
-        });
 
         socket.onclose = () => {
             alert('{{tr "TerminalConnectionTimeOutOrSessionEnded"}}')
@@ -301,6 +254,24 @@
         socket.onerror = () => {
             alert('{{tr "TerminalConnectionFailed"}}')
         }
+
+        const keyBar = document.getElementById('terminal-keys');
+        keyBar.addEventListener('mousedown', function (ev) { ev.preventDefault(); });
+
+        document.getElementById('key-ctrl').addEventListener('click', function () {
+            setControlActive(!controlActive);
+            term.focus();
+        });
+
+        keyBar.addEventListener('click', function (ev) {
+            const btn = ev.target.closest('button[data-key]');
+            if (!btn || socket.readyState !== WebSocket.OPEN) return;
+            const key = btn.getAttribute('data-key');
+            const withControl = controlActive;
+            setControlActive(false);
+            socket.send((withControl && CTRL_KEY_SEQ[key]) || KEY_SEQ[key]);
+            term.focus();
+        });
 
         // 处理文件夹按钮点击事件
         const folderButton = document.getElementById('folder-button');
