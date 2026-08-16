@@ -73,10 +73,10 @@
         position: fixed;
         left: 0;
         right: 0;
-        bottom: 0;
+        top: 0;
         flex-wrap: nowrap;
-        gap: 6px;
-        padding: 8px;
+        gap: 4px;
+        padding: 4px;
         box-sizing: border-box;
         background: #111;
         z-index: 30;
@@ -87,21 +87,22 @@
             display: flex;
         }
 
-        #folder-button {
-            bottom: 60px;
+        #terminal-container {
+            box-sizing: border-box;
+            padding-top: 36px;
         }
     }
 
     #terminal-keys button {
         flex: 1 1 0;
         min-width: 0;
-        min-height: 36px;
+        min-height: 28px;
         padding: 0 2px;
         border: 1px solid #ccc;
-        border-radius: 8px;
+        border-radius: 6px;
         background: #f3f3f3;
         color: #111;
-        font-size: 13px;
+        font-size: 12px;
         line-height: 1;
         cursor: pointer;
         user-select: none;
@@ -260,15 +261,6 @@
         }
 
         const keyBar = document.getElementById('terminal-keys');
-        function pinKeyBar() {
-            const vv = window.visualViewport;
-            if (!vv) return;
-            keyBar.style.bottom = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) + 'px';
-        }
-        pinKeyBar();
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', pinKeyBar);
-        }
         keyBar.addEventListener('mousedown', function (ev) { ev.preventDefault(); });
 
         document.getElementById('key-ctrl').addEventListener('click', function () {
