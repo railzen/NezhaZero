@@ -224,6 +224,7 @@
             btn.classList.toggle('active', active);
         }
 
+        const mobileTerminal = window.matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)');
         const term = new Terminal({
             screenKeys: true,
             useStyle: true,
@@ -237,25 +238,26 @@
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
 
-        term.attachCustomKeyEventHandler(function (ev) {
-            if (ev.type !== 'keydown') return true;
-            lastKeyWasIME = ev.keyCode === 229;
-            if (lastKeyWasIME) return false;
-            if (controlActive && ev.key && ev.key.length === 1) {
-                const code = ev.key.toUpperCase().charCodeAt(0);
-                if (code >= 65 && code <= 90) {
-                    socket.send(String.fromCharCode(code - 64));
-                    setControlActive(false);
-                    return false;
+        if (mobileTerminal.matches) {
+            term.attachCustomKeyEventHandler(function (ev) {
+                if (ev.type !== 'keydown') return true;
+                lastKeyWasIME = ev.keyCode === 229;
+                if (lastKeyWasIME) return false;
+                if (controlActive && ev.key && ev.key.length === 1) {
+                    const code = ev.key.toUpperCase().charCodeAt(0);
+                    if (code >= 65 && code <= 90) {
+                        socket.send(String.fromCharCode(code - 64));
+                        setControlActive(false);
+                        return false;
+                    }
                 }
-            }
-            return true;
-        });
+                return true;
+            });
+        }
 
         const terminalContainer = document.getElementById('terminal-container');
         term.open(terminalContainer);
 
-        const mobileTerminal = window.matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)');
         if (mobileTerminal.matches) {
             let mobileViewportFrame = 0;
             const revealMobileCursor = function () {
@@ -400,20 +402,22 @@
             });
         })();
 
-        terminalContainer.addEventListener('input', function (ev) {
-            if (!lastKeyWasIME || ev.target !== term.textarea || !ev.data) return;
-            let data = ev.data;
-            if (controlActive && data.length === 1) {
-                const code = data.toUpperCase().charCodeAt(0);
-                if (code >= 65 && code <= 90) {
-                    data = String.fromCharCode(code - 64);
-                    setControlActive(false);
+        if (mobileTerminal.matches) {
+            terminalContainer.addEventListener('input', function (ev) {
+                if (!lastKeyWasIME || ev.target !== term.textarea || !ev.data) return;
+                let data = ev.data;
+                if (controlActive && data.length === 1) {
+                    const code = data.toUpperCase().charCodeAt(0);
+                    if (code >= 65 && code <= 90) {
+                        data = String.fromCharCode(code - 64);
+                        setControlActive(false);
+                    }
                 }
-            }
-            socket.send(data);
-            term.textarea.value = '';
-            ev.stopImmediatePropagation();
-        }, true);
+                socket.send(data);
+                term.textarea.value = '';
+                ev.stopImmediatePropagation();
+            }, true);
+        }
 
         socket.onopen = () => {
             onResize()
