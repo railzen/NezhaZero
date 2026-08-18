@@ -7,9 +7,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
-        const mobileTerminalDevice = navigator.userAgentData
-            ? navigator.userAgentData.mobile
-            : /Android.*Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent);
+        const mobileTerminalDevice = navigator.userAgentData?.mobile === true ||
+            /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (mobileTerminalDevice) {
             document.documentElement.classList.add('mobile-terminal');
             document.querySelector('meta[name="viewport"]').content += ', interactive-widget=resizes-content';
@@ -111,6 +111,7 @@
         flex: 1 1 0;
         min-width: 0;
         min-height: 28px;
+        box-sizing: border-box;
         padding: 0 2px;
         border: 1px solid #ccc;
         border-radius: 6px;
@@ -224,9 +225,21 @@
             home: '\x1b[1;5H',
             end: '\x1b[1;5F',
         };
+        const CTRL_PUNCTUATION = {
+            ' ': 0, '@': 0, '[': 27, '\\': 28, ']': 29, '^': 30, '_': 31, '?': 127,
+            '2': 0, '3': 27, '4': 28, '5': 29, '6': 30, '7': 31, '8': 127,
+        };
 
         let controlActive = false;
         let lastKeyWasIME = false;
+
+        function controlSequenceForInput(data) {
+            if (data.length !== 1) return null;
+            const code = data.toUpperCase().charCodeAt(0);
+            if (code >= 65 && code <= 90) return String.fromCharCode(code - 64);
+            const mapped = CTRL_PUNCTUATION[data];
+            return mapped === undefined ? null : String.fromCharCode(mapped);
+        }
 
         function setControlActive(active) {
             controlActive = active;
@@ -234,7 +247,6 @@
             btn.classList.toggle('active', active);
         }
 
-        const mobileTerminal = { matches: mobileTerminalDevice };
         const term = new Terminal({
             screenKeys: true,
             useStyle: true,
@@ -248,16 +260,16 @@
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
 
-        if (mobileTerminal.matches) {
+        if (mobileTerminalDevice) {
             term.attachCustomKeyEventHandler(function (ev) {
                 if (ev.type !== 'keydown') return true;
-                lastKeyWasIME = ev.keyCode === 229;
+                lastKeyWasIME = ev.keyCode === 229 || ev.key === 'Unidentified' || ev.key === 'Process';
                 if (lastKeyWasIME) return false;
                 if (controlActive && ev.key && ev.key.length === 1) {
-                    const code = ev.key.toUpperCase().charCodeAt(0);
-                    if (code >= 65 && code <= 90) {
-                        socket.send(String.fromCharCode(code - 64));
-                        setControlActive(false);
+                    const sequence = controlSequenceForInput(ev.key);
+                    setControlActive(false);
+                    if (sequence !== null) {
+                        if (socket.readyState === WebSocket.OPEN) socket.send(sequence);
                         return false;
                     }
                 }
@@ -268,7 +280,7 @@
         const terminalContainer = document.getElementById('terminal-container');
         term.open(terminalContainer);
 
-        if (mobileTerminal.matches) {
+        if (mobileTerminalDevice) {
             let mobileViewportFrame = 0;
             const revealMobileCursor = function () {
                 cancelAnimationFrame(mobileViewportFrame);
@@ -297,7 +309,7 @@
         (function () {
             const vp = terminalContainer.querySelector('.xterm-viewport');
             if (!vp) return;
-            if (!mobileTerminal.matches) return;
+            if (!mobileTerminalDevice) return;
             vp.addEventListener('touchstart', function (ev) { ev.stopPropagation(); }, { passive: true });
             vp.addEventListener('touchmove', function (ev) { ev.stopPropagation(); }, { passive: true });
 
@@ -412,18 +424,22 @@
             });
         })();
 
-        if (mobileTerminal.matches) {
+        if (mobileTerminalDevice) {
             terminalContainer.addEventListener('input', function (ev) {
                 if (!lastKeyWasIME || ev.target !== term.textarea || !ev.data) return;
+                const type = ev.inputType || '';
+                if (type !== 'insertText' && type !== 'insertCompositionText' &&
+                    type !== 'insertReplacementText') return;
+                if (type === 'insertCompositionText' && ev.isComposing) return;
+                if (socket.readyState !== WebSocket.OPEN) return;
+
                 let data = ev.data;
-                if (controlActive && data.length === 1) {
-                    const code = data.toUpperCase().charCodeAt(0);
-                    if (code >= 65 && code <= 90) {
-                        data = String.fromCharCode(code - 64);
-                        setControlActive(false);
-                    }
+                if (controlActive) {
+                    data = controlSequenceForInput(data) ?? data;
+                    setControlActive(false);
                 }
                 socket.send(data);
+                lastKeyWasIME = false;
                 term.textarea.value = '';
                 ev.stopImmediatePropagation();
             }, true);
@@ -442,7 +458,7 @@
             alert('{{tr "TerminalConnectionFailed"}}')
         }
 
-        if (mobileTerminal.matches) {
+        if (mobileTerminalDevice) {
             const keyBar = document.getElementById('terminal-keys');
             keyBar.addEventListener('mousedown', function (ev) { ev.preventDefault(); });
 
