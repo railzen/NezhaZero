@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <title>tty@{{.ServerName}} - {{.Title}}</title>
     <link rel="shortcut icon" type="image/png" href="/static/logo.svg?v20210804" />
     <link type="text/css" rel="stylesheet" href="/static/cdn/xterm@5.5.0/css/xterm.css" />
@@ -235,6 +235,33 @@
 
         const terminalContainer = document.getElementById('terminal-container');
         term.open(terminalContainer);
+
+        const mobileTerminal = window.matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)');
+        if (mobileTerminal.matches) {
+            let mobileViewportFrame = 0;
+            const revealMobileCursor = function () {
+                cancelAnimationFrame(mobileViewportFrame);
+                mobileViewportFrame = requestAnimationFrame(function () {
+                    const viewportHeight = window.visualViewport
+                        ? window.visualViewport.height
+                        : window.innerHeight;
+                    terminalContainer.style.height = Math.max(0, viewportHeight - 36) + 'px';
+                    fitAddon.fit();
+
+                    const buffer = term.buffer.active;
+                    term.scrollToLine(buffer.baseY + buffer.cursorY);
+                });
+            };
+
+            term.textarea.addEventListener('focus', revealMobileCursor);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', function () {
+                    revealMobileCursor();
+                    onResize();
+                });
+            }
+            revealMobileCursor();
+        }
 
         (function () {
             const vp = terminalContainer.querySelector('.xterm-viewport');
