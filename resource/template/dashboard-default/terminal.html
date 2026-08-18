@@ -85,11 +85,14 @@
     @media (max-width: 768px), (hover: none) and (pointer: coarse) {
         #terminal-keys {
             display: flex;
+            height: 36px;
         }
 
         #terminal-container {
-            box-sizing: border-box;
-            padding-top: 36px;
+            position: fixed;
+            top: 36px;
+            bottom: 0;
+            height: auto;
         }
     }
 
