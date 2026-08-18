@@ -34,6 +34,7 @@
 
         #terminal-container .xterm-viewport {
             -webkit-overflow-scrolling: touch;
+            -webkit-touch-callout: none;
             touch-action: pan-y;
         }
     }
@@ -118,6 +119,23 @@
         border-color: #1d4ed8;
         color: #fff;
     }
+
+    #terminal-copy-button {
+        display: none;
+        position: fixed;
+        z-index: 40;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        background: #f3f3f3;
+        color: #111;
+        font-size: 14px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+
+    #terminal-copy-button.visible {
+        display: block;
+    }
 </style>
 
 <body onresize="onResize()">
@@ -135,6 +153,7 @@
         <button type="button" data-key="home">Home</button>
         <button type="button" data-key="end">End</button>
     </div>
+    <button type="button" id="terminal-copy-button">Copy</button>
 
     <script src="/static/cdn/xterm@5.5.0/lib/xterm.js"></script>
     <script src="/static/cdn/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
@@ -268,6 +287,117 @@
             if (!vp) return;
             vp.addEventListener('touchstart', function (ev) { ev.stopPropagation(); }, { passive: true });
             vp.addEventListener('touchmove', function (ev) { ev.stopPropagation(); }, { passive: true });
+
+            if (!mobileTerminal.matches) return;
+            const copyButton = document.getElementById('terminal-copy-button');
+            let longPressTimer = 0;
+            let longPressStart = null;
+            let selectedText = '';
+
+            const hideCopyButton = function () {
+                copyButton.classList.remove('visible');
+            };
+            const fallbackCopyText = function (text) {
+                const copyArea = document.createElement('textarea');
+                copyArea.value = text;
+                copyArea.style.position = 'fixed';
+                copyArea.style.opacity = '0';
+                document.body.appendChild(copyArea);
+                copyArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(copyArea);
+            };
+            const copyText = function (text) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).catch(function () {
+                        fallbackCopyText(text);
+                    });
+                    return;
+                }
+                fallbackCopyText(text);
+            };
+            const getTerminalCell = function (x, y) {
+                const screen = terminalContainer.querySelector('.xterm-screen');
+                const rect = screen.getBoundingClientRect();
+                return {
+                    col: Math.max(0, Math.min(
+                        term.cols - 1,
+                        Math.floor((x - rect.left) / (rect.width / term.cols))
+                    )),
+                    row: term.buffer.active.viewportY + Math.max(0, Math.min(
+                        term.rows - 1,
+                        Math.floor((y - rect.top) / (rect.height / term.rows))
+                    )),
+                };
+            };
+            const selectToCell = function (cell) {
+                const anchor = longPressStart.anchor;
+                const anchorIndex = anchor.row * term.cols + anchor.col;
+                const cellIndex = cell.row * term.cols + cell.col;
+                if (cellIndex >= anchorIndex) {
+                    term.select(anchor.col, anchor.row, cellIndex - anchorIndex + 1);
+                } else {
+                    term.select(cell.col, cell.row, anchorIndex - cellIndex + 1);
+                }
+            };
+            const showCopyButton = function (x, y) {
+                copyButton.classList.add('visible');
+                const buttonRect = copyButton.getBoundingClientRect();
+                copyButton.style.left = Math.max(8, Math.min(
+                    x - buttonRect.width / 2,
+                    window.innerWidth - buttonRect.width - 8
+                )) + 'px';
+                copyButton.style.top = Math.max(40, y - buttonRect.height - 12) + 'px';
+            };
+
+            vp.addEventListener('touchstart', function (ev) {
+                hideCopyButton();
+                clearTimeout(longPressTimer);
+                if (ev.touches.length !== 1) return;
+
+                const touch = ev.touches[0];
+                longPressStart = { x: touch.clientX, y: touch.clientY, triggered: false };
+                longPressTimer = setTimeout(function () {
+                    if (!longPressStart) return;
+                    longPressStart.triggered = true;
+                    longPressStart.anchor = getTerminalCell(longPressStart.x, longPressStart.y);
+                    selectToCell(longPressStart.anchor);
+                }, 700);
+            }, { passive: true });
+            vp.addEventListener('touchmove', function (ev) {
+                if (!longPressStart || ev.touches.length !== 1) return;
+                const touch = ev.touches[0];
+                if (longPressStart.triggered) {
+                    ev.preventDefault();
+                    selectToCell(getTerminalCell(touch.clientX, touch.clientY));
+                    return;
+                }
+                if (Math.abs(touch.clientX - longPressStart.x) > 10 ||
+                    Math.abs(touch.clientY - longPressStart.y) > 10) {
+                    clearTimeout(longPressTimer);
+                    longPressStart = null;
+                }
+            }, { passive: false });
+            vp.addEventListener('touchend', function (ev) {
+                clearTimeout(longPressTimer);
+                if (longPressStart && longPressStart.triggered) {
+                    ev.preventDefault();
+                    selectedText = term.getSelection();
+                    if (selectedText) {
+                        const touch = ev.changedTouches[0];
+                        showCopyButton(touch.clientX, touch.clientY);
+                    }
+                }
+                longPressStart = null;
+            }, { passive: false });
+            vp.addEventListener('touchcancel', function () {
+                clearTimeout(longPressTimer);
+                longPressStart = null;
+            }, { passive: true });
+            copyButton.addEventListener('click', function () {
+                if (selectedText) copyText(selectedText);
+                hideCopyButton();
+            });
         })();
 
         terminalContainer.addEventListener('input', function (ev) {
