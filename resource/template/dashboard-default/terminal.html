@@ -242,7 +242,15 @@
 
         terminalContainer.addEventListener('input', function (ev) {
             if (!lastKeyWasIME || ev.target !== term.textarea || !ev.data) return;
-            socket.send(ev.data);
+            let data = ev.data;
+            if (controlActive && data.length === 1) {
+                const code = data.toUpperCase().charCodeAt(0);
+                if (code >= 65 && code <= 90) {
+                    data = String.fromCharCode(code - 64);
+                    setControlActive(false);
+                }
+            }
+            socket.send(data);
             term.textarea.value = '';
             ev.stopImmediatePropagation();
         }, true);
