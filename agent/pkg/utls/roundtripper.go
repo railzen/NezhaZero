@@ -216,7 +216,7 @@ func (r *uTLSHTTPRoundTripperImpl) dialTLS(ctx context.Context, addr string) (*u
 		}
 	}
 
-	err = uconn.Handshake()
+	err = uconn.HandshakeContext(ctx)
 	if err != nil {
 		uconn.Close()
 		return nil, err
@@ -229,8 +229,8 @@ func (r *uTLSHTTPRoundTripperImpl) init() {
 	max := 1 << 14
 
 	r.httpsH2Transport = &http2.Transport{
-		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
-			return r.dialOrGetTLSWithExpectedALPN(context.Background(), addr, true)
+		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+			return r.dialOrGetTLSWithExpectedALPN(ctx, addr, true)
 		},
 		MaxReadFrameSize:          16384,
 		MaxDecoderHeaderTableSize: uint32(rand.Intn(max-min) + min),
