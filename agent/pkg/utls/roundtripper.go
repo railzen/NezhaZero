@@ -218,6 +218,7 @@ func (r *uTLSHTTPRoundTripperImpl) dialTLS(ctx context.Context, addr string) (*u
 
 	err = uconn.Handshake()
 	if err != nil {
+		uconn.Close()
 		return nil, err
 	}
 	return uconn, nil
