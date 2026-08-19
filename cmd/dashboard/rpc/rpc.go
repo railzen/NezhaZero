@@ -194,8 +194,18 @@ func DispatchTask(serviceSentinelDispatchBus <-chan model.Monitor) {
 			if dispatchLock == nil {
 				continue
 			}
+			dispatchSlots := server.TaskDispatchSem
+			if dispatchSlots == nil {
+				continue
+			}
+			select {
+			case dispatchSlots <- struct{}{}:
+			default:
+				continue
+			}
 			monitorTask := task.PB()
 			go func(server *model.Server) {
+				defer func() { <-dispatchSlots }()
 				dispatchLock.Lock()
 				defer dispatchLock.Unlock()
 				singleton.AuthorizeTaskResult(server.ID, monitorTask.GetType(), monitorTask.GetId(), 5*time.Minute)

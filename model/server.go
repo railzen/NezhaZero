@@ -13,6 +13,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const TaskDispatchSlotLimit = 32
+
 type Server struct {
 	Common
 	Name         string
@@ -35,6 +37,7 @@ type Server struct {
 	TaskCloseLock    *sync.Mutex                       `gorm:"-" json:"-"`
 	TaskSendLock     *sync.Mutex                       `gorm:"-" json:"-"`
 	TaskDispatchLock *sync.Mutex                       `gorm:"-" json:"-"`
+	TaskDispatchSem  chan struct{}                     `gorm:"-" json:"-"`
 	TaskStream       pb.NezhaService_RequestTaskServer `gorm:"-" json:"-"`
 	RuntimeLock      *sync.RWMutex                     `gorm:"-" json:"-"`
 
@@ -54,6 +57,7 @@ func (s *Server) CopyFromRunningServer(old *Server) {
 	s.TaskCloseLock = old.TaskCloseLock
 	s.TaskSendLock = old.TaskSendLock
 	s.TaskDispatchLock = old.TaskDispatchLock
+	s.TaskDispatchSem = old.TaskDispatchSem
 	s.TaskStream = old.TaskStream
 	s.RuntimeLock = old.RuntimeLock
 	s.PrevTransferInSnapshot = prevIn

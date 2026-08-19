@@ -342,6 +342,7 @@ func (s *ServerAPIService) Register(rs *RegisterServer) *ServerRegisterResponse 
 	serverInfo.TaskCloseLock = new(sync.Mutex)
 	serverInfo.TaskSendLock = new(sync.Mutex)
 	serverInfo.TaskDispatchLock = new(sync.Mutex)
+	serverInfo.TaskDispatchSem = make(chan struct{}, model.TaskDispatchSlotLimit)
 	serverInfo.RuntimeLock = new(sync.RWMutex)
 	ServerLock.Lock()
 	SecretToID[serverInfo.Secret] = serverInfo.ID

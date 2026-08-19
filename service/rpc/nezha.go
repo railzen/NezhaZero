@@ -246,6 +246,7 @@ func addDiscoverServer() (string, error) {
 	s.TaskCloseLock = new(sync.Mutex)
 	s.TaskSendLock = new(sync.Mutex)
 	s.TaskDispatchLock = new(sync.Mutex)
+	s.TaskDispatchSem = make(chan struct{}, model.TaskDispatchSlotLimit)
 	s.RuntimeLock = new(sync.RWMutex)
 
 	// 写入数据库（只一次）
