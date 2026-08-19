@@ -47,7 +47,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.26.x"
+          go-version-file: go.mod
 
       - name: Build
         uses: goreleaser/goreleaser-action@v7
@@ -103,7 +103,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.26.x"
+          go-version-file: agent/go.mod
 
       - name: Build
         if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
