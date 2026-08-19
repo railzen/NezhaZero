@@ -1,8 +1,6 @@
 module github.com/railzen/nezha-zero/agent
 
-go 1.26.4
-
-toolchain go1.26.5
+go 1.26.6
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7

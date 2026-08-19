@@ -1,8 +1,6 @@
 module github.com/railzen/nezha-zero
 
-go 1.26.4
-
-toolchain go1.26.5
+go 1.26.6
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20240425163905-bcdc1ad063ea
