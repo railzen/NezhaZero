@@ -1307,6 +1307,7 @@ func handleCommandTask(task *pb.Task, result *pb.TaskResult) {
 	}
 	startedAt := time.Now()
 	endCh := make(chan struct{})
+	defer close(endCh)
 	pg, err := processgroup.NewProcessExitGroup()
 	if err != nil {
 		// 进程组创建失败，直接退出
@@ -1338,7 +1339,6 @@ func handleCommandTask(task *pb.Task, result *pb.TaskResult) {
 		select {
 		case <-timeout.C:
 			result.Data = "任务执行超时\n"
-			close(endCh)
 			pg.Dispose()
 		case <-endCh:
 		}
@@ -1346,7 +1346,6 @@ func handleCommandTask(task *pb.Task, result *pb.TaskResult) {
 	if err = cmd.Wait(); err != nil {
 		result.Data += fmt.Sprintf("%s\n%s", b.String(), err.Error())
 	} else {
-		close(endCh)
 		result.Data = b.String()
 		result.Successful = true
 	}
