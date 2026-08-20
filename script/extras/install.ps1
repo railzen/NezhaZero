@@ -13,6 +13,7 @@ if($PSVersionTable.PSVersion.Major -lt 5){
     Write-Host "Refer to the community article and install manually! https://nyko.me/2020/12/13/nezha-windows-client.html" -BackgroundColor DarkRed -ForegroundColor Green
     exit
 }
+#$agentrepo = "railzen/nezha-zero"
 $agentrepo = "nezhahq/agent"
 #  x86 or x64 or arm64
 if ([System.Environment]::Is64BitOperatingSystem) {
@@ -35,27 +36,27 @@ if (Test-Path "C:\nezha\nezha-agent.exe") {
 #TLS/SSL
 Write-Host "Determining latest nezha release" -BackgroundColor DarkGreen -ForegroundColor White
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$agenttag = (Invoke-WebRequest -Uri $agentreleases -UseBasicParsing | ConvertFrom-Json)[0].tag_name
+if ([string]::IsNullOrWhiteSpace($agenttag)) {
+    $optionUrl = "https://fastly.jsdelivr.net/gh/railzen/nezha-zero/"
+    Try {
+        $response = Invoke-WebRequest -Uri $optionUrl -UseBasicParsing -TimeoutSec 10
+        if ($response.StatusCode -eq 200) {
+            $versiontext = $response.Content | findstr /c:"option.value"
+            $version = [regex]::Match($versiontext, "@(\d+\.\d+\.\d+)").Groups[1].Value
+            $agenttag = "v" + $version
+        }
+    } Catch {
+        $optionUrl = "https://gcore.jsdelivr.net/gh/railzen/nezha-zero/"
+        $response = Invoke-WebRequest -Uri $optionUrl -UseBasicParsing -TimeoutSec 10
+        if ($response.StatusCode -eq 200) {
+            $versiontext = $response.Content | findstr /c:"option.value"
+            $version = [regex]::Match($versiontext, "@(\d+\.\d+\.\d+)").Groups[1].Value
+            $agenttag = "v" + $version
+        }
+    }
+}
 $agenttag = "v0.20.5"
-#$agenttag = (Invoke-WebRequest -Uri $agentreleases -UseBasicParsing | ConvertFrom-Json)[0].tag_name
-#if ([string]::IsNullOrWhiteSpace($agenttag)) {
-#    $optionUrl = "https://fastly.jsdelivr.net/gh/nezhahq/agent/"
-#    Try {
-#        $response = Invoke-WebRequest -Uri $optionUrl -UseBasicParsing -TimeoutSec 10
-#        if ($response.StatusCode -eq 200) {
-#            $versiontext = $response.Content | findstr /c:"option.value"
-#            $version = [regex]::Match($versiontext, "@(\d+\.\d+\.\d+)").Groups[1].Value
-#            $agenttag = "v" + $version
-#        }
-#    } Catch {
-#        $optionUrl = "https://gcore.jsdelivr.net/gh/nezhahq/agent/"
-#        $response = Invoke-WebRequest -Uri $optionUrl -UseBasicParsing -TimeoutSec 10
-#        if ($response.StatusCode -eq 200) {
-#            $versiontext = $response.Content | findstr /c:"option.value"
-#            $version = [regex]::Match($versiontext, "@(\d+\.\d+\.\d+)").Groups[1].Value
-#            $agenttag = "v" + $version
-#        }
-#    }
-#}
 #Region判断
 #$ipapi = ""
 $region = "Unknown"

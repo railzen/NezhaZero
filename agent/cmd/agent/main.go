@@ -1025,18 +1025,8 @@ func copyFile(src, dst string) error {
 // restartService 重启 nezha-agent 服务，跨平台支持
 func restartService() {
 	switch runtime.GOOS {
-	case "windows":
-		if restartWindowsService() {
-			fmt.Fprintf(os.Stdout, "Service restarted.\n")
-			os.Exit(0)
-		}
 	case "linux", "freebsd", "netbsd", "openbsd", "dragonfly", "solaris":
 		if restartUnixService() {
-			fmt.Fprintf(os.Stdout, "Service restarted.\n")
-			os.Exit(0)
-		}
-	case "darwin":
-		if restartDarwinService() {
 			fmt.Fprintf(os.Stdout, "Service restarted.\n")
 			os.Exit(0)
 		}
@@ -1064,50 +1054,6 @@ func restartUnixService() bool {
 	return false
 }
 
-func restartDarwinService() bool {
-	cmds := [][]string{
-		{"launchctl", "unload", "/Library/LaunchDaemons/nezha-agent.plist"},
-		{"launchctl", "load", "/Library/LaunchDaemons/nezha-agent.plist"},
-		{"brew", "services", "restart", "nezha-agent"},
-	}
-	for _, args := range cmds {
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err == nil {
-			return true
-		}
-	}
-	return false
-}
-
-func restartWindowsService() bool {
-	stopCmds := [][]string{
-		{"sc", "stop", "nezha-agent"},
-		{"net", "stop", "nezha-agent"},
-	}
-	for _, args := range stopCmds {
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		_ = cmd.Run()
-	}
-
-	startCmds := [][]string{
-		{"sc", "start", "nezha-agent"},
-		{"net", "start", "nezha-agent"},
-	}
-	for _, args := range startCmds {
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err == nil {
-			return true
-		}
-	}
-	return false
-}
-
 // restartSelfProcess 服务管理器不可用时替换/重启当前进程，避免旧进程残留。
 func restartSelfProcess() {
 	exe, err := os.Executable()
@@ -1120,6 +1066,9 @@ func restartSelfProcess() {
 	env := os.Environ()
 
 	if runtime.GOOS == "windows" {
+		if !service.Interactive() {
+			os.Exit(1)
+		}
 		cmd := exec.Command(exe, args[1:]...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
