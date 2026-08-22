@@ -1,3 +1,25 @@
+[PortableBackup]
+other = "資料匯入與匯出"
+[PortableBackupHint]
+other = "匯出備份檔案，包含伺服器、通知、警報、服務監控、排程任務、NAT、DDNS 的設定資訊、自動探索金鑰和可移轉站台設定。不包含其他部署參數、登入憑證、工作階段、API Token、日誌及監控歷史。"
+[PortableBackupExport]
+other = "匯出資料"
+[PortableBackupImport]
+other = "匯入並覆蓋"
+[PortableBackupImportHint]
+other = "匯入設定檔案，使用其中的資料覆蓋目前業務資料，並清除監控歷史、流量歷史、工作階段及 API Token。"
+[PortableBackupExportConfirm]
+other = "備份包含自動探索金鑰，並可能包含伺服器金鑰及通知、DDNS 憑證，請妥善保管。"
+[PortableBackupImportConfirm]
+other = "匯入將覆蓋目前的伺服器、通知、服務監控、排程任務、警報規則、DDNS 與 NAT 資料，並清除監控/流量歷史、工作階段及 API Token。此操作無法復原，確認繼續嗎？"
+[PortableBackupFailed]
+other = "操作失敗"
+[PortableBackupChooseFile]
+other = "請選擇備份檔案"
+[PortableBackupRestartRequired]
+other = "匯入成功，請立即重新啟動 Dashboard"
+[PortableBackupRestarting]
+other = "匯入成功，Dashboard 正在自動重新啟動"
 [NezhaMonitoring]
 other = "哪吒監控"
 

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
@@ -19,6 +20,18 @@ const (
 )
 
 var ServiceSentinelShared *ServiceSentinel
+
+var portableImportRestartPending atomic.Bool
+
+// MarkPortableImportRestart prevents stale runtime snapshots from being
+// persisted after a portable import has replaced the database contents.
+func MarkPortableImportRestart() {
+	portableImportRestartPending.Store(true)
+}
+
+func PortableImportRestartPending() bool {
+	return portableImportRestartPending.Load()
+}
 
 type ReportData struct {
 	Data     *pb.TaskResult
@@ -399,6 +412,9 @@ func (ss *ServiceSentinel) worker() {
 					ts.ping = float32(Conf.MaxTCPPingValue)
 				}
 				ts.count = 0
+				if PortableImportRestartPending() {
+					continue
+				}
 				if err := DB.Create(&model.MonitorHistory{
 					MonitorID: mh.GetId(),
 					AvgDelay:  ts.ping,
@@ -561,7 +577,7 @@ func (ss *ServiceSentinel) worker() {
 		}
 		ss.serviceResponseDataStoreLock.Unlock()
 
-		if historyToPersist != nil {
+		if historyToPersist != nil && !PortableImportRestartPending() {
 			if err := DB.Create(historyToPersist).Error; err != nil {
 				log.Println("NEZHA>> 服务监控数据持久化失败：", err)
 			}

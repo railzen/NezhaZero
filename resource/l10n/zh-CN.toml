@@ -1,3 +1,25 @@
+[PortableBackup]
+other = "数据导入与导出"
+[PortableBackupHint]
+other = "导出备份文件，包含服务器、通知、告警、服务监控、计划任务、NAT、DDNS的配置信息，自动发现密钥和可迁移站点设置。不包含其他部署参数、登录凭据、会话、API Token、日志及监控历史。"
+[PortableBackupExport]
+other = "导出数据"
+[PortableBackupImport]
+other = "导入并覆盖"
+[PortableBackupImportHint]
+other = "导入配置文件，使用其中的数据覆盖当前业务数据，并清空监控历史、流量历史、会话及 API Token。"
+[PortableBackupExportConfirm]
+other = "备份包含自动发现密钥，并可能包含服务器密钥及通知、DDNS 凭据，请妥善保管。"
+[PortableBackupImportConfirm]
+other = "导入将覆盖当前的服务器、通知、服务监控、计划任务、告警规则、DDNS 和 NAT 数据，并清空监控/流量历史、会话及 API Token。此操作不可撤销，确认继续吗？"
+[PortableBackupFailed]
+other = "操作失败"
+[PortableBackupChooseFile]
+other = "请选择备份文件"
+[PortableBackupRestartRequired]
+other = "导入成功，请立即重启 Dashboard"
+[PortableBackupRestarting]
+other = "导入成功，Dashboard 正在自动重启"
 [NezhaMonitoring]
 other = "哪吒监控"
 

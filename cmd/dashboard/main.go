@@ -54,6 +54,7 @@ func initSystem() {
 }
 
 func main() {
+	controller.WaitForPortableBackupRestart()
 	if dashboardCliParam.Version {
 		fmt.Println(singleton.Version)
 		os.Exit(0)
@@ -94,7 +95,9 @@ func main() {
 		}, func(c context.Context) error {
 			log.Println("NEZHA>> Graceful::START")
 			audit.Record(nil, audit.TypeEvent, "Dashboard stopped", "Graceful shutdown")
-			singleton.RecordTransferHourlyUsage()
+			if !singleton.PortableImportRestartPending() {
+				singleton.RecordTransferHourlyUsage()
+			}
 			log.Println("NEZHA>> Graceful::END")
 			return rpc.ShutdownMultiplex(c)
 		}); err != nil {
@@ -110,12 +113,20 @@ func main() {
 		}, func(c context.Context) error {
 			log.Println("NEZHA>> Graceful::START")
 			audit.Record(nil, audit.TypeEvent, "Dashboard stopped", "Graceful shutdown")
-			singleton.RecordTransferHourlyUsage()
+			if !singleton.PortableImportRestartPending() {
+				singleton.RecordTransferHourlyUsage()
+			}
 			log.Println("NEZHA>> Graceful::END")
 			srv.Shutdown(c)
 			return nil
 		}); err != nil {
 			log.Printf("NEZHA>> ERROR: %v", err)
+		}
+	}
+
+	if singleton.PortableImportRestartPending() {
+		if err := controller.RestartDashboardAfterPortableImport(); err != nil {
+			log.Printf("NEZHA>> automatic restart failed: %v", err)
 		}
 	}
 }

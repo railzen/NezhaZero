@@ -65,6 +65,8 @@ func (ma *memberAPI) serve() {
 	wr.POST("/notification", ma.addOrEditNotification)
 	wr.POST("/ddns", ma.addOrEditDDNS)
 	wr.POST("/setting", ma.updateSetting)
+	wr.POST("/portable-backup/export", ma.exportPortableBackup)
+	wr.POST("/portable-backup/import", ma.importPortableBackup)
 	wr.POST("/totp", ma.totp)
 	wr.POST("/token", ma.issueNewToken)
 	wr.GET("/token", ma.getToken)

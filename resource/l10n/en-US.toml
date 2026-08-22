@@ -1,3 +1,25 @@
+[PortableBackup]
+other = "Data import and export"
+[PortableBackupHint]
+other = "Exports a backup file containing configuration information for servers, notifications, alerts, service monitors, scheduled tasks, NAT, and DDNS, along with the auto-discovery key and portable site settings. Other deployment parameters, login credentials, sessions, API tokens, logs, and monitoring history are excluded."
+[PortableBackupExport]
+other = "Export data"
+[PortableBackupImport]
+other = "Import and replace"
+[PortableBackupImportHint]
+other = "Imports a configuration file and uses its data to replace current business data, clearing monitoring history, transfer history, sessions, and API tokens."
+[PortableBackupExportConfirm]
+other = "The backup contains the auto-discovery key and may contain server keys and notification or DDNS credentials. Store it securely."
+[PortableBackupImportConfirm]
+other = "Importing replaces current servers, notifications, service monitors, scheduled tasks, alert rules, DDNS, and NAT data. Monitoring/transfer history, sessions, and API tokens will be cleared. This cannot be undone. Continue?"
+[PortableBackupFailed]
+other = "Operation failed"
+[PortableBackupChooseFile]
+other = "Select a backup file"
+[PortableBackupRestartRequired]
+other = "Import completed. Restart Dashboard immediately."
+[PortableBackupRestarting]
+other = "Import completed. Dashboard is restarting automatically."
 [NezhaMonitoring]
 other = "Nezha Monitoring"
 

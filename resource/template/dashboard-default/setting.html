@@ -28,6 +28,16 @@
         color: #c07878 !important;
     }
 
+    #portableBackupImportBtn:hover {
+        color: #fff !important;
+        background: #db2828 !important;
+    }
+
+    #portableBackupImportBtn:active {
+        background: #b21e1e !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) inset !important;
+    }
+
     .nb-geoip-status-off > .icon {
         color: rgba(0, 0, 0, 0.45) !important;
     }
@@ -44,8 +54,39 @@
         color: #d89898 !important;
     }
 
+    html[nz-theme='dark'] #portableBackupImportBtn:hover {
+        background: #db2828 !important;
+    }
+
     html[nz-theme='dark'] .nb-geoip-status-off > .icon {
         color: rgba(255, 255, 255, 0.45) !important;
+    }
+
+    .nb-portable-backup-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 11rem;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .nb-portable-backup-row + .nb-portable-backup-row {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(34, 36, 38, 0.1);
+    }
+
+    .nb-portable-backup-row > p,
+    .nb-portable-backup-row > .button {
+        margin: 0 !important;
+    }
+
+    .nb-portable-backup-row > .button {
+        width: 100%;
+        white-space: nowrap;
+    }
+
+    html[nz-theme='dark'] .nb-portable-backup-row + .nb-portable-backup-row {
+        border-top-color: rgba(255, 255, 255, 0.1);
     }
 
     #passwordLoginSettings .admin-password-prompt {
@@ -257,6 +298,26 @@
                     <label>{{tr "UseTemplateHandleNoRoute"}}</label>
                 </div>
             </div>
+            {{if .Admin.SuperAdmin}}
+            <div class="field">
+                <label>{{tr "PortableBackup"}}</label>
+            </div>
+            <div class="ui segment">
+                <div class="nb-portable-backup-row">
+                    <p>{{tr "PortableBackupHint"}}</p>
+                    <button type="button" class="ui button" id="portableBackupExportBtn">
+                        <i class="sign out icon"></i>{{tr "PortableBackupExport"}}
+                    </button>
+                </div>
+                <div class="nb-portable-backup-row">
+                    <p>{{tr "PortableBackupImportHint"}}</p>
+                    <button type="button" class="ui button" id="portableBackupImportBtn">
+                        <i class="sign in icon"></i>{{tr "PortableBackupImport"}}
+                    </button>
+                </div>
+                <input type="file" id="portableBackupFile" accept=".json,application/json" style="display: none;">
+            </div>
+            {{end}}
             <button class="ui button" type="submit">{{tr "Save"}}</button>
         </form>
     </div>
@@ -283,6 +344,26 @@
         <div class="ui nezha-primary-btn button" id="twoFactorConfirmBtn">{{tr "TwoFactorConfirmEnable"}}</div>
     </div>
 </div>
+{{if .Admin.SuperAdmin}}
+<div class="ui small modal" id="portableBackupModal">
+    <div class="header" id="portableBackupModalTitle"></div>
+    <div class="content">
+        <p id="portableBackupModalPrompt"></p>
+        {{if .Conf.Site.TwoFactorSecret}}
+        <div class="ui form" style="margin-top: 1em;">
+            <div class="field">
+                <label>{{tr "TwoFactorCode"}}</label>
+                <input type="text" id="portableBackupTwoFactorCode" placeholder="{{tr "TwoFactorCodePlaceholder"}}" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6">
+            </div>
+        </div>
+        {{end}}
+    </div>
+    <div class="actions">
+        <div class="ui cancel button">{{tr "Cancel"}}</div>
+        <div class="ui nezha-primary-btn button" id="portableBackupConfirmBtn">{{tr "Confirm"}}</div>
+    </div>
+</div>
+{{end}}
 {{template "common/footer" .}}
 <script>
     function adminPasswordCharTypes(pwd) {
@@ -456,6 +537,128 @@
         }
     });
 
+    {{if .Admin.SuperAdmin}}
+    let portableBackupAction = '';
+    const portableBackupModal = $('#portableBackupModal');
+    portableBackupModal.modal({
+        closable: true,
+        onHidden: function () {
+            $('#portableBackupTwoFactorCode').val('');
+            if (portableBackupAction === 'import') $('#portableBackupFile').val('');
+            portableBackupAction = '';
+        }
+    });
+
+    $('#portableBackupTwoFactorCode').on('input', function () {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+    });
+
+    function showPortableBackupModal(action) {
+        portableBackupAction = action;
+        const importing = action === 'import';
+        $('#portableBackupModalTitle').text(importing ? '{{tr "PortableBackupImport"}}' : '{{tr "PortableBackupExport"}}');
+        $('#portableBackupModalPrompt')
+            .text(importing ? '{{tr "PortableBackupImportConfirm"}}' : '{{tr "PortableBackupExportConfirm"}}')
+            .css('color', importing ? '#db2828' : '');
+        $('#portableBackupConfirmBtn')
+            .toggleClass('negative', importing)
+            .toggleClass('nezha-primary-btn', !importing);
+        $('#portableBackupTwoFactorCode').val('');
+        portableBackupModal.modal('show');
+    }
+
+    function portableBackupCode() {
+        return ($('#portableBackupTwoFactorCode').val() || '').trim();
+    }
+
+    function requirePortableBackupCode() {
+        if (twoFactorEnabled && portableBackupCode().length !== 6) {
+            $.suiAlert({ title: '', description: '{{tr "TwoFactorCodePlaceholder"}}', type: 'error', time: '3', position: 'top-center' });
+            return false;
+        }
+        return true;
+    }
+
+    function exportPortableBackup() {
+        if (!requirePortableBackupCode()) return;
+        const $button = $('#portableBackupConfirmBtn');
+        $button.addClass('loading disabled');
+        $.ajax({
+            url: '/api/portable-backup/export', type: 'POST',
+            data: { two_factor_code: portableBackupCode() },
+            xhrFields: { responseType: 'blob' },
+        }).done(async function (blob, _status, xhr) {
+            const contentType = xhr.getResponseHeader('Content-Type') || '';
+            if (contentType.indexOf('application/json') >= 0) {
+                let response = {};
+                try { response = JSON.parse(await blob.text()); } catch (_) {}
+                $.suiAlert({ title: '', description: response.message || '{{tr "PortableBackupFailed"}}', type: 'error', time: '5', position: 'top-center' });
+                return;
+            }
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            const disposition = xhr.getResponseHeader('Content-Disposition') || '';
+            const filename = disposition.match(/filename="?([^";]+)"?/i);
+            link.download = filename ? filename[1] : 'nezha-backup.json';
+            document.body.appendChild(link);
+            link.click();
+            URL.revokeObjectURL(link.href);
+            link.remove();
+            portableBackupModal.modal('hide');
+        }).fail(function () {
+            $.suiAlert({ title: '', description: '{{tr "PortableBackupFailed"}}', type: 'error', time: '5', position: 'top-center' });
+        }).always(function () { $button.removeClass('loading disabled'); });
+    }
+
+    function importPortableBackup() {
+        if (!requirePortableBackupCode()) return;
+        const file = $('#portableBackupFile')[0].files[0];
+        if (!file) {
+            $.suiAlert({ title: '', description: '{{tr "PortableBackupChooseFile"}}', type: 'error', time: '3', position: 'top-center' });
+            return;
+        }
+        const form = new FormData();
+        form.append('file', file);
+        form.append('two_factor_code', portableBackupCode());
+        const $button = $('#portableBackupConfirmBtn');
+        $button.addClass('loading disabled');
+        $.ajax({
+            url: '/api/portable-backup/import', type: 'POST', data: form,
+            processData: false, contentType: false,
+        }).done(function (resp) {
+            if (resp.code !== 200) {
+                $.suiAlert({ title: '', description: resp.message || '{{tr "PortableBackupFailed"}}', type: 'error', time: '5', position: 'top-center' });
+                return;
+            }
+            portableBackupAction = '';
+            portableBackupModal.modal('hide');
+			const restartMessage = resp.result && resp.result.auto_restart
+				? '{{tr "PortableBackupRestarting"}}'
+				: '{{tr "PortableBackupRestartRequired"}}';
+            $.suiAlert({ title: '', description: restartMessage, type: 'success', time: '10', position: 'top-center' });
+            $('#portableBackupExportBtn, #portableBackupImportBtn').addClass('disabled');
+			if (resp.result && resp.result.auto_restart) {
+				setTimeout(function () { window.location.href = '/login'; }, 6000);
+			}
+        }).fail(function (xhr) {
+            const message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : '{{tr "PortableBackupFailed"}}';
+            $.suiAlert({ title: '', description: message, type: 'error', time: '5', position: 'top-center' });
+        }).always(function () { $button.removeClass('loading disabled'); });
+    }
+
+    $('#portableBackupExportBtn').on('click', function () {
+        if (twoFactorEnabled) showPortableBackupModal('export'); else exportPortableBackup();
+    });
+    $('#portableBackupImportBtn').on('click', function () { $('#portableBackupFile').click(); });
+    $('#portableBackupFile').on('change', function () { if (this.files.length) showPortableBackupModal('import'); });
+    $('#portableBackupConfirmBtn').on('click', function () {
+        if (portableBackupAction === 'import') importPortableBackup();
+        if (portableBackupAction === 'export') exportPortableBackup();
+    });
+    $('#portableBackupTwoFactorCode').on('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); $('#portableBackupConfirmBtn').click(); }
+    });
+    {{end}}
     function totpRequest(data) {
         return $.ajax({
             url: '/api/totp',

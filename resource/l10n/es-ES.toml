@@ -1,3 +1,25 @@
+[PortableBackup]
+other = "Importar y exportar datos"
+[PortableBackupHint]
+other = "Exporta un archivo de copia de seguridad con la configuración de servidores, notificaciones, alertas, monitores de servicios, tareas programadas, NAT y DDNS, además de la clave de descubrimiento automático y los ajustes portátiles del sitio. No incluye otros parámetros de despliegue, credenciales de acceso, sesiones, tokens API, registros ni el historial de monitorización."
+[PortableBackupExport]
+other = "Exportar datos"
+[PortableBackupImport]
+other = "Importar y reemplazar"
+[PortableBackupImportHint]
+other = "Importa un archivo de configuración y utiliza sus datos para reemplazar los datos actuales, borrando el historial de monitorización, el historial de tráfico, las sesiones y los tokens API."
+[PortableBackupExportConfirm]
+other = "La copia contiene la clave de descubrimiento automático y puede incluir claves de servidores y credenciales de notificación o DDNS. Guárdala de forma segura."
+[PortableBackupImportConfirm]
+other = "La importación reemplaza los servidores, notificaciones, monitores, tareas programadas, reglas de alerta, DDNS y NAT actuales. También borra el historial de monitorización/tráfico, las sesiones y los tokens API. Esta acción no se puede deshacer. ¿Continuar?"
+[PortableBackupFailed]
+other = "La operación falló"
+[PortableBackupChooseFile]
+other = "Selecciona un archivo de copia de seguridad"
+[PortableBackupRestartRequired]
+other = "Importación completada. Reinicia Dashboard inmediatamente."
+[PortableBackupRestarting]
+other = "Importación completada. Dashboard se está reiniciando automáticamente."
 [NezhaMonitoring]
 other = "Nezha Monitoring"
 
