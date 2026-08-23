@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -411,6 +412,35 @@ var funcMap = template.FuncMap{
 			return "0B"
 		}
 		return bytefmt.ByteSize(a - b)
+	},
+	// CycleTransferServerIDs 同一条周期流量规则内按服务器管理页的顺序排列，
+	// 即 SortedServerList 的 DisplayIndex 降序、相同则 ID 升序。
+	// 已删除但统计里仍留有记录的服务器排在末尾。
+	"CycleTransferServerIDs": func(transfer map[uint64]uint64) []uint64 {
+		ids := make([]uint64, 0, len(transfer))
+		singleton.SortedServerLock.RLock()
+		for _, s := range singleton.SortedServerList {
+			if _, ok := transfer[s.ID]; ok {
+				ids = append(ids, s.ID)
+			}
+		}
+		singleton.SortedServerLock.RUnlock()
+
+		if len(ids) == len(transfer) {
+			return ids
+		}
+		listed := make(map[uint64]struct{}, len(ids))
+		for _, id := range ids {
+			listed[id] = struct{}{}
+		}
+		rest := make([]uint64, 0, len(transfer)-len(ids))
+		for id := range transfer {
+			if _, ok := listed[id]; !ok {
+				rest = append(rest, id)
+			}
+		}
+		sort.Slice(rest, func(i, j int) bool { return rest[i] < rest[j] })
+		return append(ids, rest...)
 	},
 	"TransClassName": func(a float64) string {
 		if a == 0 {

@@ -58,7 +58,8 @@
                 </thead>
                 <tbody>
                     {{range $id, $stats := .CycleTransferStats}}
-                    {{range $innerId, $transfer := $stats.Transfer}}
+                    {{range $innerId := CycleTransferServerIDs $stats.Transfer}}
+                    {{$transfer := index $stats.Transfer $innerId}}
                     {{$TransLeftPercent := TransLeftPercent (UintToFloat $transfer) (UintToFloat $stats.Max)}}
                         <tr>
                             <td class="ui center aligned">{{$id}}</td>

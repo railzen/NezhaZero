@@ -92,7 +92,8 @@
         </thead>
         <tbody>
           {{range $id, $stats := .CycleTransferStats}}
-          {{range $innerId, $transfer := $stats.Transfer}}
+          {{range $innerId := CycleTransferServerIDs $stats.Transfer}}
+          {{$transfer := index $stats.Transfer $innerId}}
           <tr>
             <td class="mdui-text-center">{{$id}}</td>
             <td class="mdui-text-center">{{$stats.Name}}</td>
