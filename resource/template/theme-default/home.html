@@ -336,14 +336,31 @@
                         return null;
                 }
             },
+            parsePublicNoteDate(value) {
+                if (!value || typeof value !== 'string') return null;
+                const trimmed = value.trim();
+                let parsed;
+                if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+                    parsed = new Date(trimmed);
+                } else {
+                    let normalized = trimmed;
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+                        normalized += 'T00:00:00';
+                    } else if (/^\d{4}-\d{2}-\d{2} /.test(normalized)) {
+                        normalized = normalized.replace(' ', 'T');
+                    }
+                    parsed = new Date(normalized + '+08:00');
+                }
+                return isNaN(parsed.getTime()) ? null : parsed;
+            },
             getAdjustTimezone(reference, target) {
                 const timezoneDifference = (reference.getTimezoneOffset() - target.getTimezoneOffset()) * 60 * 1000;
                 return new Date(target.getTime() + timezoneDifference);
             },
             getAutoRenewalEndDate(endDate, billingCycle) {
-                const expiration = new Date(endDate);
+                const expiration = this.parsePublicNoteDate(endDate);
+                if (!expiration || !billingCycle) return expiration;
                 const current = this.getAdjustTimezone(expiration, new Date());
-                if (isNaN(expiration.getTime()) || !billingCycle) return expiration;
                 if (current < expiration) return expiration;
 
                 const nextExpiration = new Date(expiration);
@@ -383,8 +400,8 @@
                 if (!endDate || typeof endDate !== 'string') return null;
                 if (endDate.includes('0000-00-00')) return 'lifetime';
 
-                const expiration = new Date(endDate);
-                if (isNaN(expiration.getTime())) return null;
+                const expiration = this.parsePublicNoteDate(endDate);
+                if (!expiration) return null;
 
                 const current = this.getAdjustTimezone(expiration, new Date());
                 const end = billing.autoRenewal == 1
