@@ -147,6 +147,47 @@
                                         <div class="thirteen wide column">
                                             <i class="clock icon"></i>@#secondToDate(server.State.Uptime)#@
                                         </div>
+                                        <template v-if="server.billing && server.billing.hasPrice">
+                                            <div class="three wide column">{{tr "Price"}}</div>
+                                            <div class="thirteen wide column">
+                                                <i class="bi bi-cash-stack"></i>
+                                                <span v-if="server.billing.amount == 0">FREE</span>
+                                                <span v-else-if="server.billing.amount == -1">PAYG</span>
+                                                <span v-else>@#server.billing.amount#@@#server.billing.cycle ? '/' + server.billing.cycle : ''#@</span>
+                                            </div>
+                                        </template>
+                                        <template v-if="server.billing && server.billing.remaining !== null">
+                                            <div class="three wide column">{{tr "Remaining"}}</div>
+                                            <div class="thirteen wide column">
+                                                <i class="bi bi-clock-history"></i>
+                                                <span v-if="server.billing.remaining === 'lifetime'">{{tr "Lifetime"}}</span>
+                                                <span v-else-if="server.billing.remaining < 0">{{tr "Expired"}}</span>
+                                                <span v-else>@#server.billing.remaining#@ {{tr "Days"}}</span>
+                                            </div>
+                                        </template>
+                                        <template v-if="server.billing && server.billing.hasPlan">
+                                            <div class="three wide column">{{tr "Plan"}}</div>
+                                            <div class="thirteen wide column">
+                                                <span v-if="server.billing.plan.bandwidth">
+                                                    <i class="bi bi-speedometer2"></i> @#server.billing.plan.bandwidth#@
+                                                </span>
+                                                <span v-if="server.billing.plan.trafficVol">
+                                                    &nbsp;
+                                                    <i v-if="server.billing.plan.trafficType == 1" class="bi bi-arrow-up"></i>
+                                                    <i v-else-if="server.billing.plan.trafficType == 3" class="bi bi-arrows-collapse"></i>
+                                                    <i v-else class="bi bi-arrow-down-up"></i>
+                                                    @#server.billing.plan.trafficVol#@
+                                                </span>
+                                                <span v-if="server.billing.plan.ipv4">&nbsp; IPv4</span>
+                                                <span v-if="server.billing.plan.ipv6">&nbsp; IPv6</span>
+                                                <span v-for="(item, index) in server.billing.plan.networkRoute" :key="'route-' + index">
+                                                    &nbsp; @#item#@
+                                                </span>
+                                                <span v-for="(item, index) in server.billing.plan.extra" :key="'extra-' + index">
+                                                    &nbsp; @#item#@
+                                                </span>
+                                            </div>
+                                        </template>
                                     </div>
                                 </div>
                             </div>
@@ -195,10 +236,162 @@
         },
         mixins: [mixinsVue],
         created() {
-            this.servers = JSON.parse('{{.Servers}}').servers;
+            const servers = JSON.parse('{{.Servers}}').servers;
+            this.initBillingInfo(servers);
+            this.servers = servers;
             this.group()
         },
         methods: {
+            initBillingInfo(servers, previousServers = []) {
+                const previousBilling = new Map(previousServers.map(server => [server.ID, server.billing]));
+                servers.forEach(server => {
+                    server.billing = server.PublicNote
+                        ? this.getBillingInfo(server.PublicNote)
+                        : previousBilling.get(server.ID) || this.getBillingInfo(null);
+                });
+            },
+            getBillingInfo(note) {
+                const billing = {
+                    hasPrice: false,
+                    amount: null,
+                    cycle: null,
+                    remaining: null,
+                    hasPlan: false,
+                    plan: {
+                        bandwidth: null,
+                        trafficVol: null,
+                        trafficType: null,
+                        ipv4: false,
+                        ipv6: false,
+                        networkRoute: [],
+                        extra: []
+                    }
+                };
+
+                if (!note) return billing;
+
+                let parsed;
+                try {
+                    parsed = JSON.parse(note);
+                } catch (e) {
+                    return billing;
+                }
+
+                const data = parsed.billingDataMod;
+                if (data && typeof data === 'object' && data.amount !== undefined && data.amount !== null && data.amount !== '') {
+                    billing.hasPrice = true;
+                    billing.amount = data.amount;
+                    billing.cycle = data.cycle || null;
+                }
+                if (data && typeof data === 'object') {
+                    billing.remaining = this.getRemainingDays(data);
+                }
+
+                const plan = parsed.planDataMod;
+                if (plan && typeof plan === 'object') {
+                    billing.plan.bandwidth = plan.bandwidth || null;
+                    billing.plan.trafficVol = plan.trafficVol || null;
+                    billing.plan.trafficType = plan.trafficType || null;
+                    billing.plan.ipv4 = plan.IPv4 >= 1;
+                    billing.plan.ipv6 = plan.IPv6 >= 1;
+                    billing.plan.networkRoute = typeof plan.networkRoute === 'string'
+                        ? plan.networkRoute.split(',').map(item => item.trim()).filter(Boolean)
+                        : [];
+                    billing.plan.extra = typeof plan.extra === 'string'
+                        ? plan.extra.split(',').map(item => item.trim()).filter(Boolean)
+                        : [];
+                    billing.hasPlan = Boolean(
+                        billing.plan.bandwidth || billing.plan.trafficVol || billing.plan.ipv4 || billing.plan.ipv6 ||
+                        billing.plan.networkRoute.length || billing.plan.extra.length
+                    );
+                }
+                return billing;
+            },
+            getBillingCycle(billingCycle) {
+                const cycle = String(billingCycle).toLowerCase();
+                switch (cycle) {
+                    case '月':
+                    case 'mo':
+                    case 'month':
+                    case 'monthly':
+                    case 'm':
+                        return 'M';
+                    case '季':
+                    case 'quarterly':
+                    case 'q':
+                        return 'Q';
+                    case '半':
+                    case '半年':
+                    case 'half':
+                    case 'semi-annually':
+                    case 'h':
+                        return 'H';
+                    case '年':
+                    case 'yr':
+                    case 'year':
+                    case 'annually':
+                    case 'y':
+                        return 'Y';
+                    default:
+                        return null;
+                }
+            },
+            getAdjustTimezone(reference, target) {
+                const timezoneDifference = (reference.getTimezoneOffset() - target.getTimezoneOffset()) * 60 * 1000;
+                return new Date(target.getTime() + timezoneDifference);
+            },
+            getAutoRenewalEndDate(endDate, billingCycle) {
+                const expiration = new Date(endDate);
+                const current = this.getAdjustTimezone(expiration, new Date());
+                if (isNaN(expiration.getTime()) || !billingCycle) return expiration;
+                if (current < expiration) return expiration;
+
+                const nextExpiration = new Date(expiration);
+                let expirationMonth = expiration.getMonth();
+
+                switch (billingCycle) {
+                    case 'M':
+                        nextExpiration.setFullYear(current.getFullYear());
+                        nextExpiration.setMonth(current < new Date(current.getFullYear(), current.getMonth(), expiration.getDate())
+                            ? current.getMonth()
+                            : current.getMonth() + 1);
+                        break;
+                    case 'Q':
+                        nextExpiration.setFullYear(current.getFullYear());
+                        while (expirationMonth < current.getMonth()) expirationMonth += 3;
+                        nextExpiration.setMonth(expirationMonth);
+                        if (current >= nextExpiration) nextExpiration.setMonth(expirationMonth + 3);
+                        break;
+                    case 'H':
+                        nextExpiration.setFullYear(current.getFullYear());
+                        while (expirationMonth < current.getMonth()) expirationMonth += 6;
+                        nextExpiration.setMonth(expirationMonth);
+                        if (current >= nextExpiration) nextExpiration.setMonth(expirationMonth + 6);
+                        break;
+                    case 'Y':
+                        nextExpiration.setFullYear(current < new Date(current.getFullYear(), expiration.getMonth(), expiration.getDate())
+                            ? current.getFullYear()
+                            : current.getFullYear() + 1);
+                        break;
+                }
+
+                nextExpiration.setHours(expiration.getHours(), expiration.getMinutes(), expiration.getSeconds(), expiration.getMilliseconds());
+                return nextExpiration;
+            },
+            getRemainingDays(billing) {
+                const endDate = billing.endDate;
+                if (!endDate || typeof endDate !== 'string') return null;
+                if (endDate.includes('0000-00-00')) return 'lifetime';
+
+                const expiration = new Date(endDate);
+                if (isNaN(expiration.getTime())) return null;
+
+                const current = this.getAdjustTimezone(expiration, new Date());
+                const end = billing.autoRenewal == 1
+                    ? this.getAutoRenewalEndDate(endDate, this.getBillingCycle(billing.cycle || '月'))
+                    : expiration;
+                return Math.ceil((end - current) / (1000 * 60 * 60 * 24));
+            },
             togglePopup(event, id) {
                 // 切换弹出层的激活状态
                 this.activePopup = this.activePopup === id ? null : id;
@@ -592,6 +785,7 @@
         ws.onmessage = function (evt) {
             const oldServers = statusCards.servers
             const data = JSON.parse(evt.data)
+            statusCards.initBillingInfo(data.servers, oldServers)
             statusCards.servers = data.servers
             for (let i = 0; i < statusCards.servers.length; i++) {
                 const ns = statusCards.servers[i];
